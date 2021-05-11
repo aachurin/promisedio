@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# CLion/Macos
+.DS_Store
+.idea/
+.vscode/
+cmake-build-debug/
+
+# Other
+tests/
