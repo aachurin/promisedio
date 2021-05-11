@@ -5,12 +5,12 @@ from . _cext import (
     process_promise_chain,
     deferred,
     exec_async,
-    sleep,
     run_loop,
     close_loop,
     use_python_default_sigint,
     check_can_fork,
     _inspectloop,
+    asleep,
     astat,
     afstat,
     aopenfd,
@@ -18,7 +18,18 @@ from . _cext import (
     aread,
     awrite,
     aopen,
-    aseek
+    aseek,
+    aunlink,
+    amkdir,
+    armdir,
+    amkdtemp
     )
 
 os.register_at_fork(before=check_can_fork)
+
+
+def run():
+    try:
+        run_loop()
+    finally:
+        close_loop()

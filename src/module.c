@@ -52,6 +52,10 @@ static PyMethodDef module_methods[] = {
     PROMISEDIO_AWRITE_METHODDEF
     PROMISEDIO_ASTAT_METHODDEF
     PROMISEDIO_ASEEK_METHODDEF
+    PROMISEDIO_AUNLINK_METHODDEF
+    PROMISEDIO_AMKDIR_METHODDEF
+    PROMISEDIO_ARMDIR_METHODDEF
+    PROMISEDIO_AMKDTEMP_METHODDEF
     {NULL, NULL}
 };
 
@@ -337,7 +341,12 @@ promisedio_aread_impl(PyObject *module, int fd, Py_ssize_t size,
 /*[clinic end generated code: output=bf7079c627b8be8e input=51bfdd0ce090c2d3]*/
 {
     if (size < 0) {
-        return (PyObject *) Fs_readall(fd, offset);
+        if (offset >= 0) {
+            PyErr_SetString(PyExc_ValueError,
+                            "offset could only be specified in conjunction with the size parameter");
+            return NULL;
+        }
+        return (PyObject *) Fs_readall(fd);
     } else {
         return (PyObject *) Fs_read(fd, size, offset);
     }
@@ -358,6 +367,62 @@ promisedio_awrite_impl(PyObject *module, int fd, PyObject *data,
 /*[clinic end generated code: output=7cf412bfa8880d3c input=0ef935ba3f15fbfd]*/
 {
     return (PyObject *) Fs_write(fd, data, offset);
+}
+
+/*[clinic input]
+promisedio.aunlink
+    name: path
+
+Async equivalent of unlink().
+[clinic start generated code]*/
+
+static PyObject *
+promisedio_aunlink_impl(PyObject *module, PyObject *name)
+/*[clinic end generated code: output=a75a8fa5065bf670 input=6088501f7d897d0d]*/
+{
+    return (PyObject *) Fs_unlink(PyBytes_AS_STRING(name));
+}
+
+/*[clinic input]
+promisedio.amkdir
+    name: path
+    mode: int = 0o777
+
+Async equivalent of mkdir().
+[clinic start generated code]*/
+
+static PyObject *
+promisedio_amkdir_impl(PyObject *module, PyObject *name, int mode)
+/*[clinic end generated code: output=8c165388fd974f52 input=3208ed7be7063a8d]*/
+{
+    return (PyObject *) Fs_mkdir(PyBytes_AS_STRING(name), mode);
+}
+/*[clinic input]
+promisedio.armdir
+    name: path
+
+Async equivalent of rmdir().
+[clinic start generated code]*/
+
+static PyObject *
+promisedio_armdir_impl(PyObject *module, PyObject *name)
+/*[clinic end generated code: output=9b3494f86f7d83bd input=1695b356914bcec6]*/
+{
+    return (PyObject *) Fs_rmdir(PyBytes_AS_STRING(name));
+}
+
+/*[clinic input]
+promisedio.amkdtemp
+    tpl: path
+
+Async equivalent of mkdtemp.
+[clinic start generated code]*/
+
+static PyObject *
+promisedio_amkdtemp_impl(PyObject *module, PyObject *tpl)
+/*[clinic end generated code: output=e0c1506fcefab432 input=c8a34a8c29c9cf01]*/
+{
+    return (PyObject *) Fs_mkdtemp(PyBytes_AS_STRING(tpl));
 }
 
 /*[clinic input]

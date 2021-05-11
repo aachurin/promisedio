@@ -78,7 +78,7 @@ FileIO_read_impl(FileIO *self, Py_ssize_t size, Py_ssize_t offset)
         size = _PY_READ_MAX;
     }
     if (size < 0) {
-        return (PyObject *) Fs_readall(self->fd, offset);
+        return (PyObject *) Fs_readall(self->fd);
     } else {
         return (PyObject *) Fs_read(self->fd, size, offset);
     }

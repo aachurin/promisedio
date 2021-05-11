@@ -6,7 +6,7 @@
 
 #include <Python.h>
 
-#define DEBUG_OUTPUT stderr
+//#define DEBUG_OUTPUT stderr
 
 #include <Python.h>
 

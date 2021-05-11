@@ -700,6 +700,169 @@ exit:
     return return_value;
 }
 
+PyDoc_STRVAR(promisedio_aunlink__doc__,
+"aunlink($module, /, name)\n"
+"--\n"
+"\n"
+"Async equivalent of unlink().");
+
+#define PROMISEDIO_AUNLINK_METHODDEF    \
+    {"aunlink", (PyCFunction)(void(*)(void))promisedio_aunlink, METH_FASTCALL|METH_KEYWORDS, promisedio_aunlink__doc__},
+
+static PyObject *
+promisedio_aunlink_impl(PyObject *module, PyObject *name);
+
+static PyObject *
+promisedio_aunlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"name", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "aunlink", 0};
+    PyObject *argsbuf[1];
+    PyObject *name = NULL;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!path_converter(args[0], &name)) {
+        goto exit;
+    }
+    return_value = promisedio_aunlink_impl(module, name);
+
+exit:
+    /* Cleanup for name */
+    Py_XDECREF(name);
+
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_amkdir__doc__,
+"amkdir($module, /, name, mode=511)\n"
+"--\n"
+"\n"
+"Async equivalent of mkdir().");
+
+#define PROMISEDIO_AMKDIR_METHODDEF    \
+    {"amkdir", (PyCFunction)(void(*)(void))promisedio_amkdir, METH_FASTCALL|METH_KEYWORDS, promisedio_amkdir__doc__},
+
+static PyObject *
+promisedio_amkdir_impl(PyObject *module, PyObject *name, int mode);
+
+static PyObject *
+promisedio_amkdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"name", "mode", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "amkdir", 0};
+    PyObject *argsbuf[2];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
+    PyObject *name = NULL;
+    int mode = 511;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 2, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!path_converter(args[0], &name)) {
+        goto exit;
+    }
+    if (!noptargs) {
+        goto skip_optional_pos;
+    }
+    if (PyFloat_Check(args[1])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    mode = _PyLong_AsInt(args[1]);
+    if (mode == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+skip_optional_pos:
+    return_value = promisedio_amkdir_impl(module, name, mode);
+
+exit:
+    /* Cleanup for name */
+    Py_XDECREF(name);
+
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_armdir__doc__,
+"armdir($module, /, name)\n"
+"--\n"
+"\n"
+"Async equivalent of rmdir().");
+
+#define PROMISEDIO_ARMDIR_METHODDEF    \
+    {"armdir", (PyCFunction)(void(*)(void))promisedio_armdir, METH_FASTCALL|METH_KEYWORDS, promisedio_armdir__doc__},
+
+static PyObject *
+promisedio_armdir_impl(PyObject *module, PyObject *name);
+
+static PyObject *
+promisedio_armdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"name", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "armdir", 0};
+    PyObject *argsbuf[1];
+    PyObject *name = NULL;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!path_converter(args[0], &name)) {
+        goto exit;
+    }
+    return_value = promisedio_armdir_impl(module, name);
+
+exit:
+    /* Cleanup for name */
+    Py_XDECREF(name);
+
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_amkdtemp__doc__,
+"amkdtemp($module, /, tpl)\n"
+"--\n"
+"\n"
+"Async equivalent of mkdtemp.");
+
+#define PROMISEDIO_AMKDTEMP_METHODDEF    \
+    {"amkdtemp", (PyCFunction)(void(*)(void))promisedio_amkdtemp, METH_FASTCALL|METH_KEYWORDS, promisedio_amkdtemp__doc__},
+
+static PyObject *
+promisedio_amkdtemp_impl(PyObject *module, PyObject *tpl);
+
+static PyObject *
+promisedio_amkdtemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"tpl", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "amkdtemp", 0};
+    PyObject *argsbuf[1];
+    PyObject *tpl = NULL;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!path_converter(args[0], &tpl)) {
+        goto exit;
+    }
+    return_value = promisedio_amkdtemp_impl(module, tpl);
+
+exit:
+    /* Cleanup for tpl */
+    Py_XDECREF(tpl);
+
+    return return_value;
+}
+
 PyDoc_STRVAR(promisedio_aopen__doc__,
 "aopen($module, /, name, flags=\'r\', mode=438)\n"
 "--\n"
@@ -766,4 +929,4 @@ skip_optional_pos:
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=ff3afc8ef3b2e50b input=a9049054013a1b77]*/
+/*[clinic end generated code: output=c68ce860f8dd23c8 input=a9049054013a1b77]*/
