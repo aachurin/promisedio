@@ -39,9 +39,12 @@ Generate_PyType_Impl(
     READONLY(st_birthtim, st.st_birthtim, uv_timespec_t)
 )
 
-#define INIT_REQUEST(req, promise)                     \
-    if (((req) = new_file_request(promise)) == NULL) { \
-        return -1;                                     \
+#define INIT_PROMISE_AND_REQ(promise, req)              \
+    if (((promise) = Promise_New()) == NULL)            \
+        return NULL;                                    \
+    if (((req) = new_file_request(promise)) == NULL) {  \
+        Py_DECREF(promise);                             \
+        return NULL;                                    \
     }
 
 static void
@@ -82,33 +85,15 @@ stat_callback(uv_fs_t *req)
     RELEASE_GIL
 }
 
-static void
-fstat_noraise_callback(uv_fs_t *req)
+Promise *
+Fs_stat(const char *path, int follow_symlinks)
 {
-    ACQUIRE_GIL
-    ssize_t result = req->result;
-    if (result >= 0) {
-        StatObj *obj = StatObj_New();
-        if (obj == NULL) {
-            Promise_RejectWithPyErr(Request_Promise(req));
-        } else {
-            obj->st = req->statbuf;
-            Promise_Resolve(Request_Promise(req), (PyObject *) obj);
-            Py_DECREF(obj);
-        }
-    } else {
-        Promise_Resolve(Request_Promise(req), Py_None);
-    }
-    close_file_request(req);
-    RELEASE_GIL
-}
-
-int
-Fs_Stat1(Promise *promise, const char *path, int follow_symlinks)
-{
+    Promise *promise;
     uv_fs_t *req;
-    INIT_REQUEST(req, promise)
-    uv_loop_t *loop = Loop_Get();
+    uv_loop_t *loop;
+
+    INIT_PROMISE_AND_REQ(promise, req);
+    loop = Loop_Get();
     BEGIN_ALLOW_THREADS
     if (follow_symlinks) {
         uv_fs_stat(loop, req, path, stat_callback);
@@ -116,65 +101,26 @@ Fs_Stat1(Promise *promise, const char *path, int follow_symlinks)
         uv_fs_lstat(loop, req, path, stat_callback);
     }
     END_ALLOW_THREADS
-    return 0;
-}
-
-Promise *
-Fs_stat(const char *path, int follow_symlinks)
-{
-    Promise *promise;
-    if ((promise = Promise_New()) == NULL)
-        return NULL;
-    if (Fs_Stat1(promise, path, follow_symlinks)) {
-        Py_DECREF(promise);
-        return NULL;
-    }
     return promise;
-}
-
-int
-Fs_Fstat1(Promise * promise, uv_file fd)
-{
-    uv_fs_t *req;
-    if (fd < 0) {
-        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
-        return -1;
-    }
-    INIT_REQUEST(req, promise)
-    uv_loop_t *loop = Loop_Get();
-    BEGIN_ALLOW_THREADS
-    uv_fs_fstat(loop, req, fd, stat_callback);
-    END_ALLOW_THREADS
-    return 0;
 }
 
 Promise *
 Fs_fstat(uv_file fd)
 {
     Promise *promise;
-    if ((promise = Promise_New()) == NULL)
-        return NULL;
-    if (Fs_Fstat1(promise, fd)) {
-        Py_DECREF(promise);
-        return NULL;
-    }
-    return promise;
-}
-
-int
-Fs_Fstat_NoRaise1(Promise *promise, uv_file fd)
-{
     uv_fs_t *req;
+    uv_loop_t *loop;
+
     if (fd < 0) {
         PyErr_SetString(PyExc_ValueError, "negative file descriptor");
-        return -1;
+        return NULL;
     }
-    INIT_REQUEST(req, promise)
-    uv_loop_t *loop = Loop_Get();
+    INIT_PROMISE_AND_REQ(promise, req);
+    loop = Loop_Get();
     BEGIN_ALLOW_THREADS
-    uv_fs_fstat(loop, req, fd, fstat_noraise_callback);
+    uv_fs_fstat(loop, req, fd, stat_callback);
     END_ALLOW_THREADS
-    return 0;
+    return promise;
 }
 
 typedef struct {
@@ -186,7 +132,7 @@ typedef struct {
 } fs_seek_req_t;
 
 static void
-fs_seek_work(fs_seek_req_t* req)
+seek_work(fs_seek_req_t* req)
 {
     Py_off_t pos;
 #ifdef MS_WINDOWS
@@ -217,41 +163,34 @@ seek_callback(fs_seek_req_t* req, int status)
     } else {
         promise_reject_with_oserror(Request_Promise(req), result);
     }
-        Request_Close(req);
+    Request_Close(req);
     RELEASE_GIL
-}
-
-int
-Fs_seek1(Promise *promise, uv_file fd, Py_off_t pos, int whence)
-{
-    fs_seek_req_t *req;
-    if (fd < 0) {
-        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
-        return -1;
-    }
-    if ((req = Request_New(promise, fs_seek_req_t)) == NULL) {
-        return -1;
-    }
-    req->fd = fd;
-    req->pos = pos;
-    req->whence = whence;
-    uv_loop_t *loop = Loop_Get();
-    BEGIN_ALLOW_THREADS
-    uv_queue_work(loop, (uv_work_t *) req, (uv_work_cb) fs_seek_work, (uv_after_work_cb) seek_callback);
-    END_ALLOW_THREADS
-    return 0;
 }
 
 Promise *
 Fs_seek(uv_file fd, Py_off_t pos, int whence)
 {
     Promise *promise;
+    fs_seek_req_t *req;
+    uv_loop_t *loop;
+
+    if (fd < 0) {
+        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
+        return NULL;
+    }
     if ((promise = Promise_New()) == NULL)
         return NULL;
-    if (Fs_seek1(promise, fd, pos, whence)) {
+    if ((req = Request_New(promise, fs_seek_req_t)) == NULL) {
         Py_DECREF(promise);
         return NULL;
     }
+    req->fd = fd;
+    req->pos = pos;
+    req->whence = whence;
+    loop = Loop_Get();
+    BEGIN_ALLOW_THREADS
+    uv_queue_work(loop, (uv_work_t *) req, (uv_work_cb) seek_work, (uv_after_work_cb) seek_callback);
+    END_ALLOW_THREADS
     return promise;
 }
 
@@ -274,10 +213,13 @@ fileop_callback(uv_fs_t *req)
     RELEASE_GIL
 }
 
-int
-Fs_open1(Promise *promise, const char *path, const char *flags, int mode)
+Promise *
+Fs_open(const char *path, const char *flags, int mode)
 {
+    Promise *promise;
     uv_fs_t *req;
+    uv_loop_t *loop;
+
     int open_flags = 0, writable = 0, readable = 0;
 
     for (unsigned long i = 0; i < strlen(flags); i++) {
@@ -285,10 +227,10 @@ Fs_open1(Promise *promise, const char *path, const char *flags, int mode)
         switch (c) {
             case 'x':
                 if (writable || readable) {
-                bad_mode:
+                    bad_mode:
                     PyErr_SetString(PyExc_ValueError,
                                     "must have exactly one of create/read/write/append mode");
-                    return -1;
+                    return NULL;
                 }
                 writable = 1;
                 open_flags |= UV_FS_O_EXCL | UV_FS_O_CREAT;
@@ -324,9 +266,9 @@ Fs_open1(Promise *promise, const char *path, const char *flags, int mode)
 
         /* c must not be duplicated */
         if (strchr(flags + i + 1, c)) {
-          invalid_mode:
+            invalid_mode:
             PyErr_Format(PyExc_ValueError, "invalid mode: '%s'", mode);
-            return -1;
+            return NULL;
         }
     }
 
@@ -341,59 +283,20 @@ Fs_open1(Promise *promise, const char *path, const char *flags, int mode)
     }
 
     #ifdef O_BINARY
-        open_flags |= O_BINARY;
+    open_flags |= O_BINARY;
     #endif
 
     #ifdef MS_WINDOWS
-        open_flags |= O_NOINHERIT;
+    open_flags |= O_NOINHERIT;
     #else
-        open_flags |= O_CLOEXEC;
+    open_flags |= O_CLOEXEC;
     #endif
 
-    INIT_REQUEST(req, promise);
-    uv_loop_t *loop = Loop_Get();
+    INIT_PROMISE_AND_REQ(promise, req);
+    loop = Loop_Get();
     BEGIN_ALLOW_THREADS
     uv_fs_open(loop, req, path, open_flags, mode, fileop_callback);
     END_ALLOW_THREADS
-    return 0;
-}
-
-Promise *
-Fs_open(const char *path, const char *flags, int mode)
-{
-    Promise *promise;
-    if ((promise = Promise_New()) == NULL)
-        return NULL;
-    if (Fs_open1(promise, path, flags, mode)) {
-        Py_DECREF(promise);
-        return NULL;
-    }
-    return promise;
-}
-
-static int
-readbuf1(Promise *promise, uv_file fd, char* buffer, size_t size, Py_off_t offset)
-{
-    uv_fs_t *req;
-    INIT_REQUEST(req, promise)
-    uv_buf_t buf = uv_buf_init(buffer, size);
-    uv_loop_t *loop = Loop_Get();
-    BEGIN_ALLOW_THREADS
-    uv_fs_read(loop, req, fd, &buf, 1, offset, fileop_callback);
-    END_ALLOW_THREADS
-    return 0;
-}
-
-static Promise *
-readbuf(uv_file fd, char* buffer, size_t size, Py_off_t offset)
-{
-    Promise *promise;
-    if ((promise = Promise_New()) == NULL)
-        return NULL;
-    if (readbuf1(promise, fd, buffer, size, offset)) {
-        Py_DECREF(promise);
-        return NULL;
-    }
     return promise;
 }
 
@@ -408,28 +311,32 @@ read_callback(PyObject *buffer, PyObject *result)
     return buffer;
 }
 
-int
-Fs_read1(Promise *promise, uv_file fd, Py_ssize_t size, Py_off_t offset)
-{
-    PyObject *buffer = PyBytes_FromStringAndSize(NULL, size);
-    if (readbuf1(promise, fd, PyBytes_AS_STRING(buffer), size, offset)) {
-        Py_DECREF(buffer);
-        return -1;
-    }
-    Promise_CALLBACK(promise, read_callback, NULL, buffer);
-    return 0;
-}
-
 Promise *
 Fs_read(uv_file fd, Py_ssize_t size, Py_off_t offset)
 {
     Promise *promise;
-    if ((promise = Promise_New()) == NULL)
+    uv_fs_t *req;
+    uv_loop_t *loop;
+
+    PyObject *buffer = PyBytes_FromStringAndSize(NULL, size);
+    if (buffer == NULL) {
         return NULL;
-    if (Fs_read1(promise, fd, size, offset)) {
+    }
+    if ((promise = Promise_New()) == NULL) {
+        Py_DECREF(buffer);
+        return NULL;
+    }
+    if ((req = new_file_request(promise)) == NULL) {
+        Py_DECREF(buffer);
         Py_DECREF(promise);
         return NULL;
     }
+    uv_buf_t buf = uv_buf_init(PyBytes_AS_STRING(buffer), size);
+    loop = Loop_Get();
+    BEGIN_ALLOW_THREADS
+    uv_fs_read(loop, req, fd, &buf, 1, offset, fileop_callback);
+    END_ALLOW_THREADS
+    Promise_CALLBACK(promise, read_callback, NULL, buffer);
     return promise;
 }
 
@@ -459,6 +366,22 @@ new_buffersize(size_t currentsize)
         /* Avoid tiny read() calls. */
         addend = SMALLCHUNK;
     return addend + currentsize;
+}
+
+static Promise *
+readbuf(uv_file fd, char* buffer, size_t size, Py_off_t offset)
+{
+    Promise *promise;
+    uv_fs_t *req;
+    uv_loop_t *loop;
+
+    INIT_PROMISE_AND_REQ(promise, req);
+    loop = Loop_Get();
+    uv_buf_t buf = uv_buf_init(buffer, size);
+    BEGIN_ALLOW_THREADS
+    uv_fs_read(loop, req, fd, &buf, 1, offset, fileop_callback);
+    END_ALLOW_THREADS
+    return promise;
 }
 
 static PyObject *
@@ -507,14 +430,14 @@ readall_readbuf_callback(ReadContext *context, PyObject *n)
 }
 
 static PyObject *
-readall_fstat_callback(ReadContext *context, StatObj *value)
+readall_init_callback(ReadContext *context, PyObject *size)
 {
     Py_off_t pos = context->pos;
     Py_off_t end;
-    if ((PyObject *) value == Py_None) {
+    if ((PyObject *) size == Py_None) {
         end = (Py_off_t) -1;
     } else {
-        end = (Py_off_t) value->st.st_size;
+        end = PyLong_AsOff_t(size);
     }
     if (end > 0 && end >= pos && pos >= 0 && end - pos < PY_SSIZE_T_MAX) {
         /* This is probably a real file, so we try to allocate a
@@ -533,66 +456,77 @@ readall_fstat_callback(ReadContext *context, StatObj *value)
     return readall_readbuf_callback(context, NULL);
 }
 
-int
-Fs_readall1(Promise *promise, int fd, Py_off_t offset)
+static void
+readall_getsize_callback(uv_fs_t *req)
 {
-    ReadContext *context = ReadContext_New();
-    if (context == NULL) {
-        return -1;
+    ACQUIRE_GIL
+    ssize_t result = req->result;
+    if (result >= 0) {
+        PyObject *size = PyLong_FromSsize_t(req->statbuf.st_size);
+        Promise_Resolve(Request_Promise(req), size);
+        Py_DECREF(size);
+    } else {
+        Promise_Resolve(Request_Promise(req), Py_None);
     }
-    context->fd = fd;
-    context->pos = offset;
-    context->bytes_read = 0;
-    if (Fs_Fstat_NoRaise1(promise, fd)) {
-        Py_DECREF(context);
-        return -1;
-    }
-    Promise_CALLBACK(promise, readall_fstat_callback, NULL, context);
-    return 0;
+    close_file_request(req);
+    RELEASE_GIL
 }
 
 Promise *
 Fs_readall(int fd, Py_off_t offset)
 {
     Promise *promise;
-    if ((promise = Promise_New()) == NULL)
-        return NULL;
-    if (Fs_readall1(promise, fd, offset)) {
-        Py_DECREF(promise);
-        return NULL;
-    }
-    return promise;
-}
-
-int
-Fs_write1(Promise *promise, int fd, PyObject *data, Py_off_t offset)
-{
-    if (!PyBytes_Check(data)) {
-        PyErr_SetString(PyExc_TypeError,
-                        "bytes argument expected");
-        return -1;
-    }
+    ReadContext *context;
     uv_fs_t *req;
-    INIT_REQUEST(req, promise)
-    uv_buf_t buf = uv_buf_init(PyBytes_AS_STRING(data), PyBytes_GET_SIZE(data));
-    uv_loop_t *loop = Loop_Get();
+    uv_loop_t *loop;
+
+    if (fd < 0) {
+        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
+        return NULL;
+    }
+    context = ReadContext_New();
+    if (context == NULL) {
+        return NULL;
+    }
+    if ((promise = Promise_New()) == NULL) {
+        Py_DECREF(context);
+        return NULL;
+    }
+    if ((req = new_file_request(promise)) == NULL) {
+        Py_DECREF(promise);
+        Py_DECREF(context);
+        return NULL;
+    }
+    context->fd = fd;
+    context->pos = offset;
+    context->bytes_read = 0;
+    loop = Loop_Get();
     BEGIN_ALLOW_THREADS
-    uv_fs_write(loop, req, fd, &buf, 1, offset, fileop_callback);
+    uv_fs_fstat(loop, req, fd, readall_getsize_callback);
     END_ALLOW_THREADS
-    Promise_CALLBACK(promise, NULL, NULL, data);
-    return 0;
+    Promise_CALLBACK(promise, readall_init_callback, NULL, context);
+    return promise;
 }
 
 Promise *
 Fs_write(int fd, PyObject *data, Py_off_t offset)
 {
     Promise *promise;
-    if ((promise = Promise_New()) == NULL)
-        return NULL;
-    if (Fs_write1(promise, fd, data, offset)) {
-        Py_DECREF(promise);
+    uv_fs_t *req;
+    uv_loop_t *loop;
+
+    if (!PyBytes_Check(data)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "bytes argument expected");
         return NULL;
     }
+    INIT_PROMISE_AND_REQ(promise, req);
+    loop = Loop_Get();
+    uv_buf_t buf = uv_buf_init(PyBytes_AS_STRING(data), PyBytes_GET_SIZE(data));
+    BEGIN_ALLOW_THREADS
+    uv_fs_write(loop, req, fd, &buf, 1, offset, fileop_callback);
+    END_ALLOW_THREADS
+    Promise_CALLBACK(promise, NULL, NULL, data);
     return promise;
 }
 
@@ -610,28 +544,18 @@ close_callback(uv_fs_t *req)
     RELEASE_GIL
 }
 
-int
-Fs_close1(Promise *promise, uv_file fd)
-{
-    uv_fs_t *req;
-    INIT_REQUEST(req, promise);
-    uv_loop_t *loop = Loop_Get();
-    BEGIN_ALLOW_THREADS
-    uv_fs_close(loop, req, fd, close_callback);
-    END_ALLOW_THREADS
-    return 0;
-}
-
 Promise *
 Fs_close(uv_file fd)
 {
     Promise *promise;
-    if ((promise = Promise_New()) == NULL)
-        return NULL;
-    if (Fs_close1(promise, fd)) {
-        Py_DECREF(promise);
-        return NULL;
-    }
+    uv_fs_t *req;
+    uv_loop_t *loop;
+
+    INIT_PROMISE_AND_REQ(promise, req);
+    loop = Loop_Get();
+    BEGIN_ALLOW_THREADS
+    uv_fs_close(loop, req, fd, close_callback);
+    END_ALLOW_THREADS
     return promise;
 }
 

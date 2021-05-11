@@ -3,7 +3,7 @@
 
 #include <uv.h>
 #include "common.h"
-#include "general_types.h"
+//#include "general_types.h"
 #include "promise.h"
 #include "timer.h"
 #include "fs.h"
@@ -31,27 +31,27 @@ path_converter(PyObject *obj, PyObject **path)
 
 #include "clinic/module.c.h"
 
-static PyMethodDef module_methods[] = {         \
-    PROMISEDIO__GETALLOCATEDOBJECTSCOUNT_METHODDEF      \
-    PROMISEDIO__MEMDEBUG_METHODDEF                      \
-    PROMISEDIO__CLEARFREELISTS_METHODDEF                \
-    PROMISEDIO_PROCESS_PROMISE_CHAIN_METHODDEF          \
-    PROMISEDIO_DEFERRED_METHODDEF                       \
-    PROMISEDIO_EXEC_ASYNC_METHODDEF                     \
-    PROMISEDIO_SLEEP_METHODDEF                          \
-    PROMISEDIO_RUN_LOOP_METHODDEF                       \
-    PROMISEDIO_CLOSE_LOOP_METHODDEF                     \
-    PROMISEDIO_USE_PYTHON_DEFAULT_SIGINT_METHODDEF      \
-    PROMISEDIO_CHECK_CAN_FORK_METHODDEF                 \
-    PROMISEDIO__INSPECTLOOP_METHODDEF                   \
-    PROMISEDIO_ACLOSE_METHODDEF                         \
-    PROMISEDIO_AFSTAT_METHODDEF                         \
-    PROMISEDIO_AOPENFD_METHODDEF                        \
-    PROMISEDIO_AOPEN_METHODDEF                          \
-    PROMISEDIO_AREAD_METHODDEF                          \
-    PROMISEDIO_AWRITE_METHODDEF                         \
-    PROMISEDIO_ASTAT_METHODDEF                          \
-    PROMISEDIO_ASEEK_METHODDEF                          \
+static PyMethodDef module_methods[] = {
+    PROMISEDIO__GETALLOCATEDOBJECTSCOUNT_METHODDEF
+    PROMISEDIO__MEMDEBUG_METHODDEF
+    PROMISEDIO__CLEARFREELISTS_METHODDEF
+    PROMISEDIO_PROCESS_PROMISE_CHAIN_METHODDEF
+    PROMISEDIO_DEFERRED_METHODDEF
+    PROMISEDIO_EXEC_ASYNC_METHODDEF
+    PROMISEDIO_ASLEEP_METHODDEF
+    PROMISEDIO_RUN_LOOP_METHODDEF
+    PROMISEDIO_CLOSE_LOOP_METHODDEF
+    PROMISEDIO_USE_PYTHON_DEFAULT_SIGINT_METHODDEF
+    PROMISEDIO_CHECK_CAN_FORK_METHODDEF
+    PROMISEDIO__INSPECTLOOP_METHODDEF
+    PROMISEDIO_ACLOSE_METHODDEF
+    PROMISEDIO_AFSTAT_METHODDEF
+    PROMISEDIO_AOPENFD_METHODDEF
+    PROMISEDIO_AOPEN_METHODDEF
+    PROMISEDIO_AREAD_METHODDEF
+    PROMISEDIO_AWRITE_METHODDEF
+    PROMISEDIO_ASTAT_METHODDEF
+    PROMISEDIO_ASEEK_METHODDEF
     {NULL, NULL}
 };
 
@@ -146,15 +146,15 @@ promisedio_deferred_impl(PyObject *module)
 }
 
 /*[clinic input]
-promisedio.sleep
+promisedio.asleep
     seconds: double
 
 Delay execution for a given number of seconds.
 [clinic start generated code]*/
 
 static PyObject *
-promisedio_sleep_impl(PyObject *module, double seconds)
-/*[clinic end generated code: output=db7bf8f2c1e0f2da input=eee189eaf37b5581]*/
+promisedio_asleep_impl(PyObject *module, double seconds)
+/*[clinic end generated code: output=fb41f697d719628e input=d7fea55f3ef07db0]*/
 {
     if (seconds < 0) {
         PyErr_SetString(PyExc_ValueError, "sleep length must be non-negative");
@@ -401,9 +401,9 @@ PyInit__cext(void)
     if (m == NULL) {
         return NULL;
     }
-    if (GeneralTypes_module_init()) {
-        return NULL;
-    }
+//    if (GeneralTypes_module_init()) {
+//        return NULL;
+//    }
     if (Promise_module_init()) {
         return NULL;
     }

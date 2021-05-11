@@ -7,7 +7,6 @@
 #include "common.h"
 #include "promise.h"
 
-int Timer_Timeout1(Promise *promise, double timeout);
 Promise * Timer_Timeout(double timeout);
 
 #endif

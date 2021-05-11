@@ -12,33 +12,26 @@ timeout_callback(uv_timer_t *timer)
     ACQUIRE_GIL
     Promise_Resolve((Promise *) timer->data, Py_None);
     Py_DECREF(timer->data);
-        Handle_Close(timer);
+    Handle_Close(timer);
     RELEASE_GIL
-}
-
-int
-Timer_Timeout1(Promise *promise, double timeout)
-{
-    uv_timer_t *timer;
-    if ((timer = Handle_New(uv_timer_t)) == NULL)
-        return -1;
-    uv_timer_init(Loop_Get(), timer);
-    Handle_SetFreeOnClose(timer);
-    Py_INCREF(promise);
-    timer->data = promise;
-    uv_timer_start(timer, timeout_callback, (long long) (timeout * 1000), 0);
-    return 0;
 }
 
 Promise *
 Timer_Timeout(double timeout)
 {
     Promise *promise;
+    uv_timer_t *timer;
+
     if ((promise = Promise_New()) == NULL)
         return NULL;
-    if (Timer_Timeout1(promise, timeout)) {
+    if ((timer = Handle_New(uv_timer_t)) == NULL) {
         Py_DECREF(promise);
         return NULL;
     }
+    uv_timer_init(Loop_Get(), timer);
+    Handle_SetFreeOnClose(timer);
+    Py_INCREF(promise);
+    timer->data = promise;
+    uv_timer_start(timer, timeout_callback, (long long) (timeout * 1000), 0);
     return promise;
 }

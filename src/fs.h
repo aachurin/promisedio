@@ -24,15 +24,6 @@ Generate_PyType_Header(
 )
 
 PyObject * Fs_Path(PyObject *path);
-int Fs_Stat1(Promise *promise, const char *path, int follow_symlinks);
-int Fs_Fstat1(Promise *promise, int fd);
-int Fs_Fstat_NoRaise1(Promise *promise, int fd);
-int Fs_open1(Promise *promise, const char *path, const char *flags, int mode);
-int Fs_read1(Promise *promise, int fd, Py_ssize_t size, Py_off_t offset);
-int Fs_readall1(Promise *promise, int fd, Py_off_t offset);
-int Fs_write1(Promise *promise, int fd, PyObject *data, Py_off_t offset);
-int Fs_seek1(Promise *promise, int fd, Py_off_t pos, int whence);
-int Fs_close1(Promise *promise, int fd);
 Promise * Fs_stat(const char *path, int follow_symlinks);
 Promise * Fs_fstat(int fd);
 Promise * Fs_open(const char *path, const char *flags, int mode);

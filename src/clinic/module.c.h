@@ -131,24 +131,24 @@ promisedio_deferred(PyObject *module, PyObject *Py_UNUSED(ignored))
     return promisedio_deferred_impl(module);
 }
 
-PyDoc_STRVAR(promisedio_sleep__doc__,
-"sleep($module, /, seconds)\n"
+PyDoc_STRVAR(promisedio_asleep__doc__,
+"asleep($module, /, seconds)\n"
 "--\n"
 "\n"
 "Delay execution for a given number of seconds.");
 
-#define PROMISEDIO_SLEEP_METHODDEF    \
-    {"sleep", (PyCFunction)(void(*)(void))promisedio_sleep, METH_FASTCALL|METH_KEYWORDS, promisedio_sleep__doc__},
+#define PROMISEDIO_ASLEEP_METHODDEF    \
+    {"asleep", (PyCFunction)(void(*)(void))promisedio_asleep, METH_FASTCALL|METH_KEYWORDS, promisedio_asleep__doc__},
 
 static PyObject *
-promisedio_sleep_impl(PyObject *module, double seconds);
+promisedio_asleep_impl(PyObject *module, double seconds);
 
 static PyObject *
-promisedio_sleep(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_asleep(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"seconds", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "sleep", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "asleep", 0};
     PyObject *argsbuf[1];
     double seconds;
 
@@ -166,7 +166,7 @@ promisedio_sleep(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
             goto exit;
         }
     }
-    return_value = promisedio_sleep_impl(module, seconds);
+    return_value = promisedio_asleep_impl(module, seconds);
 
 exit:
     return return_value;
@@ -766,4 +766,4 @@ skip_optional_pos:
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=0f54b3072042fb3c input=a9049054013a1b77]*/
+/*[clinic end generated code: output=ff3afc8ef3b2e50b input=a9049054013a1b77]*/
