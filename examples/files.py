@@ -33,7 +33,7 @@ async def readwrite_temp():
 
 
 async def read_stdin():
-    print(await aread(0))
+    print(await aread(0))  # Send EOF to stop reading (Ctrl+D)
 
 
 exec_async(readwrite())

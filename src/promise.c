@@ -779,15 +779,6 @@ resume_coroutine(PyObject *coro, PyObject *value, unsigned int state)
     return 0;
 }
 
-#define CLEAR_PROMISE_CALLBACK(ob)                         \
-    if ((ob)->flags & PROMISE_HAS_CALLBACK) {              \
-        if ((ob)->flags & PROMISE_PY_CALLBACK) {           \
-            Py_CLEAR((ob)->fulfilled);                     \
-            Py_CLEAR((ob)->rejected);                      \
-        }                                                  \
-        (ob)->flags ^= (ob)->flags & PROMISE_HAS_CALLBACK; \
-    }
-
 static int
 handle_scheduled_promise(Promise *promise)
 {
@@ -823,6 +814,13 @@ handle_scheduled_promise(Promise *promise)
         } else if (promise->flags & PROMISE_C_CALLBACK) {
             Py_CLEAR(promise->context);
         }
+
+        if (promise->flags & PROMISE_PY_CALLBACK) {
+            Py_CLEAR(promise->fulfilled);
+            Py_CLEAR(promise->rejected);
+        }
+        promise->flags ^= promise->flags & PROMISE_HAS_CALLBACK;
+
         if (value != NULL) {
             if (Promise_CheckExact(value)) {
                 Promise *new_promise = (Promise *) value;
@@ -850,7 +848,6 @@ handle_scheduled_promise(Promise *promise)
                         promise->head = NULL;
                         promise->tail = NULL;
                     }
-                    CLEAR_PROMISE_CALLBACK(promise);
                     Py_DECREF(new_promise);
                     return 0;
                 }
@@ -873,7 +870,6 @@ handle_scheduled_promise(Promise *promise)
             }
             Py_CLEAR(promise->finally);
         }
-        CLEAR_PROMISE_CALLBACK(promise);
     }
 
     promise->flags ^= promise->flags & PROMISE_SCHEDULED;

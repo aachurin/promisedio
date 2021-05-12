@@ -101,7 +101,7 @@ _Mem_Alloc(size_t size) {
 void
 _Mem_Free(void *ptr)
 {
-    LOG("Mem__Free(%p)", ptr);
+    LOG("_Mem_Free(%p)", ptr);
     --freelist_context.allocs;
     ptr -= sizeof(void *);
     freelist_t *freelist = *(freelist_t **) ptr;
@@ -180,19 +180,19 @@ _Handle_New(size_t size)
     return handle;
 }
 
-#define try_free_handle(handle)                                 \
-    if ((handle)->flags & UV_HANDLE_FREE) {                     \
-        LOG("try_free_handle(%p) -> ok", handle);               \
-        Mem_Free(handle);                                       \
-    } else {                                                    \
-        LOG("try_free_handle(%p) -> wait", handle);             \
-        Handle_SetFreeOnClose(handle);                          \
+#define _Handle_TRY_FREE(handle)                        \
+    if ((handle)->flags & UV_HANDLE_FREE) {             \
+        LOG("_Handle_TRY_FREE(%p) -> ok", handle);      \
+        Mem_Free(handle);                               \
+    } else {                                            \
+        LOG("_Handle_TRY_FREE(%p) -> wait", handle);    \
+        Handle_SetFreeOnClose(handle);                  \
     }
 
 void
 _Handle_Release(uv_handle_t *handle) {
     int closing = uv_is_closing(handle);
-    try_free_handle(handle);
+    _Handle_TRY_FREE(handle);
     if (!closing) {
         Handle_Close(handle);
     }
@@ -202,7 +202,7 @@ void
 _Handle_OnClose(uv_handle_t *handle)
 {
     ACQUIRE_GIL
-    try_free_handle(handle);
+    _Handle_TRY_FREE(handle);
     RELEASE_GIL
 }
 
