@@ -1,9 +1,17 @@
+import os
 from setuptools import setup
 from setuptools.extension import Extension
+
+
+if os.environ.get("BUILD_WITH_DEBUG"):
+    define_macros = [("DEBUG_OUTPUT", "stderr")]
+else:
+    define_macros = []
 
 extensions = [
     Extension(
         "promisedio._cext",
+        define_macros=define_macros,
         sources=[
             "src/memory.c",
             "src/promise.c",

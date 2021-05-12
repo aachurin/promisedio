@@ -83,8 +83,10 @@ print_unhandled_exception()
 {
     PyObject *exc, *val, *tb;
     PyErr_Fetch(&exc, &val, &tb);
-    if (exc == NULL)
+    if (exc == NULL) {
+        PySys_WriteStderr("lost exception value\n");
         return;
+    }
     PyErr_NormalizeException(&exc, &val, &tb);
     if (tb == NULL) {
         tb = Py_None;
@@ -96,6 +98,30 @@ print_unhandled_exception()
     Py_DECREF(exc);
     Py_DECREF(val);
     Py_DECREF(tb);
+    PySys_WriteStderr("\n");
+}
+
+static void
+print_unhandled_exception_from_dealloc(PyObject *value)
+{
+    PySys_WriteStderr("Unhandled promise rejection:\n");
+    if (value) {
+        PyObject *error_type, *error_value, *error_traceback;
+        PyErr_Fetch(&error_type, &error_value, &error_traceback);
+        PyObject *exc = PyExceptionInstance_Class(value);
+        PyObject *tb = PyException_GetTraceback(value);
+        if (tb == NULL) {
+            tb = Py_None;
+            Py_INCREF(tb);
+        }
+        PyErr_Display(exc, value, tb);
+        PySys_WriteStderr("\n");
+        PyException_SetTraceback(value, Py_None);
+        Py_DECREF(tb);
+        PyErr_Restore(error_type, error_value, error_traceback);
+    } else {
+        PySys_WriteStderr("lost exception value\n");
+    }
 }
 
 Promise *
@@ -262,32 +288,11 @@ static void
 promise_dealloc(Promise *self)
 {
     if ((self->flags & PROMISE_REJECTED) && (!(self->flags & PROMISE_VALUABLE))) {
-        PyObject_CallFinalizerFromDealloc((PyObject *) self);
+        print_unhandled_exception_from_dealloc(self->value);
     }
     PyObject_GC_UnTrack(self);
     promise_clear(self);
     Mem_GC_Del(Promise, self);
-}
-
-static void
-promise_finalize(Promise *self)
-{
-    if ((self->flags & PROMISE_REJECTED) && (!(self->flags & PROMISE_VALUABLE))) {
-        PyObject *error_type, *error_value, *error_traceback;
-        PyErr_Fetch(&error_type, &error_value, &error_traceback);
-        PyObject *val = self->value;
-        PyObject *exc = PyExceptionInstance_Class(val);
-        PyObject *tb = PyException_GetTraceback(val);
-        if (tb == NULL) {
-            tb = Py_None;
-            Py_INCREF(tb);
-        }
-        PySys_WriteStderr("Unhandled promise rejection:\n");
-        PyErr_Display(exc, val, tb);
-        PySys_WriteStderr("\n");
-        Py_DECREF(tb);
-        PyErr_Restore(error_type, error_value, error_traceback);
-    }
 }
 
 static PyObject*
@@ -505,7 +510,6 @@ static PyTypeObject PromiseType = {
     .tp_dealloc = (destructor) promise_dealloc,
     .tp_traverse = (traverseproc) promise_traverse,
     .tp_clear = (inquiry) promise_clear,
-    .tp_finalize = (destructor) promise_finalize,
     .tp_repr = promise_repr,
     .tp_methods = PromiseType_methods,
     .tp_as_async = &PromiseType_as_async
@@ -821,27 +825,31 @@ handle_scheduled_promise(Promise *promise)
         } else if (promise->flags & PROMISE_C_CALLBACK) {
             Py_CLEAR(promise->context);
         }
-        if (value != NULL && value != promise->value) {
-            Py_DECREF(promise->value);
+        if (value != NULL) {
             if (Promise_CheckExact(value)) {
                 Promise *new_promise = (Promise *) value;
-                assert (new_promise != promise);
-                if (new_promise->flags & PROMISE_RESOLVED) {
-                    value = new_promise->value;
-                    state = new_promise->flags & PROMISE_SCHEDULED;
-                    Py_INCREF(value);
+                if (new_promise == promise) {
+                    // The same promise. It's bad but not fatal.
                     Py_DECREF(new_promise);
                 } else {
-                    // promise will be removed from the promise_chain
-                    // we must re-schedule it
-                    Py_INCREF(promise);
-                    Chain_Add(new_promise, promise, promise);
-                    CLEAR_PROMISE_CALLBACK(promise);
-                    Py_DECREF(new_promise);
-                    return 0;
+                    if (new_promise->flags & PROMISE_RESOLVED) {
+                        value = new_promise->value;
+                        state = new_promise->flags & PROMISE_SCHEDULED;
+                        Py_INCREF(value);
+                        Py_DECREF(new_promise);
+                    } else {
+                        // promise will be removed from the promise_chain
+                        // we must re-schedule it
+                        Py_INCREF(promise);
+                        Chain_Add(new_promise, promise, promise);
+                        CLEAR_PROMISE_CALLBACK(promise);
+                        Py_DECREF(new_promise);
+                        return 0;
+                    }
                 }
+            } else {
+                Py_XSETREF(promise->value, value);
             }
-            promise->value = value;
         }
         if (promise->finally) {
             PyObject *tmp = PyObject_CallNoArgs(promise->finally);

@@ -224,7 +224,6 @@ static void
 int_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-    LOG("int_callback %d", req->result);
     if (req->result < 0) {
         promise_reject_with_oserror(Request_Promise(req), req->result);
     } else {
@@ -348,7 +347,6 @@ static Promise *
 readbuf(uv_file fd, char* buffer, size_t size, Py_off_t offset)
 {
     Promise *promise;
-    LOG("readbuf %d %d %d", fd, size, offset);
     uv_buf_t buf = uv_buf_init(buffer, size);
     FS_UV_CALL(uv_fs_read, promise, fd, &buf, 1, offset, int_callback);
     return promise;
