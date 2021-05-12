@@ -1,0 +1,21 @@
+<svg viewBox="0 0 500 500" width="150px" height="150px" xmlns="http://www.w3.org/2000/svg">
+  <path d="M 90 450 C 70 450 50 430 50 410 L 50 50 L 125 125 L 375 125 L 450 50 L 450 410 C 450 430 430 450 410 450 L 90 450 Z"
+        stroke-width="22px" stroke-linecap="round" stroke-linejoin="round" stroke="black" fill="white"
+        fill-opacity="0.85"
+  ></path>
+  <path d="M 276 125 C 277 318 333 377 450 355 L 450 50 L 375 125 Z" fill="rgb(255, 148, 82)"></path>
+  <path d="M 90 450 C 70 450 50 430 50 410 L 50 50 L 125 125 L 375 125 L 450 50 L 450 410 C 450 430 430 450 410 450 L 90 450 Z"
+        stroke-width="22px" stroke-linecap="round" stroke-linejoin="round" stroke="black"
+        fill-opacity="0"
+  ></path>
+  <path style="stroke: rgb(0, 0, 0); stroke-linecap: round; stroke-width: 22px;" d="M 18 310 L 115 350"></path>
+  <path style="stroke: rgb(0, 0, 0); stroke-linecap: round; stroke-width: 22px;" d="M 18 375 L 100 375"></path>
+  <path style="stroke: rgb(0, 0, 0); stroke-linecap: round; stroke-width: 22px;" d="M 390 340 L 485 310"></path>
+  <path style="stroke: rgb(0, 0, 0); stroke-linecap: round; stroke-width: 22px;" d="M 405 370 L 480 365"></path>
+  <path style="stroke: rgb(0, 0, 0); stroke-linecap: round; stroke-width: 22px;" d="M 200 130 L 200 185"></path>
+  <path style="stroke: rgb(0, 0, 0); stroke-linecap: round; stroke-width: 22px;" d="M 250 130 L 250 200"></path>
+  <path style="stroke: rgb(0, 0, 0); stroke-linecap: round; stroke-width: 22px;" d="M 300 130 L 300 190"></path>
+  <circle style="" cx="160" cy="280" r="23"></circle>
+  <circle style="" cx="340" cy="280" r="23"></circle>
+  <path d="M 624 274 Q 630 265 637 274 L 657 301 Q 663 310 650 310 L 610 310 Q 597 310 604 301 Z" transform="matrix(-1, 0, 0, -1, 880, 600)"></path>
+</svg>
