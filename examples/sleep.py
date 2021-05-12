@@ -1,17 +1,31 @@
+import time
 from promisedio import asleep, exec_async, run
 
 
-async def example1(timeout, value):
-    await asleep(timeout)
-    print("example", value, "done")
+print("started", time.time())
 
 
-exec_async(example1(4, 1))
-exec_async(example1(3, 2))
+async def example1(timeout):
+    print("example1", time.time())
+
+    def f1(_):
+        print("f1", time.time())
+        return asleep(3)
+
+    def f2(_):
+        print("f2", time.time())
+
+    asleep(timeout * 2).then(f2)
+
+    await asleep(timeout).then(f1)
+    print("done", time.time())
+
+
+exec_async(example1(5))
 
 run()
 
 # uncomment to see debug info
-# from promisedio import _getallocatedobjectscount, _memdebug
+# from promisedio import _getallocatedobjectscount, _printmeminfo
 # print(_getallocatedobjectscount())
-# _memdebug()
+# _printmeminfo()

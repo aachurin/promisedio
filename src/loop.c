@@ -157,20 +157,17 @@ Loop_Run()
         initialise_loop(loop);
     }
 
-    int do_more = 1;
+    int uv_do_more = 1, promise_do_more = 1;
     BEGIN_ALLOW_THREADS
-    while (do_more) {
-        do_more = uv_run(loop, UV_RUN_ONCE);
-        if (loop_break) {
+    while (uv_do_more || promise_do_more) {
+        ACQUIRE_GIL
+        promise_do_more = PromiseChain_Process();
+        RELEASE_GIL
+        if (promise_do_more < 0) {
             break;
         }
-        int ret;
-        ACQUIRE_GIL
-        ret = PromiseChain_Process();
-        RELEASE_GIL
-        if (ret > 0) {
-            do_more = 1;
-        } else if (ret < 0) {
+        uv_do_more = uv_run(loop, UV_RUN_ONCE);
+        if (loop_break) {
             break;
         }
     }

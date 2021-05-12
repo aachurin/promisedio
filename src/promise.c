@@ -148,7 +148,6 @@ Promise_Callback(Promise *self, promisecallback fulfilled, promisecallback rejec
 {
     assert (!(self->flags & (PROMISE_HAS_CALLBACK | PROMISE_FREEZED)));
     assert (!(self->finally));
-    assert (fulfilled || rejected);
     self->flags |= PROMISE_C_CALLBACK;
     self->fulfilled = (PyObject *) fulfilled;
     self->rejected = (PyObject *) rejected;
@@ -792,8 +791,7 @@ resume_coroutine(PyObject *coro, PyObject *value, unsigned int state)
 static int
 handle_scheduled_promise(Promise *promise)
 {
-    // it's a heart of engine
-
+    // It's a heart of an engine
     assert(!(promise->flags & PROMISE_RESOLVED) && (promise->flags & PROMISE_SCHEDULED));
 
     unsigned int state = promise->flags & PROMISE_SCHEDULED;
@@ -830,23 +828,33 @@ handle_scheduled_promise(Promise *promise)
                 Promise *new_promise = (Promise *) value;
                 if (new_promise == promise) {
                     // The same promise. It's bad but not fatal.
-                    Py_DECREF(new_promise);
+                    // Nothing to do.
+                } else if (new_promise->flags & PROMISE_RESOLVED) {
+                    // Easy peasy. Just copy state and value.
+                    state = new_promise->flags & PROMISE_SCHEDULED;
+                    value = new_promise->value;
+                    Py_INCREF(value);
+                    Py_XSETREF(promise->value, value);
                 } else {
-                    if (new_promise->flags & PROMISE_RESOLVED) {
-                        value = new_promise->value;
-                        state = new_promise->flags & PROMISE_SCHEDULED;
-                        Py_INCREF(value);
-                        Py_DECREF(new_promise);
-                    } else {
-                        // promise will be removed from the promise_chain
-                        // we must re-schedule it
+                    if (new_promise->coro || new_promise->finally || Py_REFCNT(new_promise) > 2) {
+                        Py_XSETREF(new_promise, Promise_Then(new_promise));
+                    }
+                    if (promise->coro || promise->finally || Py_REFCNT(promise) > 1) {
+                        // We must re-schedule promise
                         Py_INCREF(promise);
                         Chain_Add(new_promise, promise, promise);
-                        CLEAR_PROMISE_CALLBACK(promise);
-                        Py_DECREF(new_promise);
-                        return 0;
+                    } else {
+                        // We can replace current promise with the new one without consequences
+                        new_promise->head = promise->head;
+                        new_promise->tail = promise->tail;
+                        promise->head = NULL;
+                        promise->tail = NULL;
                     }
+                    CLEAR_PROMISE_CALLBACK(promise);
+                    Py_DECREF(new_promise);
+                    return 0;
                 }
+                Py_DECREF(new_promise);
             } else {
                 Py_XSETREF(promise->value, value);
             }

@@ -32,8 +32,13 @@ async def readwrite_temp():
         await aunlink(name)
 
 
+async def read_stdin():
+    print(await aread(0))
+
+
 exec_async(readwrite())
 exec_async(readwrite_temp())
+exec_async(read_stdin())
 
 run()
 
