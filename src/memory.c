@@ -209,18 +209,18 @@ _Handle_OnClose(uv_handle_t *handle)
 void
 Mem_DebugInfo()
 {
-    printf("%-25s%10s%10s%10s\n", "Type", "size", "limit", "minsize");
+    fprintf(stderr, "%-25s%10s%10s%10s\n", "Type", "size", "limit", "minsize");
     for (int i = 0; i < 64; ++i) {
         int index = (i + 1) << 3;
         if (generic_freelists[i].chained) {
-            printf("%-25d%10zd%10zd%10zd\n",
+            fprintf(stderr, "%-25d%10zd%10zd%10zd\n",
                    index, generic_freelists[i].size, generic_freelists[i].limit, generic_freelists[i].minsize1);
         }
     }
     freelist_t *it = freelist_context.root;
     while (it) {
         if (it->name) {
-            printf("%-25s%10zd%10zd%10zd\n", it->name, it->size, it->limit, it->minsize1);
+            fprintf(stderr, "%-25s%10zd%10zd%10zd\n", it->name, it->size, it->limit, it->minsize1);
         }
         it = it->next;
     }

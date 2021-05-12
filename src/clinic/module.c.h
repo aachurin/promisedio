@@ -20,22 +20,22 @@ promisedio__getallocatedobjectscount(PyObject *module, PyObject *Py_UNUSED(ignor
     return promisedio__getallocatedobjectscount_impl(module);
 }
 
-PyDoc_STRVAR(promisedio__memdebug__doc__,
-"_memdebug($module, /)\n"
+PyDoc_STRVAR(promisedio__printmeminfo__doc__,
+"_printmeminfo($module, /)\n"
 "--\n"
 "\n"
 "Memory debug info");
 
-#define PROMISEDIO__MEMDEBUG_METHODDEF    \
-    {"_memdebug", (PyCFunction)promisedio__memdebug, METH_NOARGS, promisedio__memdebug__doc__},
+#define PROMISEDIO__PRINTMEMINFO_METHODDEF    \
+    {"_printmeminfo", (PyCFunction)promisedio__printmeminfo, METH_NOARGS, promisedio__printmeminfo__doc__},
 
 static PyObject *
-promisedio__memdebug_impl(PyObject *module);
+promisedio__printmeminfo_impl(PyObject *module);
 
 static PyObject *
-promisedio__memdebug(PyObject *module, PyObject *Py_UNUSED(ignored))
+promisedio__printmeminfo(PyObject *module, PyObject *Py_UNUSED(ignored))
 {
-    return promisedio__memdebug_impl(module);
+    return promisedio__printmeminfo_impl(module);
 }
 
 PyDoc_STRVAR(promisedio__clearfreelists__doc__,
@@ -863,8 +863,45 @@ exit:
     return return_value;
 }
 
+PyDoc_STRVAR(promisedio_amkstemp__doc__,
+"amkstemp($module, /, tpl)\n"
+"--\n"
+"\n"
+"Async equivalent of mkstemp.");
+
+#define PROMISEDIO_AMKSTEMP_METHODDEF    \
+    {"amkstemp", (PyCFunction)(void(*)(void))promisedio_amkstemp, METH_FASTCALL|METH_KEYWORDS, promisedio_amkstemp__doc__},
+
+static PyObject *
+promisedio_amkstemp_impl(PyObject *module, PyObject *tpl);
+
+static PyObject *
+promisedio_amkstemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"tpl", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "amkstemp", 0};
+    PyObject *argsbuf[1];
+    PyObject *tpl = NULL;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!path_converter(args[0], &tpl)) {
+        goto exit;
+    }
+    return_value = promisedio_amkstemp_impl(module, tpl);
+
+exit:
+    /* Cleanup for tpl */
+    Py_XDECREF(tpl);
+
+    return return_value;
+}
+
 PyDoc_STRVAR(promisedio_aopen__doc__,
-"aopen($module, /, name, flags=\'r\', mode=438)\n"
+"aopen($module, /, name, flags=\'r\', closefd=True)\n"
 "--\n"
 "\n"
 "Async equivalent of open().");
@@ -874,19 +911,19 @@ PyDoc_STRVAR(promisedio_aopen__doc__,
 
 static PyObject *
 promisedio_aopen_impl(PyObject *module, PyObject *name, const char *flags,
-                      int mode);
+                      int closefd);
 
 static PyObject *
 promisedio_aopen(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"name", "flags", "mode", NULL};
+    static const char * const _keywords[] = {"name", "flags", "closefd", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "aopen", 0};
     PyObject *argsbuf[3];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     PyObject *name;
     const char *flags = "r";
-    int mode = 438;
+    int closefd = 1;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 3, 0, argsbuf);
     if (!args) {
@@ -919,14 +956,14 @@ promisedio_aopen(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
                         "integer argument expected, got float" );
         goto exit;
     }
-    mode = _PyLong_AsInt(args[2]);
-    if (mode == -1 && PyErr_Occurred()) {
+    closefd = _PyLong_AsInt(args[2]);
+    if (closefd == -1 && PyErr_Occurred()) {
         goto exit;
     }
 skip_optional_pos:
-    return_value = promisedio_aopen_impl(module, name, flags, mode);
+    return_value = promisedio_aopen_impl(module, name, flags, closefd);
 
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=c68ce860f8dd23c8 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=ce0aa3b728dec764 input=a9049054013a1b77]*/

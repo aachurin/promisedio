@@ -13,29 +13,36 @@
     #define SMALLCHUNK BUFSIZ
 #endif
 
-#define INIT_PROMISE_AND_REQ(promise, req)              \
-    if (((promise) = Promise_New()) == NULL) {          \
-        return NULL;                                    \
-    }                                                   \
-    if (((req) = new_file_request(promise)) == NULL) {  \
-        Py_DECREF(promise);                             \
-        return NULL;                                    \
+#define INIT_PROMISE_AND_REQ(promise, req, req_type)        \
+    if (((promise) = Promise_New()) == NULL) {              \
+        return NULL;                                        \
+    }                                                       \
+    if (((req) = Request_New(promise, req_type)) == NULL) { \
+        Py_DECREF(promise);                                 \
+        return NULL;                                        \
     }
 
-#define FS_UV_CALL(func, promise, ...) {    \
-    uv_fs_t *req;                           \
-    INIT_PROMISE_AND_REQ(promise, req);     \
-    uv_loop_t *loop = Loop_Get();           \
-    BEGIN_ALLOW_THREADS                     \
-    func(loop, req, __VA_ARGS__);           \
-    END_ALLOW_THREADS                       \
+#define FS_UV_CALL(func, promise, ...) {            \
+    uv_fs_t *_req;                                  \
+    INIT_PROMISE_AND_REQ(promise, _req, uv_fs_t);   \
+    uv_loop_t *_loop = Loop_Get();                  \
+    BEGIN_ALLOW_THREADS                             \
+    func(_loop, _req, __VA_ARGS__);                 \
+    END_ALLOW_THREADS                               \
+}
+
+#define FS_UV_PUSH_WORK(req, work, work_cb) {                                               \
+    uv_loop_t *_loop = Loop_Get();                                                          \
+    BEGIN_ALLOW_THREADS                                                                     \
+    uv_queue_work(_loop, (uv_work_t *) req, (uv_work_cb) work, (uv_after_work_cb) work_cb); \
+    END_ALLOW_THREADS                                                                       \
 }
 
 #define new_file_request(promise) \
     Request_New(promise, uv_fs_t)
 
-#define close_file_request(req) \
-    uv_fs_req_cleanup(req);     \
+#define FS_REQUEST_CLOSE(req) \
+    uv_fs_req_cleanup(req);   \
     Request_Close(req)
 
 Generate_PyType_Impl(
@@ -83,13 +90,7 @@ static void
 promise_reject_with_oserror(Promise *promise, ssize_t err)
 {
     PyObject *args, *exc = NULL;
-    ssize_t pyerr;
-    #if EDOM > 0
-    pyerr = -err;
-    #else
-    pyerr = err;
-    #endif
-    args = Py_BuildValue("(is)", pyerr, uv_strerror((int) err));
+    args = Py_BuildValue("(is)", PY_ERR(err), uv_strerror((int) err));
     if (args != NULL) {
         exc = PyObject_Call(PyExc_OSError, args, NULL);
         Py_DECREF(args);
@@ -119,7 +120,7 @@ stat_callback(uv_fs_t *req)
     } else {
         promise_reject_with_oserror(Request_Promise(req), result);
     }
-    close_file_request(req);
+    FS_REQUEST_CLOSE(req);
     RELEASE_GIL
 }
 
@@ -160,6 +161,7 @@ seek_work(fs_seek_req_t* req)
 {
     Py_off_t pos;
 #ifdef MS_WINDOWS
+    // python uses _Py_BEGIN_SUPPRESS_IPH/_Py_END_SUPPRESS_IPH, need we the same calls?
     pos = _lseeki64(req->fd, req->pos, req->whence);
 #else
     pos = lseek(req->fd, req->pos, req->whence);
@@ -192,29 +194,29 @@ seek_callback(fs_seek_req_t* req, int status)
 }
 
 Promise *
-Fs_seek(uv_file fd, Py_off_t pos, int whence)
+Fs_seek(uv_file fd, Py_off_t pos, int how)
 {
-    Promise *promise;
-    fs_seek_req_t *req;
-    uv_loop_t *loop;
-
     if (fd < 0) {
         PyErr_SetString(PyExc_ValueError, "negative file descriptor");
         return NULL;
     }
-    if ((promise = Promise_New()) == NULL)
-        return NULL;
-    if ((req = Request_New(promise, fs_seek_req_t)) == NULL) {
-        Py_DECREF(promise);
-        return NULL;
+
+    #ifdef SEEK_SET
+    /* Turn 0, 1, 2 into SEEK_{SET,CUR,END} */
+    switch (how) {
+        case 0: how = SEEK_SET; break;
+        case 1: how = SEEK_CUR; break;
+        case 2: how = SEEK_END; break;
     }
+    #endif
+
+    Promise *promise;
+    fs_seek_req_t *req;
+    INIT_PROMISE_AND_REQ(promise, req, fs_seek_req_t)
     req->fd = fd;
     req->pos = pos;
-    req->whence = whence;
-    loop = Loop_Get();
-    BEGIN_ALLOW_THREADS
-    uv_queue_work(loop, (uv_work_t *) req, (uv_work_cb) seek_work, (uv_after_work_cb) seek_callback);
-    END_ALLOW_THREADS
+    req->whence = how;
+    FS_UV_PUSH_WORK(req, seek_work, seek_callback);
     return promise;
 }
 
@@ -222,6 +224,7 @@ static void
 int_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
+    LOG("int_callback %d", req->result);
     if (req->result < 0) {
         promise_reject_with_oserror(Request_Promise(req), req->result);
     } else {
@@ -233,7 +236,7 @@ int_callback(uv_fs_t *req)
             Py_DECREF(value);
         }
     }
-    close_file_request(req);
+    FS_REQUEST_CLOSE(req);
     RELEASE_GIL
 }
 
@@ -246,7 +249,7 @@ none_callback(uv_fs_t *req)
     } else {
         Promise_Resolve(Request_Promise(req), Py_None);
     }
-    close_file_request(req);
+    FS_REQUEST_CLOSE(req);
     RELEASE_GIL
 }
 
@@ -345,6 +348,7 @@ static Promise *
 readbuf(uv_file fd, char* buffer, size_t size, Py_off_t offset)
 {
     Promise *promise;
+    LOG("readbuf %d %d %d", fd, size, offset);
     uv_buf_t buf = uv_buf_init(buffer, size);
     FS_UV_CALL(uv_fs_read, promise, fd, &buf, 1, offset, int_callback);
     return promise;
@@ -409,7 +413,6 @@ readall_readbuf_callback(ReadContext *context, PyObject *n)
             return result;
         }
         context->bytes_read += size;
-        context->pos += size;
     }
     if (context->bytes_read >= (Py_ssize_t) context->bufsize) {
         context->bufsize = new_buffersize(context->bytes_read);
@@ -429,7 +432,7 @@ readall_readbuf_callback(ReadContext *context, PyObject *n)
     }
     Promise *promise = readbuf(context->fd,
                                PyBytes_AS_STRING(context->buffer) + context->bytes_read,
-                               context->bufsize - context->bytes_read, context->pos);
+                               context->bufsize - context->bytes_read, -1);
     if (promise == NULL) {
         Py_DECREF(context);
         return NULL;
@@ -477,7 +480,7 @@ get_filesize_callback(uv_fs_t *req)
     } else {
         Promise_Resolve(Request_Promise(req), Py_None);
     }
-    close_file_request(req);
+    FS_REQUEST_CLOSE(req);
     RELEASE_GIL
 }
 
@@ -510,7 +513,7 @@ Fs_readall(int fd)
     context->pos = 0;
     context->bytes_read = 0;
 
-    Promise *promise = Fs_seek(fd, 0, SEEK_CUR);
+    Promise *promise = Fs_seek(fd, 0, 1);
     if (promise == NULL) {
         Py_DECREF(context);
         return NULL;
@@ -581,7 +584,7 @@ mkdtemp_callback(uv_fs_t *req)
             Py_DECREF(result);
         }
     }
-    close_file_request(req);
+    FS_REQUEST_CLOSE(req);
     RELEASE_GIL
 }
 
@@ -593,17 +596,55 @@ Fs_mkdtemp(const char *tpl)
     return promise;
 }
 
-//Promise * Fs_mkstemp(const char *tpl);
-//{
-//    Promise *promise;
-//    FS_UV_CALL(uv_fs_mkstemp, promise, path, none_callback);
-//    return promise;
-//}
+static void
+mkstemp_callback(uv_fs_t *req)
+{
+    ACQUIRE_GIL
+    if (req->result < 0) {
+        promise_reject_with_oserror(Request_Promise(req), req->result);
+    } else {
+        PyObject *r1 = PyLong_FromSsize_t(req->result);
+        if (r1 == NULL) {
+            error:
+            Promise_RejectWithPyErr(Request_Promise(req));
+            goto done;
+        }
+        PyObject *r2 = PyBytes_FromString(req->path);
+        if (r2 == NULL) {
+            Py_DECREF(r1);
+            goto error;
+        }
+        PyObject *result = PyTuple_New(2);
+        if (result == NULL) {
+            Py_DECREF(r1);
+            Py_DECREF(r2);
+            goto error;
+        }
+        PyTuple_SET_ITEM(result, 0, r1);
+        PyTuple_SET_ITEM(result, 1, r2);
+        Promise_Resolve(Request_Promise(req), result);
+        Py_DECREF(result);
+    }
+done:
+    FS_REQUEST_CLOSE(req);
+    RELEASE_GIL
+}
+
+Promise *
+Fs_mkstemp(const char *tpl)
+{
+    Promise *promise;
+    FS_UV_CALL(uv_fs_mkstemp, promise, tpl, mkstemp_callback);
+    return promise;
+}
 
 int
 Fs_module_init()
 {
     if (PyType_Ready(&StatObj_Type) < 0) {
+        return -1;
+    }
+    if (PyType_Ready(&ReadContext_Type) < 0) {
         return -1;
     }
     return 0;

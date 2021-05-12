@@ -187,7 +187,7 @@ open_fstat_done(PyObject *context, StatObj *value)
 {
 #if defined(S_ISDIR)
     if (S_ISDIR(value->st.st_mode)) {
-        PyObject *args = Py_BuildValue("(is)", UV_EISDIR, uv_strerror(UV_EISDIR));
+        PyObject *args = Py_BuildValue("(is)", PY_ERR(UV_EISDIR), uv_strerror(UV_EISDIR));
         if (args == NULL)
             return NULL;
         PyErr_SetObject(PyExc_OSError, args);

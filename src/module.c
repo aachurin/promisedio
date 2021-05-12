@@ -33,7 +33,7 @@ path_converter(PyObject *obj, PyObject **path)
 
 static PyMethodDef module_methods[] = {
     PROMISEDIO__GETALLOCATEDOBJECTSCOUNT_METHODDEF
-    PROMISEDIO__MEMDEBUG_METHODDEF
+    PROMISEDIO__PRINTMEMINFO_METHODDEF
     PROMISEDIO__CLEARFREELISTS_METHODDEF
     PROMISEDIO_PROCESS_PROMISE_CHAIN_METHODDEF
     PROMISEDIO_DEFERRED_METHODDEF
@@ -56,6 +56,7 @@ static PyMethodDef module_methods[] = {
     PROMISEDIO_AMKDIR_METHODDEF
     PROMISEDIO_ARMDIR_METHODDEF
     PROMISEDIO_AMKDTEMP_METHODDEF
+    PROMISEDIO_AMKSTEMP_METHODDEF
     {NULL, NULL}
 };
 
@@ -78,14 +79,14 @@ promisedio__getallocatedobjectscount_impl(PyObject *module)
 }
 
 /*[clinic input]
-promisedio._memdebug
+promisedio._printmeminfo
 
 Memory debug info
 [clinic start generated code]*/
 
 static PyObject *
-promisedio__memdebug_impl(PyObject *module)
-/*[clinic end generated code: output=3e73444951015a07 input=5be249ff53c72946]*/
+promisedio__printmeminfo_impl(PyObject *module)
+/*[clinic end generated code: output=44a238f01c620815 input=8411c0de2085c335]*/
 {
     Mem_DebugInfo();
     Py_RETURN_NONE;
@@ -426,20 +427,34 @@ promisedio_amkdtemp_impl(PyObject *module, PyObject *tpl)
 }
 
 /*[clinic input]
+promisedio.amkstemp
+    tpl: path
+
+Async equivalent of mkstemp.
+[clinic start generated code]*/
+
+static PyObject *
+promisedio_amkstemp_impl(PyObject *module, PyObject *tpl)
+/*[clinic end generated code: output=c08feef6f593c303 input=3970394d552383c5]*/
+{
+    return (PyObject *) Fs_mkstemp(PyBytes_AS_STRING(tpl));
+}
+
+/*[clinic input]
 promisedio.aopen
     name: object
     flags: str = "r"
-    mode: int = 0o666
+    closefd: bool(accept={int}) = True
 
 Async equivalent of open().
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_aopen_impl(PyObject *module, PyObject *name, const char *flags,
-                      int mode)
-/*[clinic end generated code: output=54ea524453ba1fc6 input=40e3b267203c0381]*/
+                      int closefd)
+/*[clinic end generated code: output=1ace03ef2a9e0dca input=6245bcfc7caa7957]*/
 {
-    return FileIO_Open(name, flags, mode);
+    return FileIO_Open(name, flags, closefd);
 }
 
 static void

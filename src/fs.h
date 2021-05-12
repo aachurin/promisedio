@@ -30,13 +30,13 @@ Promise * Fs_open(const char *path, const char *flags, int mode);
 Promise * Fs_read(int fd, Py_ssize_t size, Py_off_t offset);
 Promise * Fs_readall(int fd);
 Promise * Fs_write(int fd, PyObject *data, Py_off_t offset);
-Promise * Fs_seek(int fd, Py_off_t pos, int whence);
+Promise * Fs_seek(int fd, Py_off_t pos, int how);
 Promise * Fs_close(int fd);
 Promise * Fs_unlink(const char *path);
 Promise * Fs_mkdir(const char *path, int mode);
 Promise * Fs_rmdir(const char *path);
 Promise * Fs_mkdtemp(const char *tpl);
-//Promise * Fs_mkstemp(const char *tpl);
+Promise * Fs_mkstemp(const char *tpl);
 int Fs_module_init();
 
 #endif

@@ -1,7 +1,7 @@
 import os
 from . _cext import (
     _getallocatedobjectscount,
-    _memdebug,
+    _printmeminfo,
     process_promise_chain,
     deferred,
     exec_async,
@@ -22,7 +22,8 @@ from . _cext import (
     aunlink,
     amkdir,
     armdir,
-    amkdtemp
+    amkdtemp,
+    amkstemp
     )
 
 os.register_at_fork(before=check_can_fork)

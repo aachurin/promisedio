@@ -4,9 +4,10 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <errno.h>
 #include <Python.h>
 
-//#define DEBUG_OUTPUT stderr
+#define DEBUG_OUTPUT stderr
 
 #include <Python.h>
 
@@ -81,5 +82,11 @@ typedef union {
     Py_off_t as_off;
     void *as_ptr;
 } unified_t;
+
+#if EDOM > 0
+    #define PY_ERR(err) -(err)
+#else
+    #define PY_ERR(err) err
+#endif
 
 #endif
