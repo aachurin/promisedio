@@ -38,9 +38,6 @@
     END_ALLOW_THREADS                                                                       \
 }
 
-#define new_file_request(promise) \
-    Request_New(promise, uv_fs_t)
-
 #define FS_REQUEST_CLOSE(req) \
     uv_fs_req_cleanup(req);   \
     Request_Close(req)
@@ -139,10 +136,6 @@ Fs_stat(const char *path, int follow_symlinks)
 Promise *
 Fs_fstat(uv_file fd)
 {
-    if (fd < 0) {
-        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
-        return NULL;
-    }
     Promise *promise;
     FS_UV_CALL(uv_fs_fstat, promise, fd, stat_callback);
     return promise;
@@ -196,11 +189,6 @@ seek_callback(fs_seek_req_t* req, int status)
 Promise *
 Fs_seek(uv_file fd, Py_off_t pos, int how)
 {
-    if (fd < 0) {
-        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
-        return NULL;
-    }
-
     #ifdef SEEK_SET
     /* Turn 0, 1, 2 into SEEK_{SET,CUR,END} */
     switch (how) {
@@ -499,10 +487,6 @@ readall_init1_callback(ReadContext *context, PyObject *pos)
 Promise *
 Fs_readall(int fd)
 {
-    if (fd < 0) {
-        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
-        return NULL;
-    }
     ReadContext *context = ReadContext_New();
     if (context == NULL)
         return NULL;
@@ -523,11 +507,7 @@ Fs_readall(int fd)
 Promise *
 Fs_write(int fd, PyObject *data, Py_off_t offset)
 {
-    if (!PyBytes_Check(data)) {
-        PyErr_SetString(PyExc_TypeError,
-                        "bytes argument expected");
-        return NULL;
-    }
+    // can crash if data is not PyBytes
     Promise *promise;
     uv_buf_t buf = uv_buf_init(PyBytes_AS_STRING(data), PyBytes_GET_SIZE(data));
     FS_UV_CALL(uv_fs_write, promise, fd, &buf, 1, offset, int_callback)
@@ -732,11 +712,15 @@ Promise *
 Fs_fsync(int fd)
 {
     Promise *promise;
-    if (fd < 0) {
-        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
-        return NULL;
-    }
     FS_UV_CALL(uv_fs_fsync, promise, fd, none_callback);
+    return promise;
+}
+
+Promise *
+Fs_ftruncate(int fd, Py_ssize_t length)
+{
+    Promise *promise;
+    FS_UV_CALL(uv_fs_ftruncate, promise, fd, length, none_callback);
     return promise;
 }
 

@@ -40,6 +40,7 @@ Promise * Fs_mkstemp(const char *tpl);
 Promise * Fs_scandir(const char *path);
 Promise * Fs_rename(const char *path, const char *new_path);
 Promise * Fs_fsync(int fd);
+Promise * Fs_ftruncate(int fd, Py_ssize_t length);
 
 int Fs_module_init();
 

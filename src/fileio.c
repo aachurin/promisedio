@@ -78,6 +78,11 @@ FileIO_read_impl(FileIO *self, Py_ssize_t size, Py_ssize_t offset)
         size = _PY_READ_MAX;
     }
     if (size < 0) {
+        if (offset >= 0) {
+            PyErr_SetString(PyExc_ValueError,
+                            "offset could only be specified in conjunction with the size parameter");
+            return NULL;
+        }
         return (PyObject *) Fs_readall(self->fd);
     } else {
         return (PyObject *) Fs_read(self->fd, size, offset);
@@ -98,6 +103,13 @@ static PyObject *
 FileIO_write_impl(FileIO *self, PyObject *data, Py_ssize_t offset)
 /*[clinic end generated code: output=f7e82b9007322940 input=f5f5b9fa18191ed0]*/
 {
+    if (self->fd < 0)
+        return fileio_err_closed();
+    if (!PyBytes_Check(data)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "bytes expected");
+        return NULL;
+    }
     return (PyObject *) Fs_write(self->fd, data, offset);
 }
 
@@ -113,6 +125,8 @@ static PyObject *
 FileIO_seek_impl(FileIO *self, Py_ssize_t offset, int whence)
 /*[clinic end generated code: output=a1b1debad403afa1 input=2ba0c6448e2b699b]*/
 {
+    if (self->fd < 0)
+        return fileio_err_closed();
     return (PyObject *) Fs_seek(self->fd, offset, whence);
 }
 

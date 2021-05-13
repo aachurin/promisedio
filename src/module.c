@@ -60,6 +60,7 @@ static PyMethodDef module_methods[] = {
     PROMISEDIO_ASCANDIR_METHODDEF
     PROMISEDIO_ARENAME_METHODDEF
     PROMISEDIO_AFSYNC_METHODDEF
+    PROMISEDIO_AFTRUNCATE_METHODDEF
     {NULL, NULL}
 };
 
@@ -276,6 +277,10 @@ static PyObject *
 promisedio_afstat_impl(PyObject *module, int fd)
 /*[clinic end generated code: output=0f5b65d5830d63e3 input=3e684f625c6e0f01]*/
 {
+    if (fd < 0) {
+        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
+        return NULL;
+    }
     return (PyObject *) Fs_fstat(fd);
 }
 
@@ -290,6 +295,10 @@ static PyObject *
 promisedio_aseek_impl(PyObject *module, int fd, Py_ssize_t pos, int how)
 /*[clinic end generated code: output=7ba6c05a3a2ac821 input=421dca383d97879a]*/
 {
+    if (fd < 0) {
+        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
+        return NULL;
+    }
     return (PyObject *) Fs_seek(fd, pos, how);
 }
 
@@ -333,6 +342,10 @@ static PyObject *
 promisedio_aclose_impl(PyObject *module, int fd)
 /*[clinic end generated code: output=8bee8b49aeab6a3c input=63b58ef01d650ac9]*/
 {
+    if (fd < 0) {
+        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
+        return NULL;
+    }
     return (PyObject *) Fs_close(fd);
 }
 
@@ -348,6 +361,13 @@ promisedio_aread_impl(PyObject *module, int fd, Py_ssize_t size,
                       Py_ssize_t offset)
 /*[clinic end generated code: output=bf7079c627b8be8e input=2ed1011b13d0b5d3]*/
 {
+    if (fd < 0) {
+        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
+        return NULL;
+    }
+    if (size > _PY_READ_MAX) {
+        size = _PY_READ_MAX;
+    }
     if (size < 0) {
         if (offset >= 0) {
             PyErr_SetString(PyExc_ValueError,
@@ -372,6 +392,15 @@ promisedio_awrite_impl(PyObject *module, int fd, PyObject *data,
                        Py_ssize_t offset)
 /*[clinic end generated code: output=7cf412bfa8880d3c input=6fd0212846920a83]*/
 {
+    if (fd < 0) {
+        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
+        return NULL;
+    }
+    if (!PyBytes_Check(data)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "bytes expected");
+        return NULL;
+    }
     return (PyObject *) Fs_write(fd, data, offset);
 }
 
@@ -470,6 +499,23 @@ promisedio_afsync_impl(PyObject *module, int fd)
 /*[clinic end generated code: output=de753b1909d8167d input=be0649e314446fe0]*/
 {
     return (PyObject *) Fs_fsync(fd);
+}
+
+/*[clinic input]
+promisedio.aftruncate
+    fd: int
+    length: Py_ssize_t
+[clinic start generated code]*/
+
+static PyObject *
+promisedio_aftruncate_impl(PyObject *module, int fd, Py_ssize_t length)
+/*[clinic end generated code: output=7fe0bf09f8cb00f3 input=34b109c06febfe9a]*/
+{
+    if (fd < 0) {
+        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
+        return NULL;
+    }
+    return (PyObject *) Fs_ftruncate(fd, length);
 }
 
 static void

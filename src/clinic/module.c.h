@@ -1172,4 +1172,64 @@ promisedio_afsync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=8f357991e9a4f32f input=a9049054013a1b77]*/
+
+PyDoc_STRVAR(promisedio_aftruncate__doc__,
+"aftruncate($module, /, fd, length)\n"
+"--\n"
+"\n"
+"Truncate the file corresponding to file descriptor fd, so that it is at most length bytes in size.\n"
+"\n"
+"Equivalent to [ftruncate(2)](https://man7.org/linux/man-pages/man2/ftruncate.2.html).");
+
+#define PROMISEDIO_AFTRUNCATE_METHODDEF    \
+    {"aftruncate", (PyCFunction)(void(*)(void))promisedio_aftruncate, METH_FASTCALL|METH_KEYWORDS, promisedio_aftruncate__doc__},
+
+static PyObject *
+promisedio_aftruncate_impl(PyObject *module, int fd, Py_ssize_t length);
+
+static PyObject *
+promisedio_aftruncate(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"fd", "length", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "aftruncate", 0};
+    PyObject *argsbuf[2];
+    int fd;
+    Py_ssize_t length;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (PyFloat_Check(args[0])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    fd = _PyLong_AsInt(args[0]);
+    if (fd == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+    if (PyFloat_Check(args[1])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    {
+        Py_ssize_t ival = -1;
+        PyObject *iobj = PyNumber_Index(args[1]);
+        if (iobj != NULL) {
+            ival = PyLong_AsSsize_t(iobj);
+            Py_DECREF(iobj);
+        }
+        if (ival == -1 && PyErr_Occurred()) {
+            goto exit;
+        }
+        length = ival;
+    }
+    return_value = promisedio_aftruncate_impl(module, fd, length);
+
+exit:
+    return return_value;
+}
+/*[clinic end generated code: output=292078479e78ad4f input=a9049054013a1b77]*/
