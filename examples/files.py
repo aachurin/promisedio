@@ -1,24 +1,22 @@
-from promisedio import exec_async, run, aopen, aunlink, amkstemp, aread, arename
+from promisedio import exec_async, run, aopen, aunlink, amkstemp, aread, arename, amkdir, armdir
 
 
-async def readwrite():
+async def example1():
+    f = await aopen("demo1.txt", "wb")
     try:
-        f = await aopen("demo1.txt", "wb")
-        try:
-            await f.write(b"Some text1")
-        finally:
-            await f.close()
-        f = await aopen("demo1.txt", "rb")
-        try:
-            print(await f.read())
-        finally:
-            await f.close()
-        await arename("demo1.txt", "demo2.txt")
+        await f.write(b"Some text1")
     finally:
-        await aunlink("demo2.txt")
+        await f.close()
+    f = await aopen("demo1.txt", "rb")
+    try:
+        print(await f.read())
+    finally:
+        await f.close()
+    await arename("demo1.txt", "demo2.txt")
+    await aunlink("demo2.txt")
 
 
-async def readwrite_temp():
+async def example2():
     fd, name = await amkstemp("example1.XXXXXX")
     try:
         print(fd, name)
@@ -33,13 +31,17 @@ async def readwrite_temp():
         await aunlink(name)
 
 
-async def read_stdin():
-    print(await aread(0))  # Send EOF to stop reading (Ctrl+D)
+async def example3():
+    f = await amkdir("demo3")
+    try:
+        await aopen("demo3")
+    finally:
+        await armdir("demo3")
 
 
-exec_async(readwrite())
-exec_async(readwrite_temp())
-exec_async(read_stdin())
+exec_async(example1())
+exec_async(example2())
+exec_async(example3())
 
 run()
 

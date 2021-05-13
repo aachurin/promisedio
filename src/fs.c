@@ -42,6 +42,27 @@
     uv_fs_req_cleanup(req);   \
     Request_Close(req)
 
+#define BEGIN_FS_CALLBACK(req)                    \
+    ACQUIRE_GIL                                   \
+    if ((req)->result == -1) {                    \
+        reject_with_errno(Request_Promise(req),   \
+                          (int)((req)->result),   \
+                          GET_SYSTEM_ERROR(req)); \
+    } else {
+
+#define END_FS_CALLBACK(req) } \
+    FS_REQUEST_CLOSE(req); RELEASE_GIL
+
+#ifdef MS_WINDOWS
+#define GET_SYSTEM_ERROR(req) (req)->sys_errno_
+#else
+#if EDOM > 0
+#define GET_SYSTEM_ERROR(req) -((req)->result)
+#else
+#define GET_SYSTEM_ERROR(err) (req)->result
+#endif
+#endif
+
 Generate_PyType_Impl(
     StatObj,
     READONLY(st_dev, st.st_dev, uint64_t),
@@ -84,41 +105,61 @@ Fs_Path(PyObject *path)
 }
 
 static void
-promise_reject_with_oserror(Promise *promise, ssize_t err)
+reject_with_errno(Promise *promise, int uverr, int oserr)
 {
-    PyObject *args, *exc = NULL;
-    args = Py_BuildValue("(is)", PY_ERR(err), uv_strerror((int) err));
+    PyObject *args, *exc;
+    #ifdef MS_WINDOWS
+    args = Py_BuildValue("(isOi)", 0, uv_strerror(uverr), Py_None, oserr);
+    #else
+    args = Py_BuildValue("(is)", oserr, uv_strerror(uverr));
+    #endif
     if (args != NULL) {
         exc = PyObject_Call(PyExc_OSError, args, NULL);
         Py_DECREF(args);
+        if (exc != NULL) {
+            Promise_Reject(promise, exc);
+            Py_DECREF(exc);
+            return;
+        }
     }
-    if (exc == NULL) {
-        Promise_RejectWithPyErr(promise);
+    Promise_RejectWithPyErr(promise);
+}
+
+static void
+int_callback(uv_fs_t *req)
+{
+    BEGIN_FS_CALLBACK(req)
+    PyObject *value = PyLong_FromSsize_t(req->result);
+    if (value == NULL) {
+        Promise_RejectWithPyErr(Request_Promise(req));
     } else {
-        Promise_Reject(promise, exc);
-        Py_DECREF(exc);
+        Promise_Resolve(Request_Promise(req), value);
+        Py_DECREF(value);
     }
+    END_FS_CALLBACK(req)
+}
+
+static void
+none_callback(uv_fs_t *req)
+{
+    BEGIN_FS_CALLBACK(req)
+    Promise_Resolve(Request_Promise(req), Py_None);
+    END_FS_CALLBACK(req)
 }
 
 static void
 stat_callback(uv_fs_t *req)
 {
-    ACQUIRE_GIL
-    ssize_t result = req->result;
-    if (result >= 0) {
-        StatObj *obj = StatObj_New();
-        if (obj == NULL) {
-            Promise_RejectWithPyErr(Request_Promise(req));
-        } else {
-            obj->st = req->statbuf;
-            Promise_Resolve(Request_Promise(req), (PyObject *) obj);
-            Py_DECREF(obj);
-        }
+    BEGIN_FS_CALLBACK(req)
+    StatObj *obj = StatObj_New();
+    if (obj == NULL) {
+        Promise_RejectWithPyErr(Request_Promise(req));
     } else {
-        promise_reject_with_oserror(Request_Promise(req), result);
+        obj->st = req->statbuf;
+        Promise_Resolve(Request_Promise(req), (PyObject *) obj);
+        Py_DECREF(obj);
     }
-    FS_REQUEST_CLOSE(req);
-    RELEASE_GIL
+    END_FS_CALLBACK(req)
 }
 
 Promise *
@@ -147,6 +188,9 @@ typedef struct {
     Py_off_t pos;
     int whence;
     Py_off_t result;
+#ifdef MS_WINDOWS
+    DWORD sys_errno;
+#endif
 } fs_seek_req_t;
 
 static void
@@ -159,8 +203,13 @@ seek_work(fs_seek_req_t* req)
 #else
     pos = lseek(req->fd, req->pos, req->whence);
 #endif
-    if (pos < 0) {
+    if (pos == -1) {
+#ifdef MS_WINDOWS
+        req->sys_errno = GetLastError();
+        req->result = uv_translate_sys_error(req->sys_errno);
+#else
         req->result = uv_translate_sys_error(errno);
+#endif
     } else {
         req->result = pos;
     }
@@ -170,17 +219,18 @@ static void
 seek_callback(fs_seek_req_t* req, int status)
 {
     ACQUIRE_GIL
-    Py_off_t result = req->result;
-    if (result >= 0) {
-        PyObject *value = PyLong_FromOff_t(result);
+    if (req->result == -1) {
+        reject_with_errno(Request_Promise(req),
+                          (int)req->result,
+                          GET_SYSTEM_ERROR(req));
+    } else {
+        PyObject *value = PyLong_FromOff_t(req->result);
         if (value == NULL) {
             Promise_RejectWithPyErr(Request_Promise(req));
         } else {
             Promise_Resolve(Request_Promise(req), value);
             Py_DECREF(value);
         }
-    } else {
-        promise_reject_with_oserror(Request_Promise(req), result);
     }
     Request_Close(req);
     RELEASE_GIL
@@ -206,38 +256,6 @@ Fs_seek(uv_file fd, Py_off_t pos, int how)
     req->whence = how;
     FS_UV_PUSH_WORK(req, seek_work, seek_callback);
     return promise;
-}
-
-static void
-int_callback(uv_fs_t *req)
-{
-    ACQUIRE_GIL
-    if (req->result < 0) {
-        promise_reject_with_oserror(Request_Promise(req), req->result);
-    } else {
-        PyObject *value = PyLong_FromSsize_t(req->result);
-        if (value == NULL) {
-            Promise_RejectWithPyErr(Request_Promise(req));
-        } else {
-            Promise_Resolve(Request_Promise(req), value);
-            Py_DECREF(value);
-        }
-    }
-    FS_REQUEST_CLOSE(req);
-    RELEASE_GIL
-}
-
-static void
-none_callback(uv_fs_t *req)
-{
-    ACQUIRE_GIL
-    if (req->result < 0) {
-        promise_reject_with_oserror(Request_Promise(req), req->result);
-    } else {
-        Promise_Resolve(Request_Promise(req), Py_None);
-    }
-    FS_REQUEST_CLOSE(req);
-    RELEASE_GIL
 }
 
 Promise *
@@ -550,20 +568,15 @@ Fs_rmdir(const char *path)
 static void
 mkdtemp_callback(uv_fs_t *req)
 {
-    ACQUIRE_GIL
-    if (req->result < 0) {
-        promise_reject_with_oserror(Request_Promise(req), req->result);
+    BEGIN_FS_CALLBACK(req)
+    PyObject *result = PyBytes_FromString(req->path);
+    if (result == NULL) {
+        Promise_RejectWithPyErr(Request_Promise(req));
     } else {
-        PyObject *result = PyBytes_FromString(req->path);
-        if (result == NULL) {
-            Promise_RejectWithPyErr(Request_Promise(req));
-        } else {
-            Promise_Resolve(Request_Promise(req), result);
-            Py_DECREF(result);
-        }
+        Promise_Resolve(Request_Promise(req), result);
+        Py_DECREF(result);
     }
-    FS_REQUEST_CLOSE(req);
-    RELEASE_GIL
+    END_FS_CALLBACK(req);
 }
 
 Promise *
@@ -577,35 +590,31 @@ Fs_mkdtemp(const char *tpl)
 static void
 mkstemp_callback(uv_fs_t *req)
 {
-    ACQUIRE_GIL
-    if (req->result < 0) {
-        promise_reject_with_oserror(Request_Promise(req), req->result);
-    } else {
-        PyObject *r1 = PyLong_FromSsize_t(req->result);
-        if (r1 == NULL) {
-            error:
-            Promise_RejectWithPyErr(Request_Promise(req));
-            goto done;
-        }
+    BEGIN_FS_CALLBACK(req)
+    PyObject *r1 = PyLong_FromSsize_t(req->result);
+    if (r1 != NULL) {
         PyObject *r2 = PyBytes_FromString(req->path);
-        if (r2 == NULL) {
+        if (r2 != NULL) {
+            PyObject *result = PyTuple_New(2);
+            if (result != NULL) {
+                PyTuple_SET_ITEM(result, 0, r1);
+                PyTuple_SET_ITEM(result, 1, r2);
+                Promise_Resolve(Request_Promise(req), result);
+                Py_DECREF(result);
+            } else {
+                Py_DECREF(r1);
+                Py_DECREF(r2);
+                goto error;
+            }
+        } else {
             Py_DECREF(r1);
             goto error;
         }
-        PyObject *result = PyTuple_New(2);
-        if (result == NULL) {
-            Py_DECREF(r1);
-            Py_DECREF(r2);
-            goto error;
-        }
-        PyTuple_SET_ITEM(result, 0, r1);
-        PyTuple_SET_ITEM(result, 1, r2);
-        Promise_Resolve(Request_Promise(req), result);
-        Py_DECREF(result);
+    } else {
+        error:
+        Promise_RejectWithPyErr(Request_Promise(req));
     }
-    done:
-    FS_REQUEST_CLOSE(req);
-    RELEASE_GIL
+    END_FS_CALLBACK(req)
 }
 
 Promise *
@@ -619,17 +628,10 @@ Fs_mkstemp(const char *tpl)
 static void
 scandir_callback(uv_fs_t *req)
 {
-    ACQUIRE_GIL
-    if (req->result < 0) {
-        promise_reject_with_oserror(Request_Promise(req), req->result);
-    } else {
-        Py_ssize_t n = req->result;
-        PyObject *result = PyTuple_New(n);
-        if (result == NULL) {
-            error0:
-            Promise_RejectWithPyErr(Request_Promise(req));
-            goto done;
-        }
+    BEGIN_FS_CALLBACK(req)
+    Py_ssize_t n = req->result;
+    PyObject *result = PyTuple_New(n);
+    if (result != NULL) {
         if (n) {
             uv_dirent_t dent;
             Py_ssize_t index = 0;
@@ -686,10 +688,11 @@ scandir_callback(uv_fs_t *req)
         }
         Promise_Resolve(Request_Promise(req), result);
         Py_DECREF(result);
+    } else {
+        error0:
+        Promise_RejectWithPyErr(Request_Promise(req));
     }
-    done:
-    FS_REQUEST_CLOSE(req);
-    RELEASE_GIL
+    END_FS_CALLBACK(req)
 }
 
 Promise *

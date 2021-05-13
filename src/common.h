@@ -83,10 +83,4 @@ typedef union {
     void *as_ptr;
 } unified_t;
 
-#if EDOM > 0
-    #define PY_ERR(err) -(err)
-#else
-    #define PY_ERR(err) err
-#endif
-
 #endif
