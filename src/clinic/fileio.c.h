@@ -11,7 +11,9 @@ PyDoc_STRVAR(FileIO_close__doc__,
 "This method has no effect if the file is already closed. Once the file is closed,\n"
 "any operation on the file (e.g. reading or writing) will raise a ValueError.\n"
 "As a convenience, it is allowed to call this method more than once; only the first\n"
-"call, however, will have an effect.");
+"call, however, will have an effect.\n"
+"\n"
+"");
 
 #define FILEIO_CLOSE_METHODDEF    \
     {"close", (PyCFunction)FileIO_close, METH_NOARGS, FileIO_close__doc__},
@@ -29,7 +31,9 @@ PyDoc_STRVAR(FileIO_fileno__doc__,
 "fileno($self, /)\n"
 "--\n"
 "\n"
-"Return the underlying file descriptor (an integer).");
+"Return the underlying file descriptor (an integer).\n"
+"\n"
+"");
 
 #define FILEIO_FILENO_METHODDEF    \
     {"fileno", (PyCFunction)FileIO_fileno, METH_NOARGS, FileIO_fileno__doc__},
@@ -47,7 +51,9 @@ PyDoc_STRVAR(FileIO_read__doc__,
 "read($self, /, size=-1, offset=-1)\n"
 "--\n"
 "\n"
-"Read at most size bytes, returned as bytes.");
+"Read at most size bytes, returned as bytes.\n"
+"\n"
+"");
 
 #define FILEIO_READ_METHODDEF    \
     {"read", (PyCFunction)(void(*)(void))FileIO_read, METH_FASTCALL|METH_KEYWORDS, FileIO_read__doc__},
@@ -97,7 +103,9 @@ PyDoc_STRVAR(FileIO_write__doc__,
 "\n"
 "Write the given bytes to the IO stream.\n"
 "\n"
-"Returns the number of bytes written, which is always the length of data in bytes.");
+"Returns the number of bytes written, which is always the length of data in bytes.\n"
+"\n"
+"");
 
 #define FILEIO_WRITE_METHODDEF    \
     {"write", (PyCFunction)(void(*)(void))FileIO_write, METH_FASTCALL|METH_KEYWORDS, FileIO_write__doc__},
@@ -138,7 +146,9 @@ PyDoc_STRVAR(FileIO_seek__doc__,
 "seek($self, /, offset, whence=0)\n"
 "--\n"
 "\n"
-"Read at most size bytes, returned as bytes.");
+"Read at most size bytes, returned as bytes.\n"
+"\n"
+"");
 
 #define FILEIO_SEEK_METHODDEF    \
     {"seek", (PyCFunction)(void(*)(void))FileIO_seek, METH_FASTCALL|METH_KEYWORDS, FileIO_seek__doc__},
@@ -196,4 +206,4 @@ skip_optional_pos:
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=84115d7a3bd00202 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=494eecd8b28f304b input=a9049054013a1b77]*/

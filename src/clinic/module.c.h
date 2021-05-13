@@ -304,7 +304,7 @@ promisedio__inspectloop(PyObject *module, PyObject *Py_UNUSED(ignored))
 }
 
 PyDoc_STRVAR(promisedio_astat__doc__,
-"astat($module, /, name, *, follow_symlinks=True)\n"
+"astat($module, /, path, *, follow_symlinks=True)\n"
 "--\n"
 "\n"
 "Get the status of a file. Return a StatObj object.\n"
@@ -318,24 +318,24 @@ PyDoc_STRVAR(promisedio_astat__doc__,
     {"astat", (PyCFunction)(void(*)(void))promisedio_astat, METH_FASTCALL|METH_KEYWORDS, promisedio_astat__doc__},
 
 static PyObject *
-promisedio_astat_impl(PyObject *module, PyObject *name, int follow_symlinks);
+promisedio_astat_impl(PyObject *module, PyObject *path, int follow_symlinks);
 
 static PyObject *
 promisedio_astat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"name", "follow_symlinks", NULL};
+    static const char * const _keywords[] = {"path", "follow_symlinks", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "astat", 0};
     PyObject *argsbuf[2];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
-    PyObject *name = NULL;
+    PyObject *path = NULL;
     int follow_symlinks = 1;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &name)) {
+    if (!path_converter(args[0], &path)) {
         goto exit;
     }
     if (!noptargs) {
@@ -346,11 +346,11 @@ promisedio_astat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
         goto exit;
     }
 skip_optional_kwonly:
-    return_value = promisedio_astat_impl(module, name, follow_symlinks);
+    return_value = promisedio_astat_impl(module, path, follow_symlinks);
 
 exit:
-    /* Cleanup for name */
-    Py_XDECREF(name);
+    /* Cleanup for path */
+    Py_XDECREF(path);
 
     return return_value;
 }
@@ -472,8 +472,77 @@ exit:
     return return_value;
 }
 
+PyDoc_STRVAR(promisedio_aopen__doc__,
+"aopen($module, /, path, flags=\'r\', closefd=True)\n"
+"--\n"
+"\n"
+"Open file and return a corresponding file object. If the file cannot be opened, an OSError is raised. \n"
+"\n"
+"Equivalent to python [open](https://docs.python.org/3/library/functions.html#open) (binary mode only).");
+
+#define PROMISEDIO_AOPEN_METHODDEF    \
+    {"aopen", (PyCFunction)(void(*)(void))promisedio_aopen, METH_FASTCALL|METH_KEYWORDS, promisedio_aopen__doc__},
+
+static PyObject *
+promisedio_aopen_impl(PyObject *module, PyObject *path, const char *flags,
+                      int closefd);
+
+static PyObject *
+promisedio_aopen(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"path", "flags", "closefd", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "aopen", 0};
+    PyObject *argsbuf[3];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
+    PyObject *path;
+    const char *flags = "r";
+    int closefd = 1;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 3, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    path = args[0];
+    if (!noptargs) {
+        goto skip_optional_pos;
+    }
+    if (args[1]) {
+        if (!PyUnicode_Check(args[1])) {
+            _PyArg_BadArgument("aopen", "argument 'flags'", "str", args[1]);
+            goto exit;
+        }
+        Py_ssize_t flags_length;
+        flags = PyUnicode_AsUTF8AndSize(args[1], &flags_length);
+        if (flags == NULL) {
+            goto exit;
+        }
+        if (strlen(flags) != (size_t)flags_length) {
+            PyErr_SetString(PyExc_ValueError, "embedded null character");
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
+    }
+    if (PyFloat_Check(args[2])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    closefd = _PyLong_AsInt(args[2]);
+    if (closefd == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+skip_optional_pos:
+    return_value = promisedio_aopen_impl(module, path, flags, closefd);
+
+exit:
+    return return_value;
+}
+
 PyDoc_STRVAR(promisedio_aopenfd__doc__,
-"aopenfd($module, /, name, flags=\'r\', mode=438)\n"
+"aopenfd($module, /, path, flags=\'r\', mode=438)\n"
 "--\n"
 "\n"
 "Open the file path and set various flags according to flags and possibly its mode according to mode. \n"
@@ -485,18 +554,18 @@ PyDoc_STRVAR(promisedio_aopenfd__doc__,
     {"aopenfd", (PyCFunction)(void(*)(void))promisedio_aopenfd, METH_FASTCALL|METH_KEYWORDS, promisedio_aopenfd__doc__},
 
 static PyObject *
-promisedio_aopenfd_impl(PyObject *module, PyObject *name, const char *flags,
+promisedio_aopenfd_impl(PyObject *module, PyObject *path, const char *flags,
                         int mode);
 
 static PyObject *
 promisedio_aopenfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"name", "flags", "mode", NULL};
+    static const char * const _keywords[] = {"path", "flags", "mode", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "aopenfd", 0};
     PyObject *argsbuf[3];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
-    PyObject *name = NULL;
+    PyObject *path = NULL;
     const char *flags = "r";
     int mode = 438;
 
@@ -504,7 +573,7 @@ promisedio_aopenfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &name)) {
+    if (!path_converter(args[0], &path)) {
         goto exit;
     }
     if (!noptargs) {
@@ -538,11 +607,11 @@ promisedio_aopenfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
         goto exit;
     }
 skip_optional_pos:
-    return_value = promisedio_aopenfd_impl(module, name, flags, mode);
+    return_value = promisedio_aopenfd_impl(module, path, flags, mode);
 
 exit:
-    /* Cleanup for name */
-    Py_XDECREF(name);
+    /* Cleanup for path */
+    Py_XDECREF(path);
 
     return return_value;
 }
@@ -755,7 +824,7 @@ exit:
 }
 
 PyDoc_STRVAR(promisedio_aunlink__doc__,
-"aunlink($module, /, name)\n"
+"aunlink($module, /, path)\n"
 "--\n"
 "\n"
 "Remove (delete) the file path.\n"
@@ -766,35 +835,35 @@ PyDoc_STRVAR(promisedio_aunlink__doc__,
     {"aunlink", (PyCFunction)(void(*)(void))promisedio_aunlink, METH_FASTCALL|METH_KEYWORDS, promisedio_aunlink__doc__},
 
 static PyObject *
-promisedio_aunlink_impl(PyObject *module, PyObject *name);
+promisedio_aunlink_impl(PyObject *module, PyObject *path);
 
 static PyObject *
 promisedio_aunlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"name", NULL};
+    static const char * const _keywords[] = {"path", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "aunlink", 0};
     PyObject *argsbuf[1];
-    PyObject *name = NULL;
+    PyObject *path = NULL;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &name)) {
+    if (!path_converter(args[0], &path)) {
         goto exit;
     }
-    return_value = promisedio_aunlink_impl(module, name);
+    return_value = promisedio_aunlink_impl(module, path);
 
 exit:
-    /* Cleanup for name */
-    Py_XDECREF(name);
+    /* Cleanup for path */
+    Py_XDECREF(path);
 
     return return_value;
 }
 
 PyDoc_STRVAR(promisedio_amkdir__doc__,
-"amkdir($module, /, name, mode=511)\n"
+"amkdir($module, /, path, mode=511)\n"
 "--\n"
 "\n"
 "Create a directory named path with numeric mode mode.\n"
@@ -808,24 +877,24 @@ PyDoc_STRVAR(promisedio_amkdir__doc__,
     {"amkdir", (PyCFunction)(void(*)(void))promisedio_amkdir, METH_FASTCALL|METH_KEYWORDS, promisedio_amkdir__doc__},
 
 static PyObject *
-promisedio_amkdir_impl(PyObject *module, PyObject *name, int mode);
+promisedio_amkdir_impl(PyObject *module, PyObject *path, int mode);
 
 static PyObject *
 promisedio_amkdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"name", "mode", NULL};
+    static const char * const _keywords[] = {"path", "mode", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "amkdir", 0};
     PyObject *argsbuf[2];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
-    PyObject *name = NULL;
+    PyObject *path = NULL;
     int mode = 511;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 2, 0, argsbuf);
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &name)) {
+    if (!path_converter(args[0], &path)) {
         goto exit;
     }
     if (!noptargs) {
@@ -841,17 +910,17 @@ promisedio_amkdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
         goto exit;
     }
 skip_optional_pos:
-    return_value = promisedio_amkdir_impl(module, name, mode);
+    return_value = promisedio_amkdir_impl(module, path, mode);
 
 exit:
-    /* Cleanup for name */
-    Py_XDECREF(name);
+    /* Cleanup for path */
+    Py_XDECREF(path);
 
     return return_value;
 }
 
 PyDoc_STRVAR(promisedio_armdir__doc__,
-"armdir($module, /, name)\n"
+"armdir($module, /, path)\n"
 "--\n"
 "\n"
 "Remove (delete) the directory path. If the directory does not exist or is not empty,\n"
@@ -863,29 +932,29 @@ PyDoc_STRVAR(promisedio_armdir__doc__,
     {"armdir", (PyCFunction)(void(*)(void))promisedio_armdir, METH_FASTCALL|METH_KEYWORDS, promisedio_armdir__doc__},
 
 static PyObject *
-promisedio_armdir_impl(PyObject *module, PyObject *name);
+promisedio_armdir_impl(PyObject *module, PyObject *path);
 
 static PyObject *
 promisedio_armdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"name", NULL};
+    static const char * const _keywords[] = {"path", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "armdir", 0};
     PyObject *argsbuf[1];
-    PyObject *name = NULL;
+    PyObject *path = NULL;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &name)) {
+    if (!path_converter(args[0], &path)) {
         goto exit;
     }
-    return_value = promisedio_armdir_impl(module, name);
+    return_value = promisedio_armdir_impl(module, path);
 
 exit:
-    /* Cleanup for name */
-    Py_XDECREF(name);
+    /* Cleanup for path */
+    Py_XDECREF(path);
 
     return return_value;
 }
@@ -977,72 +1046,43 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_aopen__doc__,
-"aopen($module, /, name, flags=\'r\', closefd=True)\n"
+PyDoc_STRVAR(promisedio_ascandir__doc__,
+"ascandir($module, /, path)\n"
 "--\n"
 "\n"
-"Open file and return a corresponding file object. If the file cannot be opened, an OSError is raised. \n"
+"Return a sequence of the entries in the directory given by path (entry_type, entry_name).  \n"
+"Special entries \'.\' and \'..\' are not included.\n"
 "\n"
-"Equivalent to python [open](https://docs.python.org/3/library/functions.html#open) (binary mode only).");
+"Equivalent to [scandir(3)](https://man7.org/linux/man-pages/man3/scandir.3.html).");
 
-#define PROMISEDIO_AOPEN_METHODDEF    \
-    {"aopen", (PyCFunction)(void(*)(void))promisedio_aopen, METH_FASTCALL|METH_KEYWORDS, promisedio_aopen__doc__},
-
-static PyObject *
-promisedio_aopen_impl(PyObject *module, PyObject *name, const char *flags,
-                      int closefd);
+#define PROMISEDIO_ASCANDIR_METHODDEF    \
+    {"ascandir", (PyCFunction)(void(*)(void))promisedio_ascandir, METH_FASTCALL|METH_KEYWORDS, promisedio_ascandir__doc__},
 
 static PyObject *
-promisedio_aopen(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_ascandir_impl(PyObject *module, PyObject *path);
+
+static PyObject *
+promisedio_ascandir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"name", "flags", "closefd", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "aopen", 0};
-    PyObject *argsbuf[3];
-    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
-    PyObject *name;
-    const char *flags = "r";
-    int closefd = 1;
+    static const char * const _keywords[] = {"path", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "ascandir", 0};
+    PyObject *argsbuf[1];
+    PyObject *path = NULL;
 
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 3, 0, argsbuf);
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
     if (!args) {
         goto exit;
     }
-    name = args[0];
-    if (!noptargs) {
-        goto skip_optional_pos;
-    }
-    if (args[1]) {
-        if (!PyUnicode_Check(args[1])) {
-            _PyArg_BadArgument("aopen", "argument 'flags'", "str", args[1]);
-            goto exit;
-        }
-        Py_ssize_t flags_length;
-        flags = PyUnicode_AsUTF8AndSize(args[1], &flags_length);
-        if (flags == NULL) {
-            goto exit;
-        }
-        if (strlen(flags) != (size_t)flags_length) {
-            PyErr_SetString(PyExc_ValueError, "embedded null character");
-            goto exit;
-        }
-        if (!--noptargs) {
-            goto skip_optional_pos;
-        }
-    }
-    if (PyFloat_Check(args[2])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
+    if (!path_converter(args[0], &path)) {
         goto exit;
     }
-    closefd = _PyLong_AsInt(args[2]);
-    if (closefd == -1 && PyErr_Occurred()) {
-        goto exit;
-    }
-skip_optional_pos:
-    return_value = promisedio_aopen_impl(module, name, flags, closefd);
+    return_value = promisedio_ascandir_impl(module, path);
 
 exit:
+    /* Cleanup for path */
+    Py_XDECREF(path);
+
     return return_value;
 }
-/*[clinic end generated code: output=0c056d6d645e4ccb input=a9049054013a1b77]*/
+/*[clinic end generated code: output=482bba6bd62f79df input=a9049054013a1b77]*/

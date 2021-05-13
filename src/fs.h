@@ -37,6 +37,7 @@ Promise * Fs_mkdir(const char *path, int mode);
 Promise * Fs_rmdir(const char *path);
 Promise * Fs_mkdtemp(const char *tpl);
 Promise * Fs_mkstemp(const char *tpl);
+Promise * Fs_scandir(const char *path);
 int Fs_module_init();
 
 #endif

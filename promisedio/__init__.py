@@ -23,11 +23,20 @@ from . _cext import (
     amkdir,
     armdir,
     amkdtemp,
-    amkstemp
+    amkstemp,
+    ascandir
     )
 
 os.register_at_fork(before=check_can_fork)
 
+DIRENT_UNKNOWN = 0
+DIRENT_FILE = 1
+DIRENT_DIR = 2
+DIRENT_LINK = 3
+DIRENT_FIFO = 4
+DIRENT_SOCKET = 5
+DIRENT_CHAR = 6
+DIRENT_BLOCK = 7
 
 def run():
     try:

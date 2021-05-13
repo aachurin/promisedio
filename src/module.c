@@ -57,6 +57,7 @@ static PyMethodDef module_methods[] = {
     PROMISEDIO_ARMDIR_METHODDEF
     PROMISEDIO_AMKDTEMP_METHODDEF
     PROMISEDIO_AMKSTEMP_METHODDEF
+    PROMISEDIO_ASCANDIR_METHODDEF
     {NULL, NULL}
 };
 
@@ -252,16 +253,16 @@ promisedio__inspectloop_impl(PyObject *module)
 
 /*[clinic input]
 promisedio.astat
-    name: path
+    path: path
     *
     follow_symlinks: bool = True
 [clinic start generated code]*/
 
 static PyObject *
-promisedio_astat_impl(PyObject *module, PyObject *name, int follow_symlinks)
-/*[clinic end generated code: output=2c0e909e379a9ecf input=3b8f2e193339931e]*/
+promisedio_astat_impl(PyObject *module, PyObject *path, int follow_symlinks)
+/*[clinic end generated code: output=2aa73717bcf3edb4 input=a5a1f982de67e864]*/
 {
-    return (PyObject *) Fs_stat(PyBytes_AS_STRING(name), follow_symlinks);
+    return (PyObject *) Fs_stat(PyBytes_AS_STRING(path), follow_symlinks);
 }
 
 /*[clinic input]
@@ -291,18 +292,34 @@ promisedio_aseek_impl(PyObject *module, int fd, Py_ssize_t pos, int how)
 }
 
 /*[clinic input]
+promisedio.aopen
+    path: object
+    flags: str = "r"
+    closefd: bool(accept={int}) = True
+[clinic start generated code]*/
+
+static PyObject *
+promisedio_aopen_impl(PyObject *module, PyObject *path, const char *flags,
+                      int closefd)
+/*[clinic end generated code: output=6eded1a7f23de4c4 input=6f63ab1e972e741f]*/
+{
+    return FileIO_Open(path, flags, closefd);
+}
+
+
+/*[clinic input]
 promisedio.aopenfd
-    name: path
+    path: path
     flags: str = "r"
     mode: int = 0o666
 [clinic start generated code]*/
 
 static PyObject *
-promisedio_aopenfd_impl(PyObject *module, PyObject *name, const char *flags,
+promisedio_aopenfd_impl(PyObject *module, PyObject *path, const char *flags,
                         int mode)
-/*[clinic end generated code: output=b540faccc179cab2 input=5dd755df3c9c45e5]*/
+/*[clinic end generated code: output=265bc1a4b4bffa85 input=7135552cf7140b06]*/
 {
-    return (PyObject *) Fs_open(PyBytes_AS_STRING(name), flags, mode);
+    return (PyObject *) Fs_open(PyBytes_AS_STRING(path), flags, mode);
 }
 
 /*[clinic input]
@@ -358,38 +375,38 @@ promisedio_awrite_impl(PyObject *module, int fd, PyObject *data,
 
 /*[clinic input]
 promisedio.aunlink
-    name: path
+    path: path
 [clinic start generated code]*/
 
 static PyObject *
-promisedio_aunlink_impl(PyObject *module, PyObject *name)
-/*[clinic end generated code: output=a75a8fa5065bf670 input=98a0cf33159da021]*/
+promisedio_aunlink_impl(PyObject *module, PyObject *path)
+/*[clinic end generated code: output=9f211a2a10ad0e95 input=f63624eb7e8bc6a1]*/
 {
-    return (PyObject *) Fs_unlink(PyBytes_AS_STRING(name));
+    return (PyObject *) Fs_unlink(PyBytes_AS_STRING(path));
 }
 
 /*[clinic input]
 promisedio.amkdir
-    name: path
+    path: path
     mode: int = 0o777
 [clinic start generated code]*/
 
 static PyObject *
-promisedio_amkdir_impl(PyObject *module, PyObject *name, int mode)
-/*[clinic end generated code: output=8c165388fd974f52 input=dbac3316d83e5f5f]*/
+promisedio_amkdir_impl(PyObject *module, PyObject *path, int mode)
+/*[clinic end generated code: output=c9a4643e07356ea7 input=98ed47135f76fd34]*/
 {
-    return (PyObject *) Fs_mkdir(PyBytes_AS_STRING(name), mode);
+    return (PyObject *) Fs_mkdir(PyBytes_AS_STRING(path), mode);
 }
 /*[clinic input]
 promisedio.armdir
-    name: path
+    path: path
 [clinic start generated code]*/
 
 static PyObject *
-promisedio_armdir_impl(PyObject *module, PyObject *name)
-/*[clinic end generated code: output=9b3494f86f7d83bd input=afc3456caef05305]*/
+promisedio_armdir_impl(PyObject *module, PyObject *path)
+/*[clinic end generated code: output=059f06a8acdd7383 input=6e19f73a872f8b56]*/
 {
-    return (PyObject *) Fs_rmdir(PyBytes_AS_STRING(name));
+    return (PyObject *) Fs_rmdir(PyBytes_AS_STRING(path));
 }
 
 /*[clinic input]
@@ -417,18 +434,15 @@ promisedio_amkstemp_impl(PyObject *module, PyObject *tpl)
 }
 
 /*[clinic input]
-promisedio.aopen
-    name: object
-    flags: str = "r"
-    closefd: bool(accept={int}) = True
+promisedio.ascandir
+    path: path
 [clinic start generated code]*/
 
 static PyObject *
-promisedio_aopen_impl(PyObject *module, PyObject *name, const char *flags,
-                      int closefd)
-/*[clinic end generated code: output=1ace03ef2a9e0dca input=9a938ee89e316724]*/
+promisedio_ascandir_impl(PyObject *module, PyObject *path)
+/*[clinic end generated code: output=dee5ea789f520bfe input=2987e9c7f9f92114]*/
 {
-    return FileIO_Open(name, flags, closefd);
+    return (PyObject *) Fs_scandir(PyBytes_AS_STRING(path));
 }
 
 static void

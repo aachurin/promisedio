@@ -14,7 +14,9 @@ PyDoc_STRVAR(promise_Promise_then__doc__,
 "    failure callback\n"
 "\n"
 "It takes up to two arguments:\n"
-"callback functions for the success and failure cases of the Promise.");
+"callback functions for the success and failure cases of the Promise.\n"
+"\n"
+"");
 
 #define PROMISE_PROMISE_THEN_METHODDEF    \
     {"then", (PyCFunction)(void(*)(void))promise_Promise_then, METH_FASTCALL, promise_Promise_then__doc__},
@@ -55,7 +57,9 @@ PyDoc_STRVAR(promise_Promise_catch__doc__,
 "The catch() method returns a new Promise and deals with rejected cases only.\n"
 "\n"
 "  rejected\n"
-"    failure callback");
+"    failure callback\n"
+"\n"
+"");
 
 #define PROMISE_PROMISE_CATCH_METHODDEF    \
     {"catch", (PyCFunction)promise_Promise_catch, METH_O, promise_Promise_catch__doc__},
@@ -71,7 +75,9 @@ PyDoc_STRVAR(promise_Promise_finally___doc__,
 "\n"
 "When the promise is settled, i.e either fulfilled or rejected,\n"
 "the specified callback function is executed. This provides a way for code to be run whether the promise\n"
-"was fulfilled successfully or rejected once the Promise has been dealt with.");
+"was fulfilled successfully or rejected once the Promise has been dealt with.\n"
+"\n"
+"");
 
 #define PROMISE_PROMISE_FINALLY__METHODDEF    \
     {"finally_", (PyCFunction)promise_Promise_finally_, METH_O, promise_Promise_finally___doc__},
@@ -80,7 +86,9 @@ PyDoc_STRVAR(promise_Deferred_resolve__doc__,
 "resolve($self, value, /)\n"
 "--\n"
 "\n"
-"Resolve an associated promise with the given value.");
+"Resolve an associated promise with the given value.\n"
+"\n"
+"");
 
 #define PROMISE_DEFERRED_RESOLVE_METHODDEF    \
     {"resolve", (PyCFunction)promise_Deferred_resolve, METH_O, promise_Deferred_resolve__doc__},
@@ -89,7 +97,9 @@ PyDoc_STRVAR(promise_Deferred_reject__doc__,
 "reject($self, value, /)\n"
 "--\n"
 "\n"
-"Reject an associated promise with the given exception.");
+"Reject an associated promise with the given exception.\n"
+"\n"
+"");
 
 #define PROMISE_DEFERRED_REJECT_METHODDEF    \
     {"reject", (PyCFunction)promise_Deferred_reject, METH_O, promise_Deferred_reject__doc__},
@@ -98,7 +108,9 @@ PyDoc_STRVAR(promise_Deferred_promise__doc__,
 "promise($self, /)\n"
 "--\n"
 "\n"
-"Get an associated Promise object.");
+"Get an associated Promise object.\n"
+"\n"
+"");
 
 #define PROMISE_DEFERRED_PROMISE_METHODDEF    \
     {"promise", (PyCFunction)promise_Deferred_promise, METH_NOARGS, promise_Deferred_promise__doc__},
@@ -111,4 +123,4 @@ promise_Deferred_promise(Deferred *self, PyObject *Py_UNUSED(ignored))
 {
     return promise_Deferred_promise_impl(self);
 }
-/*[clinic end generated code: output=95fcf749c7f3d14d input=a9049054013a1b77]*/
+/*[clinic end generated code: output=d6aa75a0f653ec52 input=a9049054013a1b77]*/

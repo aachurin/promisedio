@@ -623,7 +623,7 @@ mkstemp_callback(uv_fs_t *req)
         Promise_Resolve(Request_Promise(req), result);
         Py_DECREF(result);
     }
-done:
+    done:
     FS_REQUEST_CLOSE(req);
     RELEASE_GIL
 }
@@ -633,6 +633,90 @@ Fs_mkstemp(const char *tpl)
 {
     Promise *promise;
     FS_UV_CALL(uv_fs_mkstemp, promise, tpl, mkstemp_callback);
+    return promise;
+}
+
+static void
+scandir_callback(uv_fs_t *req)
+{
+    ACQUIRE_GIL
+    if (req->result < 0) {
+        promise_reject_with_oserror(Request_Promise(req), req->result);
+    } else {
+        Py_ssize_t n = req->result;
+        PyObject *result = PyTuple_New(n);
+        if (result == NULL) {
+            error0:
+            Promise_RejectWithPyErr(Request_Promise(req));
+            goto done;
+        }
+        if (n) {
+            uv_dirent_t dent;
+            Py_ssize_t index = 0;
+            while (UV_EOF != uv_fs_scandir_next(req, &dent)) {
+                PyObject *item = PyTuple_New(2);
+                if (item == NULL) {
+                    error1:
+                    Py_DECREF(result);
+                    goto error0;
+                }
+                Py_ssize_t type = 0;
+                switch (dent.type) {
+                    case UV_DIRENT_UNKNOWN:
+                        type = 0;
+                        break;
+                    case UV_DIRENT_FILE:
+                        type = 1;
+                        break;
+                    case UV_DIRENT_DIR:
+                        type = 2;
+                        break;
+                    case UV_DIRENT_LINK:
+                        type = 3;
+                        break;
+                    case UV_DIRENT_FIFO:
+                        type = 4;
+                        break;
+                    case UV_DIRENT_SOCKET:
+                        type = 5;
+                        break;
+                    case UV_DIRENT_CHAR:
+                        type = 6;
+                        break;
+                    case UV_DIRENT_BLOCK:
+                        type = 7;
+                        break;
+                }
+                PyObject *r1 = PyLong_FromSsize_t(type);
+                if (r1 == NULL) {
+                    error2:
+                    Py_DECREF(item);
+                    goto error1;
+                }
+                PyObject *r2 = PyBytes_FromString(dent.name);
+                if (r2 == NULL) {
+                    Py_DECREF(r1);
+                    goto error2;
+                }
+                PyTuple_SET_ITEM(item, 0, r1);
+                PyTuple_SET_ITEM(item, 1, r2);
+                PyTuple_SET_ITEM(result, index, item);
+                index++;
+            }
+        }
+        Promise_Resolve(Request_Promise(req), result);
+        Py_DECREF(result);
+    }
+    done:
+    FS_REQUEST_CLOSE(req);
+    RELEASE_GIL
+}
+
+Promise *
+Fs_scandir(const char *path)
+{
+    Promise *promise;
+    FS_UV_CALL(uv_fs_scandir, promise, path, 0, scandir_callback);
     return promise;
 }
 

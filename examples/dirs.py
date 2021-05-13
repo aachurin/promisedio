@@ -1,8 +1,9 @@
-from promisedio import exec_async, run, amkdir, armdir, amkdtemp
+from promisedio import exec_async, run, amkdir, armdir, amkdtemp, ascandir
 
 
 async def mkrmdir():
     await amkdir("demo1")
+    print (await ascandir("."))
     await armdir("demo1")
 
 
@@ -18,6 +19,6 @@ exec_async(mkdir_temp())
 run()
 
 # uncomment to see debug info
-# from promisedio import _getallocatedobjectscount, _printmeminfo
-# print(_getallocatedobjectscount())
-# _printmeminfo()
+from promisedio import _getallocatedobjectscount, _printmeminfo
+print(_getallocatedobjectscount())
+_printmeminfo()
