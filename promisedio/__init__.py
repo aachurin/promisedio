@@ -25,7 +25,8 @@ from . _cext import (
     amkdtemp,
     amkstemp,
     ascandir,
-    arename
+    arename,
+    afsync
     )
 
 

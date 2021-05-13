@@ -728,6 +728,18 @@ Fs_rename(const char *path, const char *new_path)
     return promise;
 }
 
+Promise *
+Fs_fsync(int fd)
+{
+    Promise *promise;
+    if (fd < 0) {
+        PyErr_SetString(PyExc_ValueError, "negative file descriptor");
+        return NULL;
+    }
+    FS_UV_CALL(uv_fs_fsync, promise, fd, none_callback);
+    return promise;
+}
+
 int
 Fs_module_init()
 {

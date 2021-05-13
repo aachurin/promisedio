@@ -1130,4 +1130,46 @@ exit:
 
     return return_value;
 }
-/*[clinic end generated code: output=f3ed5e1d92fb06f7 input=a9049054013a1b77]*/
+
+PyDoc_STRVAR(promisedio_afsync__doc__,
+"afsync($module, /, fd)\n"
+"--\n"
+"\n"
+"Force write of file with file descriptor fd to disk.\n"
+"\n"
+"Equivalent to [fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html).");
+
+#define PROMISEDIO_AFSYNC_METHODDEF    \
+    {"afsync", (PyCFunction)(void(*)(void))promisedio_afsync, METH_FASTCALL|METH_KEYWORDS, promisedio_afsync__doc__},
+
+static PyObject *
+promisedio_afsync_impl(PyObject *module, int fd);
+
+static PyObject *
+promisedio_afsync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"fd", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "afsync", 0};
+    PyObject *argsbuf[1];
+    int fd;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (PyFloat_Check(args[0])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    fd = _PyLong_AsInt(args[0]);
+    if (fd == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+    return_value = promisedio_afsync_impl(module, fd);
+
+exit:
+    return return_value;
+}
+/*[clinic end generated code: output=8f357991e9a4f32f input=a9049054013a1b77]*/
