@@ -24,10 +24,10 @@ from . _cext import (
     armdir,
     amkdtemp,
     amkstemp,
-    ascandir
+    ascandir,
+    arename
     )
 
-os.register_at_fork(before=check_can_fork)
 
 DIRENT_UNKNOWN = 0
 DIRENT_FILE = 1
@@ -38,8 +38,12 @@ DIRENT_SOCKET = 5
 DIRENT_CHAR = 6
 DIRENT_BLOCK = 7
 
+
 def run():
     try:
         run_loop()
     finally:
         close_loop()
+
+
+os.register_at_fork(before=check_can_fork)

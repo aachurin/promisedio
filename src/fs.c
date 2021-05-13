@@ -720,6 +720,14 @@ Fs_scandir(const char *path)
     return promise;
 }
 
+Promise *
+Fs_rename(const char *path, const char *new_path)
+{
+    Promise *promise;
+    FS_UV_CALL(uv_fs_rename, promise, path, new_path, none_callback);
+    return promise;
+}
+
 int
 Fs_module_init()
 {

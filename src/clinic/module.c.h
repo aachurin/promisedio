@@ -1085,4 +1085,49 @@ exit:
 
     return return_value;
 }
-/*[clinic end generated code: output=482bba6bd62f79df input=a9049054013a1b77]*/
+
+PyDoc_STRVAR(promisedio_arename__doc__,
+"arename($module, /, path, new_path)\n"
+"--\n"
+"\n"
+"Rename the file or directory path to new_path.\n"
+"\n"
+"Equivalent to [rename(2)](https://man7.org/linux/man-pages/man2/rename.2.html).");
+
+#define PROMISEDIO_ARENAME_METHODDEF    \
+    {"arename", (PyCFunction)(void(*)(void))promisedio_arename, METH_FASTCALL|METH_KEYWORDS, promisedio_arename__doc__},
+
+static PyObject *
+promisedio_arename_impl(PyObject *module, PyObject *path, PyObject *new_path);
+
+static PyObject *
+promisedio_arename(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"path", "new_path", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "arename", 0};
+    PyObject *argsbuf[2];
+    PyObject *path = NULL;
+    PyObject *new_path = NULL;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!path_converter(args[0], &path)) {
+        goto exit;
+    }
+    if (!path_converter(args[1], &new_path)) {
+        goto exit;
+    }
+    return_value = promisedio_arename_impl(module, path, new_path);
+
+exit:
+    /* Cleanup for path */
+    Py_XDECREF(path);
+    /* Cleanup for new_path */
+    Py_XDECREF(new_path);
+
+    return return_value;
+}
+/*[clinic end generated code: output=f3ed5e1d92fb06f7 input=a9049054013a1b77]*/

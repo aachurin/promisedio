@@ -58,6 +58,7 @@ static PyMethodDef module_methods[] = {
     PROMISEDIO_AMKDTEMP_METHODDEF
     PROMISEDIO_AMKSTEMP_METHODDEF
     PROMISEDIO_ASCANDIR_METHODDEF
+    PROMISEDIO_ARENAME_METHODDEF
     {NULL, NULL}
 };
 
@@ -443,6 +444,19 @@ promisedio_ascandir_impl(PyObject *module, PyObject *path)
 /*[clinic end generated code: output=dee5ea789f520bfe input=2987e9c7f9f92114]*/
 {
     return (PyObject *) Fs_scandir(PyBytes_AS_STRING(path));
+}
+
+/*[clinic input]
+promisedio.arename
+    path: path
+    new_path: path
+[clinic start generated code]*/
+
+static PyObject *
+promisedio_arename_impl(PyObject *module, PyObject *path, PyObject *new_path)
+/*[clinic end generated code: output=8314bc89d7ace107 input=dd32f8de3118ba60]*/
+{
+    return (PyObject *) Fs_rename(PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path));
 }
 
 static void

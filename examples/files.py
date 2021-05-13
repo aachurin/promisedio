@@ -1,4 +1,4 @@
-from promisedio import exec_async, run, aopen, aunlink, amkstemp, aread
+from promisedio import exec_async, run, aopen, aunlink, amkstemp, aread, arename
 
 
 async def readwrite():
@@ -13,8 +13,9 @@ async def readwrite():
             print(await f.read())
         finally:
             await f.close()
+        await arename("demo1.txt", "demo2.txt")
     finally:
-        await aunlink("demo1.txt")
+        await aunlink("demo2.txt")
 
 
 async def readwrite_temp():
