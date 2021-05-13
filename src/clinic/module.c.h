@@ -6,7 +6,9 @@ PyDoc_STRVAR(promisedio__getallocatedobjectscount__doc__,
 "_getallocatedobjectscount($module, /)\n"
 "--\n"
 "\n"
-"Get number of allocated objects,");
+"Get number of allocated objects,\n"
+"\n"
+"");
 
 #define PROMISEDIO__GETALLOCATEDOBJECTSCOUNT_METHODDEF    \
     {"_getallocatedobjectscount", (PyCFunction)promisedio__getallocatedobjectscount, METH_NOARGS, promisedio__getallocatedobjectscount__doc__},
@@ -24,7 +26,9 @@ PyDoc_STRVAR(promisedio__printmeminfo__doc__,
 "_printmeminfo($module, /)\n"
 "--\n"
 "\n"
-"Memory debug info");
+"Memory debug info\n"
+"\n"
+"");
 
 #define PROMISEDIO__PRINTMEMINFO_METHODDEF    \
     {"_printmeminfo", (PyCFunction)promisedio__printmeminfo, METH_NOARGS, promisedio__printmeminfo__doc__},
@@ -42,7 +46,9 @@ PyDoc_STRVAR(promisedio__clearfreelists__doc__,
 "_clearfreelists($module, /)\n"
 "--\n"
 "\n"
-"Clear freelists");
+"Clear freelists\n"
+"\n"
+"");
 
 #define PROMISEDIO__CLEARFREELISTS_METHODDEF    \
     {"_clearfreelists", (PyCFunction)promisedio__clearfreelists, METH_NOARGS, promisedio__clearfreelists__doc__},
@@ -60,7 +66,9 @@ PyDoc_STRVAR(promisedio_exec_async__doc__,
 "exec_async($module, coro, /)\n"
 "--\n"
 "\n"
-"Schedule coroutine execution.");
+"Schedule coroutine execution.\n"
+"\n"
+"");
 
 #define PROMISEDIO_EXEC_ASYNC_METHODDEF    \
     {"exec_async", (PyCFunction)promisedio_exec_async, METH_O, promisedio_exec_async__doc__},
@@ -89,7 +97,9 @@ PyDoc_STRVAR(promisedio_process_promise_chain__doc__,
 "process_promise_chain($module, /)\n"
 "--\n"
 "\n"
-"Process promise async chain once.");
+"Process promise async chain once.\n"
+"\n"
+"");
 
 #define PROMISEDIO_PROCESS_PROMISE_CHAIN_METHODDEF    \
     {"process_promise_chain", (PyCFunction)promisedio_process_promise_chain, METH_NOARGS, promisedio_process_promise_chain__doc__},
@@ -117,7 +127,9 @@ PyDoc_STRVAR(promisedio_deferred__doc__,
 "deferred($module, /)\n"
 "--\n"
 "\n"
-"Create a new Deferred object.");
+"Create a new Deferred object.\n"
+"\n"
+"");
 
 #define PROMISEDIO_DEFERRED_METHODDEF    \
     {"deferred", (PyCFunction)promisedio_deferred, METH_NOARGS, promisedio_deferred__doc__},
@@ -135,7 +147,9 @@ PyDoc_STRVAR(promisedio_asleep__doc__,
 "asleep($module, /, seconds)\n"
 "--\n"
 "\n"
-"Delay execution for a given number of seconds.");
+"Delay execution for a given number of seconds.\n"
+"\n"
+"");
 
 #define PROMISEDIO_ASLEEP_METHODDEF    \
     {"asleep", (PyCFunction)(void(*)(void))promisedio_asleep, METH_FASTCALL|METH_KEYWORDS, promisedio_asleep__doc__},
@@ -176,7 +190,9 @@ PyDoc_STRVAR(promisedio_use_python_default_sigint__doc__,
 "use_python_default_sigint($module, /, flag)\n"
 "--\n"
 "\n"
-"Use python default SIGINT handler.");
+"Use python default SIGINT handler.\n"
+"\n"
+"");
 
 #define PROMISEDIO_USE_PYTHON_DEFAULT_SIGINT_METHODDEF    \
     {"use_python_default_sigint", (PyCFunction)(void(*)(void))promisedio_use_python_default_sigint, METH_FASTCALL|METH_KEYWORDS, promisedio_use_python_default_sigint__doc__},
@@ -211,7 +227,9 @@ PyDoc_STRVAR(promisedio_run_loop__doc__,
 "run_loop($module, /)\n"
 "--\n"
 "\n"
-"Run event loop.");
+"Run event loop.\n"
+"\n"
+"");
 
 #define PROMISEDIO_RUN_LOOP_METHODDEF    \
     {"run_loop", (PyCFunction)promisedio_run_loop, METH_NOARGS, promisedio_run_loop__doc__},
@@ -229,7 +247,9 @@ PyDoc_STRVAR(promisedio_close_loop__doc__,
 "close_loop($module, /)\n"
 "--\n"
 "\n"
-"Close event loop.");
+"Close event loop.\n"
+"\n"
+"");
 
 #define PROMISEDIO_CLOSE_LOOP_METHODDEF    \
     {"close_loop", (PyCFunction)promisedio_close_loop, METH_NOARGS, promisedio_close_loop__doc__},
@@ -246,7 +266,8 @@ promisedio_close_loop(PyObject *module, PyObject *Py_UNUSED(ignored))
 PyDoc_STRVAR(promisedio_check_can_fork__doc__,
 "check_can_fork($module, /)\n"
 "--\n"
-"\n");
+"\n"
+"");
 
 #define PROMISEDIO_CHECK_CAN_FORK_METHODDEF    \
     {"check_can_fork", (PyCFunction)promisedio_check_can_fork, METH_NOARGS, promisedio_check_can_fork__doc__},
@@ -266,7 +287,9 @@ PyDoc_STRVAR(promisedio__inspectloop__doc__,
 "\n"
 "Prints all handles associated with the given loop.\n"
 "\n"
-"Warning This function is meant for ad hoc debugging, there is no API/ABI stability guarantees.");
+"Warning: This function is meant for ad hoc debugging, there is no API/ABI stability guarantees.\n"
+"\n"
+"");
 
 #define PROMISEDIO__INSPECTLOOP_METHODDEF    \
     {"_inspectloop", (PyCFunction)promisedio__inspectloop, METH_NOARGS, promisedio__inspectloop__doc__},
@@ -284,7 +307,12 @@ PyDoc_STRVAR(promisedio_astat__doc__,
 "astat($module, /, name, *, follow_symlinks=True)\n"
 "--\n"
 "\n"
-"Async equivalent of os.stat().");
+"Get the status of a file. Return a StatObj object.\n"
+"\n"
+"This function normally follows symlinks; to stat a symlink add the argument follow_symlinks=False\n"
+"\n"
+"Equivalent to [stat(2)](https://man7.org/linux/man-pages/man2/stat.2.html) \n"
+"              [lstat(2)](https://man7.org/linux/man-pages/man2/lstat.2.html).");
 
 #define PROMISEDIO_ASTAT_METHODDEF    \
     {"astat", (PyCFunction)(void(*)(void))promisedio_astat, METH_FASTCALL|METH_KEYWORDS, promisedio_astat__doc__},
@@ -331,7 +359,9 @@ PyDoc_STRVAR(promisedio_afstat__doc__,
 "afstat($module, /, fd)\n"
 "--\n"
 "\n"
-"Async equivalent of os.fstat().");
+"Get the status of the file descriptor fd. Return a StatObj object.\n"
+"\n"
+"Equivalent to [fstat(2)](https://man7.org/linux/man-pages/man2/fstat.2.html).");
 
 #define PROMISEDIO_AFSTAT_METHODDEF    \
     {"afstat", (PyCFunction)(void(*)(void))promisedio_afstat, METH_FASTCALL|METH_KEYWORDS, promisedio_afstat__doc__},
@@ -371,7 +401,14 @@ PyDoc_STRVAR(promisedio_aseek__doc__,
 "aseek($module, /, fd, pos, how)\n"
 "--\n"
 "\n"
-"Async equivalent of os.lseek().");
+"Set the current position of file descriptor fd to position pos, modified by how:\n"
+"SEEK_SET or 0 to set the position relative to the beginning of the file;\n"
+"SEEK_CUR or 1 to set it relative to the current position;\n"
+"SEEK_END or 2 to set it relative to the end of the file.\n"
+"\n"
+"Return the new cursor position in bytes, starting from the beginning.\n"
+"\n"
+"Equivalent to [lseek(2)](https://man7.org/linux/man-pages/man2/lseek.2.html).");
 
 #define PROMISEDIO_ASEEK_METHODDEF    \
     {"aseek", (PyCFunction)(void(*)(void))promisedio_aseek, METH_FASTCALL|METH_KEYWORDS, promisedio_aseek__doc__},
@@ -439,7 +476,10 @@ PyDoc_STRVAR(promisedio_aopenfd__doc__,
 "aopenfd($module, /, name, flags=\'r\', mode=438)\n"
 "--\n"
 "\n"
-"Async equivalent of os.open().");
+"Open the file path and set various flags according to flags and possibly its mode according to mode. \n"
+"Return the file descriptor for the newly opened file. The new file descriptor is non-inheritable.\n"
+"\n"
+"Equivalent to [open(2)](https://man7.org/linux/man-pages/man2/open.2.html).");
 
 #define PROMISEDIO_AOPENFD_METHODDEF    \
     {"aopenfd", (PyCFunction)(void(*)(void))promisedio_aopenfd, METH_FASTCALL|METH_KEYWORDS, promisedio_aopenfd__doc__},
@@ -511,7 +551,9 @@ PyDoc_STRVAR(promisedio_aclose__doc__,
 "aclose($module, /, fd)\n"
 "--\n"
 "\n"
-"Async equivalent of os.close().");
+"Close file descriptor fd.\n"
+"\n"
+"Equivalent to [close(2)](https://man7.org/linux/man-pages/man2/close.2.html).");
 
 #define PROMISEDIO_ACLOSE_METHODDEF    \
     {"aclose", (PyCFunction)(void(*)(void))promisedio_aclose, METH_FASTCALL|METH_KEYWORDS, promisedio_aclose__doc__},
@@ -551,7 +593,12 @@ PyDoc_STRVAR(promisedio_aread__doc__,
 "aread($module, /, fd, size=-1, offset=-1)\n"
 "--\n"
 "\n"
-"Async equivalent of os.read().");
+"Read from file descriptor fd until we have size characters or we hit EOF.\n"
+"If offset is present and is not negative, read at most size bytes from file descriptor fd at a position of offset,\n"
+"leaving the file offset unchanged.\n"
+"\n"
+"Equivalent to [read(2)](https://man7.org/linux/man-pages/man2/read.2.html)\n"
+"              [preadv(2)](https://man7.org/linux/man-pages/man2/preadv.2.html)");
 
 #define PROMISEDIO_AREAD_METHODDEF    \
     {"aread", (PyCFunction)(void(*)(void))promisedio_aread, METH_FASTCALL|METH_KEYWORDS, promisedio_aread__doc__},
@@ -638,7 +685,14 @@ PyDoc_STRVAR(promisedio_awrite__doc__,
 "awrite($module, /, fd, data, offset=-1)\n"
 "--\n"
 "\n"
-"Async equivalent of os.write().");
+"Write the data to file descriptor fd.\n"
+"If offset is present and is not negative, write the data to file descriptor fd at position of offset, \n"
+"leaving the file offset unchanged.\n"
+"\n"
+"Return the number of bytes actually written.\n"
+"\n"
+"Equivalent to [write(2)](https://man7.org/linux/man-pages/man2/write.2.html)\n"
+"              [pwritev(2)](https://man7.org/linux/man-pages/man2/pwritev.2.html)");
 
 #define PROMISEDIO_AWRITE_METHODDEF    \
     {"awrite", (PyCFunction)(void(*)(void))promisedio_awrite, METH_FASTCALL|METH_KEYWORDS, promisedio_awrite__doc__},
@@ -704,7 +758,9 @@ PyDoc_STRVAR(promisedio_aunlink__doc__,
 "aunlink($module, /, name)\n"
 "--\n"
 "\n"
-"Async equivalent of unlink().");
+"Remove (delete) the file path.\n"
+"\n"
+"Equivalent to [unlink(2)](https://man7.org/linux/man-pages/man2/unlink.2.html).");
 
 #define PROMISEDIO_AUNLINK_METHODDEF    \
     {"aunlink", (PyCFunction)(void(*)(void))promisedio_aunlink, METH_FASTCALL|METH_KEYWORDS, promisedio_aunlink__doc__},
@@ -741,7 +797,12 @@ PyDoc_STRVAR(promisedio_amkdir__doc__,
 "amkdir($module, /, name, mode=511)\n"
 "--\n"
 "\n"
-"Async equivalent of mkdir().");
+"Create a directory named path with numeric mode mode.\n"
+"If the directory already exists, FileExistsError is raised.\n"
+"\n"
+"On some systems, mode is ignored.\n"
+"\n"
+"Equivalent to [mkdir(2)](https://man7.org/linux/man-pages/man2/mkdir.2.html).");
 
 #define PROMISEDIO_AMKDIR_METHODDEF    \
     {"amkdir", (PyCFunction)(void(*)(void))promisedio_amkdir, METH_FASTCALL|METH_KEYWORDS, promisedio_amkdir__doc__},
@@ -793,7 +854,10 @@ PyDoc_STRVAR(promisedio_armdir__doc__,
 "armdir($module, /, name)\n"
 "--\n"
 "\n"
-"Async equivalent of rmdir().");
+"Remove (delete) the directory path. If the directory does not exist or is not empty,\n"
+"an FileNotFoundError or an OSError is raised respectively.\n"
+"\n"
+"Equivalent to [rmdir(2)](https://man7.org/linux/man-pages/man2/rmdir.2.html).");
 
 #define PROMISEDIO_ARMDIR_METHODDEF    \
     {"armdir", (PyCFunction)(void(*)(void))promisedio_armdir, METH_FASTCALL|METH_KEYWORDS, promisedio_armdir__doc__},
@@ -830,7 +894,13 @@ PyDoc_STRVAR(promisedio_amkdtemp__doc__,
 "amkdtemp($module, /, tpl)\n"
 "--\n"
 "\n"
-"Async equivalent of mkdtemp.");
+"Generate a uniquely named temporary directory from template tpl.\n"
+"The last six characters of template must be XXXXXX and these are replaced with a string that makes\n"
+"the directory name unique.\n"
+"\n"
+"Return the modified template string.\n"
+"\n"
+"Equivalent to [mkdtemp(3)](https://man7.org/linux/man-pages/man3/mkdtemp.3.html).");
 
 #define PROMISEDIO_AMKDTEMP_METHODDEF    \
     {"amkdtemp", (PyCFunction)(void(*)(void))promisedio_amkdtemp, METH_FASTCALL|METH_KEYWORDS, promisedio_amkdtemp__doc__},
@@ -867,7 +937,14 @@ PyDoc_STRVAR(promisedio_amkstemp__doc__,
 "amkstemp($module, /, tpl)\n"
 "--\n"
 "\n"
-"Async equivalent of mkstemp.");
+"Generate a unique temporary filename from template.\n"
+"This function creates and opens the file, and returns an open file descriptor for the file.\n"
+"The last six characters of template must be \"XXXXXX\" and these are replaced with a string that makes \n"
+"the filename unique.\n"
+"\n"
+"Return the file descriptor and modified template string.\n"
+"\n"
+"Equivalent to [mkstemp(3)](https://man7.org/linux/man-pages/man3/mkstemp.3.html).");
 
 #define PROMISEDIO_AMKSTEMP_METHODDEF    \
     {"amkstemp", (PyCFunction)(void(*)(void))promisedio_amkstemp, METH_FASTCALL|METH_KEYWORDS, promisedio_amkstemp__doc__},
@@ -904,7 +981,9 @@ PyDoc_STRVAR(promisedio_aopen__doc__,
 "aopen($module, /, name, flags=\'r\', closefd=True)\n"
 "--\n"
 "\n"
-"Async equivalent of open().");
+"Open file and return a corresponding file object. If the file cannot be opened, an OSError is raised. \n"
+"\n"
+"Equivalent to python [open](https://docs.python.org/3/library/functions.html#open) (binary mode only).");
 
 #define PROMISEDIO_AOPEN_METHODDEF    \
     {"aopen", (PyCFunction)(void(*)(void))promisedio_aopen, METH_FASTCALL|METH_KEYWORDS, promisedio_aopen__doc__},
@@ -966,4 +1045,4 @@ skip_optional_pos:
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=ce0aa3b728dec764 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=0c056d6d645e4ccb input=a9049054013a1b77]*/

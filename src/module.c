@@ -239,12 +239,12 @@ promisedio._inspectloop
 
 Prints all handles associated with the given loop.
 
-Warning This function is meant for ad hoc debugging, there is no API/ABI stability guarantees.
+Warning: This function is meant for ad hoc debugging, there is no API/ABI stability guarantees.
 [clinic start generated code]*/
 
 static PyObject *
 promisedio__inspectloop_impl(PyObject *module)
-/*[clinic end generated code: output=3fb3fc307ee4edc6 input=bf98e7d27d404965]*/
+/*[clinic end generated code: output=3fb3fc307ee4edc6 input=439b20f545d96ff0]*/
 {
     uv_print_all_handles(Loop_Get(), stderr);
     Py_RETURN_NONE;
@@ -255,13 +255,11 @@ promisedio.astat
     name: path
     *
     follow_symlinks: bool = True
-
-Async equivalent of os.stat().
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_astat_impl(PyObject *module, PyObject *name, int follow_symlinks)
-/*[clinic end generated code: output=2c0e909e379a9ecf input=57322c086a203a26]*/
+/*[clinic end generated code: output=2c0e909e379a9ecf input=3b8f2e193339931e]*/
 {
     return (PyObject *) Fs_stat(PyBytes_AS_STRING(name), follow_symlinks);
 }
@@ -269,13 +267,11 @@ promisedio_astat_impl(PyObject *module, PyObject *name, int follow_symlinks)
 /*[clinic input]
 promisedio.afstat
     fd: int
-
-Async equivalent of os.fstat().
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_afstat_impl(PyObject *module, int fd)
-/*[clinic end generated code: output=0f5b65d5830d63e3 input=efe5a7502bdd6381]*/
+/*[clinic end generated code: output=0f5b65d5830d63e3 input=3e684f625c6e0f01]*/
 {
     return (PyObject *) Fs_fstat(fd);
 }
@@ -285,13 +281,11 @@ promisedio.aseek
     fd: int
     pos: Py_ssize_t
     how: int
-
-Async equivalent of os.lseek().
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_aseek_impl(PyObject *module, int fd, Py_ssize_t pos, int how)
-/*[clinic end generated code: output=7ba6c05a3a2ac821 input=740a31387b83fc1d]*/
+/*[clinic end generated code: output=7ba6c05a3a2ac821 input=421dca383d97879a]*/
 {
     return (PyObject *) Fs_seek(fd, pos, how);
 }
@@ -301,14 +295,12 @@ promisedio.aopenfd
     name: path
     flags: str = "r"
     mode: int = 0o666
-
-Async equivalent of os.open().
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_aopenfd_impl(PyObject *module, PyObject *name, const char *flags,
                         int mode)
-/*[clinic end generated code: output=b540faccc179cab2 input=042710841eb76b91]*/
+/*[clinic end generated code: output=b540faccc179cab2 input=5dd755df3c9c45e5]*/
 {
     return (PyObject *) Fs_open(PyBytes_AS_STRING(name), flags, mode);
 }
@@ -316,13 +308,11 @@ promisedio_aopenfd_impl(PyObject *module, PyObject *name, const char *flags,
 /*[clinic input]
 promisedio.aclose
     fd: int
-
-Async equivalent of os.close().
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_aclose_impl(PyObject *module, int fd)
-/*[clinic end generated code: output=8bee8b49aeab6a3c input=fbbf1c56cc362359]*/
+/*[clinic end generated code: output=8bee8b49aeab6a3c input=63b58ef01d650ac9]*/
 {
     return (PyObject *) Fs_close(fd);
 }
@@ -332,14 +322,12 @@ promisedio.aread
     fd: int
     size: Py_ssize_t = -1
     offset: Py_ssize_t = -1
-
-Async equivalent of os.read().
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_aread_impl(PyObject *module, int fd, Py_ssize_t size,
                       Py_ssize_t offset)
-/*[clinic end generated code: output=bf7079c627b8be8e input=51bfdd0ce090c2d3]*/
+/*[clinic end generated code: output=bf7079c627b8be8e input=2ed1011b13d0b5d3]*/
 {
     if (size < 0) {
         if (offset >= 0) {
@@ -358,14 +346,12 @@ promisedio.awrite
     fd: int
     data: object
     offset: Py_ssize_t = -1
-
-Async equivalent of os.write().
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_awrite_impl(PyObject *module, int fd, PyObject *data,
                        Py_ssize_t offset)
-/*[clinic end generated code: output=7cf412bfa8880d3c input=0ef935ba3f15fbfd]*/
+/*[clinic end generated code: output=7cf412bfa8880d3c input=6fd0212846920a83]*/
 {
     return (PyObject *) Fs_write(fd, data, offset);
 }
@@ -373,13 +359,11 @@ promisedio_awrite_impl(PyObject *module, int fd, PyObject *data,
 /*[clinic input]
 promisedio.aunlink
     name: path
-
-Async equivalent of unlink().
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_aunlink_impl(PyObject *module, PyObject *name)
-/*[clinic end generated code: output=a75a8fa5065bf670 input=6088501f7d897d0d]*/
+/*[clinic end generated code: output=a75a8fa5065bf670 input=98a0cf33159da021]*/
 {
     return (PyObject *) Fs_unlink(PyBytes_AS_STRING(name));
 }
@@ -388,26 +372,22 @@ promisedio_aunlink_impl(PyObject *module, PyObject *name)
 promisedio.amkdir
     name: path
     mode: int = 0o777
-
-Async equivalent of mkdir().
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_amkdir_impl(PyObject *module, PyObject *name, int mode)
-/*[clinic end generated code: output=8c165388fd974f52 input=3208ed7be7063a8d]*/
+/*[clinic end generated code: output=8c165388fd974f52 input=dbac3316d83e5f5f]*/
 {
     return (PyObject *) Fs_mkdir(PyBytes_AS_STRING(name), mode);
 }
 /*[clinic input]
 promisedio.armdir
     name: path
-
-Async equivalent of rmdir().
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_armdir_impl(PyObject *module, PyObject *name)
-/*[clinic end generated code: output=9b3494f86f7d83bd input=1695b356914bcec6]*/
+/*[clinic end generated code: output=9b3494f86f7d83bd input=afc3456caef05305]*/
 {
     return (PyObject *) Fs_rmdir(PyBytes_AS_STRING(name));
 }
@@ -415,13 +395,11 @@ promisedio_armdir_impl(PyObject *module, PyObject *name)
 /*[clinic input]
 promisedio.amkdtemp
     tpl: path
-
-Async equivalent of mkdtemp.
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_amkdtemp_impl(PyObject *module, PyObject *tpl)
-/*[clinic end generated code: output=e0c1506fcefab432 input=c8a34a8c29c9cf01]*/
+/*[clinic end generated code: output=e0c1506fcefab432 input=6d88427f5e223fb4]*/
 {
     return (PyObject *) Fs_mkdtemp(PyBytes_AS_STRING(tpl));
 }
@@ -429,13 +407,11 @@ promisedio_amkdtemp_impl(PyObject *module, PyObject *tpl)
 /*[clinic input]
 promisedio.amkstemp
     tpl: path
-
-Async equivalent of mkstemp.
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_amkstemp_impl(PyObject *module, PyObject *tpl)
-/*[clinic end generated code: output=c08feef6f593c303 input=3970394d552383c5]*/
+/*[clinic end generated code: output=c08feef6f593c303 input=0efed5914c8d9fef]*/
 {
     return (PyObject *) Fs_mkstemp(PyBytes_AS_STRING(tpl));
 }
@@ -445,14 +421,12 @@ promisedio.aopen
     name: object
     flags: str = "r"
     closefd: bool(accept={int}) = True
-
-Async equivalent of open().
 [clinic start generated code]*/
 
 static PyObject *
 promisedio_aopen_impl(PyObject *module, PyObject *name, const char *flags,
                       int closefd)
-/*[clinic end generated code: output=1ace03ef2a9e0dca input=6245bcfc7caa7957]*/
+/*[clinic end generated code: output=1ace03ef2a9e0dca input=9a938ee89e316724]*/
 {
     return FileIO_Open(name, flags, closefd);
 }
