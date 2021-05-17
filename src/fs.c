@@ -22,20 +22,36 @@
         return NULL;                                        \
     }
 
-#define FS_UV_CALL(func, promise, ...) {            \
-    uv_fs_t *_req;                                  \
-    INIT_PROMISE_AND_REQ(promise, _req, uv_fs_t);   \
-    uv_loop_t *_loop = Loop_Get();                  \
-    BEGIN_ALLOW_THREADS                             \
-    func(_loop, _req, __VA_ARGS__);                 \
-    END_ALLOW_THREADS                               \
+#define FS_UV_CALL(func, promise, ...) {                \
+    uv_fs_t *_req;                                      \
+    INIT_PROMISE_AND_REQ(promise, _req, uv_fs_t);       \
+    uv_loop_t *_loop = Loop_Get();                      \
+    int _ret;                                           \
+    BEGIN_ALLOW_THREADS                                 \
+    _ret = func(_loop, _req, __VA_ARGS__);              \
+    END_ALLOW_THREADS                                   \
+    if (_ret < 0) {                                     \
+        _req->result = _ret;                            \
+        raise_with_errno(_ret, GET_SYSTEM_ERROR(_req)); \
+        FS_REQUEST_CLOSE(_req);                         \
+        Py_CLEAR(promise);                              \
+        return NULL;                                    \
+    }                                                   \
 }
 
-#define FS_UV_PUSH_WORK(req, work, work_cb) {                                               \
-    uv_loop_t *_loop = Loop_Get();                                                          \
-    BEGIN_ALLOW_THREADS                                                                     \
-    uv_queue_work(_loop, (uv_work_t *) req, (uv_work_cb) work, (uv_after_work_cb) work_cb); \
-    END_ALLOW_THREADS                                                                       \
+#define FS_UV_PROXY(func, ...) {            \
+    Promise *promise;                       \
+    FS_UV_CALL(func, promise, __VA_ARGS__); \
+    return promise;                         \
+}
+
+#define FS_UV_PUSH_WORK(req, work, work_cb) {           \
+    uv_loop_t *_loop = Loop_Get();                      \
+    BEGIN_ALLOW_THREADS                                 \
+    uv_queue_work(_loop, (uv_work_t *) req,             \
+                         (uv_work_cb) work,             \
+                         (uv_after_work_cb) work_cb);   \
+    END_ALLOW_THREADS                                   \
 }
 
 #define FS_REQUEST_CLOSE(req) \
@@ -44,7 +60,7 @@
 
 #define BEGIN_FS_CALLBACK(req)                    \
     ACQUIRE_GIL                                   \
-    if ((req)->result == -1) {                    \
+    if ((req)->result < 0) {                      \
         reject_with_errno(Request_Promise(req),   \
                           (int)((req)->result),   \
                           GET_SYSTEM_ERROR(req)); \
@@ -59,7 +75,7 @@
 #if EDOM > 0
 #define GET_SYSTEM_ERROR(req) -((req)->result)
 #else
-#define GET_SYSTEM_ERROR(err) (req)->result
+#define GET_SYSTEM_ERROR(req) (req)->result
 #endif
 #endif
 
@@ -104,23 +120,41 @@ Fs_Path(PyObject *path)
     return path;
 }
 
-static void
-reject_with_errno(Promise *promise, int uverr, int oserr)
+static PyObject *
+create_oserror(int uverr, int oserr)
 {
     PyObject *args, *exc;
-    #ifdef MS_WINDOWS
+#ifdef MS_WINDOWS
     args = Py_BuildValue("(isOi)", 0, uv_strerror(uverr), Py_None, oserr);
-    #else
+#else
     args = Py_BuildValue("(is)", oserr, uv_strerror(uverr));
-    #endif
+#endif
     if (args != NULL) {
         exc = PyObject_Call(PyExc_OSError, args, NULL);
         Py_DECREF(args);
-        if (exc != NULL) {
-            Promise_Reject(promise, exc);
-            Py_DECREF(exc);
-            return;
-        }
+        return exc;
+    }
+    return NULL;
+}
+
+static void
+raise_with_errno(int uverr, int oserr)
+{
+    PyObject *exc = create_oserror(uverr, oserr);
+    if (exc != NULL) {
+        PyErr_SetObject(PyExc_OSError, exc);
+        Py_DECREF(exc);
+    }
+}
+
+static void
+reject_with_errno(Promise *promise, int uverr, int oserr)
+{
+    PyObject *exc = create_oserror(uverr, oserr);
+    if (exc != NULL) {
+        Promise_Reject(promise, exc);
+        Py_DECREF(exc);
+        return;
     }
     Promise_RejectWithPyErr(promise);
 }
@@ -148,6 +182,47 @@ none_callback(uv_fs_t *req)
 }
 
 static void
+bool_callback(uv_fs_t *req)
+{
+    ACQUIRE_GIL
+    if (req->result < 0) {
+        Promise_Resolve(Request_Promise(req), Py_False);
+    } else {
+        Promise_Resolve(Request_Promise(req), Py_True);
+    }
+    FS_REQUEST_CLOSE(req);
+    RELEASE_GIL
+}
+
+static void
+path_callback(uv_fs_t *req)
+{
+    BEGIN_FS_CALLBACK(req)
+    PyObject *result = PyBytes_FromString(req->path);
+    if (result == NULL) {
+        Promise_RejectWithPyErr(Request_Promise(req));
+    } else {
+        Promise_Resolve(Request_Promise(req), result);
+        Py_DECREF(result);
+    }
+    END_FS_CALLBACK(req)
+}
+
+static void
+ptr_callback(uv_fs_t *req)
+{
+    BEGIN_FS_CALLBACK(req)
+    PyObject *result = PyBytes_FromString(req->ptr);
+    if (result == NULL) {
+        Promise_RejectWithPyErr(Request_Promise(req));
+    } else {
+        Promise_Resolve(Request_Promise(req), result);
+        Py_DECREF(result);
+    }
+    END_FS_CALLBACK(req)
+}
+
+static void
 stat_callback(uv_fs_t *req)
 {
     BEGIN_FS_CALLBACK(req)
@@ -163,24 +238,16 @@ stat_callback(uv_fs_t *req)
 }
 
 Promise *
-Fs_stat(const char *path, int follow_symlinks)
-{
-    Promise *promise;
-    if (follow_symlinks) {
-        FS_UV_CALL(uv_fs_stat, promise, path, stat_callback);
-    } else {
-        FS_UV_CALL(uv_fs_lstat, promise, path, stat_callback);
-    }
-    return promise;
-}
+Fs_stat(const char *path)
+FS_UV_PROXY(uv_fs_stat, path, stat_callback)
+
+Promise *
+Fs_lstat(const char *path)
+FS_UV_PROXY(uv_fs_lstat, path, stat_callback)
 
 Promise *
 Fs_fstat(uv_file fd)
-{
-    Promise *promise;
-    FS_UV_CALL(uv_fs_fstat, promise, fd, stat_callback);
-    return promise;
-}
+FS_UV_PROXY(uv_fs_fstat, fd, stat_callback)
 
 typedef struct {
     uv_work_t work;
@@ -219,7 +286,7 @@ static void
 seek_callback(fs_seek_req_t* req, int status)
 {
     ACQUIRE_GIL
-    if (req->result == -1) {
+    if (req->result < 0) {
         reject_with_errno(Request_Promise(req),
                           (int)req->result,
                           GET_SYSTEM_ERROR(req));
@@ -241,7 +308,7 @@ Fs_seek(uv_file fd, Py_off_t pos, int how)
 {
     #ifdef SEEK_SET
     /* Turn 0, 1, 2 into SEEK_{SET,CUR,END} */
-    switch (how) {
+    switch (how) { // NOLINT(hicpp-multiway-paths-covered)
         case 0: how = SEEK_SET; break;
         case 1: how = SEEK_CUR; break;
         case 2: how = SEEK_END; break;
@@ -508,11 +575,9 @@ Fs_readall(int fd)
     ReadContext *context = ReadContext_New();
     if (context == NULL)
         return NULL;
-
     context->fd = fd;
     context->pos = 0;
     context->bytes_read = 0;
-
     Promise *promise = Fs_seek(fd, 0, 1);
     if (promise == NULL) {
         Py_DECREF(context);
@@ -535,57 +600,23 @@ Fs_write(int fd, PyObject *data, Py_off_t offset)
 
 Promise *
 Fs_close(uv_file fd)
-{
-    Promise *promise;
-    FS_UV_CALL(uv_fs_close, promise, fd, none_callback);
-    return promise;
-}
+FS_UV_PROXY(uv_fs_close, fd, none_callback)
 
 Promise *
 Fs_unlink(const char *path)
-{
-    Promise *promise;
-    FS_UV_CALL(uv_fs_unlink, promise, path, none_callback);
-    return promise;
-}
+FS_UV_PROXY(uv_fs_unlink, path, none_callback)
 
 Promise *
 Fs_mkdir(const char *path, int mode)
-{
-    Promise *promise;
-    FS_UV_CALL(uv_fs_mkdir, promise, path, mode, none_callback);
-    return promise;
-}
+FS_UV_PROXY(uv_fs_mkdir, path, mode, none_callback)
 
 Promise *
 Fs_rmdir(const char *path)
-{
-    Promise *promise;
-    FS_UV_CALL(uv_fs_rmdir, promise, path, none_callback);
-    return promise;
-}
-
-static void
-mkdtemp_callback(uv_fs_t *req)
-{
-    BEGIN_FS_CALLBACK(req)
-    PyObject *result = PyBytes_FromString(req->path);
-    if (result == NULL) {
-        Promise_RejectWithPyErr(Request_Promise(req));
-    } else {
-        Promise_Resolve(Request_Promise(req), result);
-        Py_DECREF(result);
-    }
-    END_FS_CALLBACK(req);
-}
+FS_UV_PROXY(uv_fs_rmdir, path, none_callback)
 
 Promise *
 Fs_mkdtemp(const char *tpl)
-{
-    Promise *promise;
-    FS_UV_CALL(uv_fs_mkdtemp, promise, tpl, mkdtemp_callback);
-    return promise;
-}
+FS_UV_PROXY(uv_fs_mkdtemp, tpl, path_callback)
 
 static void
 mkstemp_callback(uv_fs_t *req)
@@ -619,11 +650,7 @@ mkstemp_callback(uv_fs_t *req)
 
 Promise *
 Fs_mkstemp(const char *tpl)
-{
-    Promise *promise;
-    FS_UV_CALL(uv_fs_mkstemp, promise, tpl, mkstemp_callback);
-    return promise;
-}
+FS_UV_PROXY(uv_fs_mkstemp, tpl, mkstemp_callback)
 
 static void
 scandir_callback(uv_fs_t *req)
@@ -697,44 +724,108 @@ scandir_callback(uv_fs_t *req)
 
 Promise *
 Fs_scandir(const char *path)
-{
-    Promise *promise;
-    FS_UV_CALL(uv_fs_scandir, promise, path, 0, scandir_callback);
-    return promise;
-}
+FS_UV_PROXY(uv_fs_scandir, path, 0, scandir_callback)
 
 Promise *
 Fs_rename(const char *path, const char *new_path)
-{
-    Promise *promise;
-    FS_UV_CALL(uv_fs_rename, promise, path, new_path, none_callback);
-    return promise;
-}
+FS_UV_PROXY(uv_fs_rename, path, new_path, none_callback)
 
 Promise *
 Fs_fsync(int fd)
-{
-    Promise *promise;
-    FS_UV_CALL(uv_fs_fsync, promise, fd, none_callback);
-    return promise;
-}
+FS_UV_PROXY(uv_fs_fsync, fd, none_callback)
 
 Promise *
 Fs_ftruncate(int fd, Py_ssize_t length)
-{
-    Promise *promise;
-    FS_UV_CALL(uv_fs_ftruncate, promise, fd, length, none_callback);
-    return promise;
-}
+FS_UV_PROXY(uv_fs_ftruncate, fd, length, none_callback)
+
+Promise *
+Fs_fdatasync(int fd)
+FS_UV_PROXY(uv_fs_fdatasync, fd, none_callback)
+
+Promise *
+Fs_copyfile(const char *path, const char *new_path, int flags)
+FS_UV_PROXY(uv_fs_copyfile, path, new_path, flags, none_callback)
+
+Promise *
+Fs_sendfile(int out_fd, int in_fd, Py_off_t in_offset, size_t length)
+FS_UV_PROXY(uv_fs_sendfile, out_fd, in_fd, in_offset, length, int_callback)
+
+Promise *
+Fs_access(const char *path, int mode)
+FS_UV_PROXY(uv_fs_access, path, mode, bool_callback)
+
+Promise *
+Fs_chmod(const char *path, int mode)
+FS_UV_PROXY(uv_fs_chmod, path, mode, none_callback)
+
+Promise *
+Fs_fchmod(int fd, int mode)
+FS_UV_PROXY(uv_fs_fchmod, fd, mode, none_callback)
+
+Promise *
+Fs_utime(const char *path, double atime, double mtime)
+FS_UV_PROXY(uv_fs_utime, path, atime, mtime, none_callback)
+
+Promise *
+Fs_futime(int fd, double atime, double mtime)
+FS_UV_PROXY(uv_fs_futime, fd, atime, mtime, none_callback)
+
+Promise *
+Fs_lutime(const char *path, double atime, double mtime)
+FS_UV_PROXY(uv_fs_lutime, path, atime, mtime, none_callback)
+
+Promise *
+Fs_link(const char *path, const char *new_path)
+FS_UV_PROXY(uv_fs_link, path, new_path, none_callback)
+
+Promise *
+Fs_symlink(const char *path, const char *new_path, int flags)
+FS_UV_PROXY(uv_fs_symlink, path, new_path, flags, none_callback)
+
+Promise *
+Fs_readlink(const char *path)
+FS_UV_PROXY(uv_fs_readlink, path, ptr_callback)
 
 int
-Fs_module_init()
+Fs_module_init(PyObject *module)
 {
-    if (PyType_Ready(&StatObj_Type) < 0) {
+    if (PyType_Ready(&StatObj_Type) < 0)
         return -1;
-    }
-    if (PyType_Ready(&ReadContext_Type) < 0) {
+    if (PyType_Ready(&ReadContext_Type) < 0)
         return -1;
-    }
+    if (PyModule_AddIntConstant(module, "COPYFILE_EXCL", UV_FS_COPYFILE_EXCL))
+        return -1;
+    if (PyModule_AddIntConstant(module, "COPYFILE_FICLONE", UV_FS_COPYFILE_FICLONE))
+        return -1;
+    if (PyModule_AddIntConstant(module, "COPYFILE_FICLONE_FORCE", UV_FS_COPYFILE_FICLONE_FORCE))
+        return -1;
+    if (PyModule_AddIntConstant(module, "DIRENT_UNKNOWN", UV_DIRENT_UNKNOWN))
+        return -1;
+    if (PyModule_AddIntConstant(module, "DIRENT_FILE", UV_DIRENT_FILE))
+        return -1;
+    if (PyModule_AddIntConstant(module, "DIRENT_DIR", UV_DIRENT_DIR))
+        return -1;
+    if (PyModule_AddIntConstant(module, "DIRENT_LINK", UV_DIRENT_LINK))
+        return -1;
+    if (PyModule_AddIntConstant(module, "DIRENT_FIFO", UV_DIRENT_FIFO))
+        return -1;
+    if (PyModule_AddIntConstant(module, "DIRENT_SOCKET", UV_DIRENT_SOCKET))
+        return -1;
+    if (PyModule_AddIntConstant(module, "DIRENT_CHAR", UV_DIRENT_CHAR))
+        return -1;
+    if (PyModule_AddIntConstant(module, "DIRENT_BLOCK", UV_DIRENT_BLOCK))
+        return -1;
+    if (PyModule_AddIntConstant(module, "F_OK", F_OK))
+        return -1;
+    if (PyModule_AddIntConstant(module, "R_OK", R_OK))
+        return -1;
+    if (PyModule_AddIntConstant(module, "W_OK", W_OK))
+        return -1;
+    if (PyModule_AddIntConstant(module, "X_OK", X_OK))
+        return -1;
+    if (PyModule_AddIntConstant(module, "SYMLINK_DIR", UV_FS_SYMLINK_DIR))
+        return -1;
+    if (PyModule_AddIntConstant(module, "SYMLINK_JUNCTION", UV_FS_SYMLINK_JUNCTION))
+        return -1;
     return 0;
 }

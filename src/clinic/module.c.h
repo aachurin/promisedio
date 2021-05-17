@@ -335,7 +335,7 @@ promisedio_astat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &path)) {
+    if (!Path_converter(args[0], &path)) {
         goto exit;
     }
     if (!noptargs) {
@@ -382,13 +382,7 @@ promisedio_afstat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!args) {
         goto exit;
     }
-    if (PyFloat_Check(args[0])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
-        goto exit;
-    }
-    fd = _PyLong_AsInt(args[0]);
-    if (fd == -1 && PyErr_Occurred()) {
+    if (!File_converter(args[0], &fd)) {
         goto exit;
     }
     return_value = promisedio_afstat_impl(module, fd);
@@ -402,9 +396,9 @@ PyDoc_STRVAR(promisedio_aseek__doc__,
 "--\n"
 "\n"
 "Set the current position of file descriptor fd to position pos, modified by how:\n"
-"SEEK_SET or 0 to set the position relative to the beginning of the file;\n"
-"SEEK_CUR or 1 to set it relative to the current position;\n"
-"SEEK_END or 2 to set it relative to the end of the file.\n"
+"- SEEK_SET or 0 to set the position relative to the beginning of the file;\n"
+"- SEEK_CUR or 1 to set it relative to the current position;\n"
+"- SEEK_END or 2 to set it relative to the end of the file.\n"
 "\n"
 "Return the new cursor position in bytes, starting from the beginning.\n"
 "\n"
@@ -414,7 +408,7 @@ PyDoc_STRVAR(promisedio_aseek__doc__,
     {"aseek", (PyCFunction)(void(*)(void))promisedio_aseek, METH_FASTCALL|METH_KEYWORDS, promisedio_aseek__doc__},
 
 static PyObject *
-promisedio_aseek_impl(PyObject *module, int fd, Py_ssize_t pos, int how);
+promisedio_aseek_impl(PyObject *module, int fd, Py_off_t pos, int how);
 
 static PyObject *
 promisedio_aseek(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
@@ -424,38 +418,18 @@ promisedio_aseek(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     static _PyArg_Parser _parser = {NULL, _keywords, "aseek", 0};
     PyObject *argsbuf[3];
     int fd;
-    Py_ssize_t pos;
+    Py_off_t pos;
     int how;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 3, 3, 0, argsbuf);
     if (!args) {
         goto exit;
     }
-    if (PyFloat_Check(args[0])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
+    if (!File_converter(args[0], &fd)) {
         goto exit;
     }
-    fd = _PyLong_AsInt(args[0]);
-    if (fd == -1 && PyErr_Occurred()) {
+    if (!Py_off_t_converter(args[1], &pos)) {
         goto exit;
-    }
-    if (PyFloat_Check(args[1])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
-        goto exit;
-    }
-    {
-        Py_ssize_t ival = -1;
-        PyObject *iobj = PyNumber_Index(args[1]);
-        if (iobj != NULL) {
-            ival = PyLong_AsSsize_t(iobj);
-            Py_DECREF(iobj);
-        }
-        if (ival == -1 && PyErr_Occurred()) {
-            goto exit;
-        }
-        pos = ival;
     }
     if (PyFloat_Check(args[2])) {
         PyErr_SetString(PyExc_TypeError,
@@ -573,7 +547,7 @@ promisedio_aopenfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &path)) {
+    if (!Path_converter(args[0], &path)) {
         goto exit;
     }
     if (!noptargs) {
@@ -643,13 +617,7 @@ promisedio_aclose(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!args) {
         goto exit;
     }
-    if (PyFloat_Check(args[0])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
-        goto exit;
-    }
-    fd = _PyLong_AsInt(args[0]);
-    if (fd == -1 && PyErr_Occurred()) {
+    if (!File_converter(args[0], &fd)) {
         goto exit;
     }
     return_value = promisedio_aclose_impl(module, fd);
@@ -674,7 +642,7 @@ PyDoc_STRVAR(promisedio_aread__doc__,
 
 static PyObject *
 promisedio_aread_impl(PyObject *module, int fd, Py_ssize_t size,
-                      Py_ssize_t offset);
+                      Py_off_t offset);
 
 static PyObject *
 promisedio_aread(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
@@ -686,19 +654,13 @@ promisedio_aread(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     int fd;
     Py_ssize_t size = -1;
-    Py_ssize_t offset = -1;
+    Py_off_t offset = -1;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 3, 0, argsbuf);
     if (!args) {
         goto exit;
     }
-    if (PyFloat_Check(args[0])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
-        goto exit;
-    }
-    fd = _PyLong_AsInt(args[0]);
-    if (fd == -1 && PyErr_Occurred()) {
+    if (!File_converter(args[0], &fd)) {
         goto exit;
     }
     if (!noptargs) {
@@ -726,22 +688,8 @@ promisedio_aread(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
             goto skip_optional_pos;
         }
     }
-    if (PyFloat_Check(args[2])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
+    if (!Py_off_t_converter(args[2], &offset)) {
         goto exit;
-    }
-    {
-        Py_ssize_t ival = -1;
-        PyObject *iobj = PyNumber_Index(args[2]);
-        if (iobj != NULL) {
-            ival = PyLong_AsSsize_t(iobj);
-            Py_DECREF(iobj);
-        }
-        if (ival == -1 && PyErr_Occurred()) {
-            goto exit;
-        }
-        offset = ival;
     }
 skip_optional_pos:
     return_value = promisedio_aread_impl(module, fd, size, offset);
@@ -768,7 +716,7 @@ PyDoc_STRVAR(promisedio_awrite__doc__,
 
 static PyObject *
 promisedio_awrite_impl(PyObject *module, int fd, PyObject *data,
-                       Py_ssize_t offset);
+                       Py_off_t offset);
 
 static PyObject *
 promisedio_awrite(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
@@ -780,41 +728,21 @@ promisedio_awrite(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
     int fd;
     PyObject *data;
-    Py_ssize_t offset = -1;
+    Py_off_t offset = -1;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 3, 0, argsbuf);
     if (!args) {
         goto exit;
     }
-    if (PyFloat_Check(args[0])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
-        goto exit;
-    }
-    fd = _PyLong_AsInt(args[0]);
-    if (fd == -1 && PyErr_Occurred()) {
+    if (!File_converter(args[0], &fd)) {
         goto exit;
     }
     data = args[1];
     if (!noptargs) {
         goto skip_optional_pos;
     }
-    if (PyFloat_Check(args[2])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
+    if (!Py_off_t_converter(args[2], &offset)) {
         goto exit;
-    }
-    {
-        Py_ssize_t ival = -1;
-        PyObject *iobj = PyNumber_Index(args[2]);
-        if (iobj != NULL) {
-            ival = PyLong_AsSsize_t(iobj);
-            Py_DECREF(iobj);
-        }
-        if (ival == -1 && PyErr_Occurred()) {
-            goto exit;
-        }
-        offset = ival;
     }
 skip_optional_pos:
     return_value = promisedio_awrite_impl(module, fd, data, offset);
@@ -850,7 +778,7 @@ promisedio_aunlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &path)) {
+    if (!Path_converter(args[0], &path)) {
         goto exit;
     }
     return_value = promisedio_aunlink_impl(module, path);
@@ -894,7 +822,7 @@ promisedio_amkdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &path)) {
+    if (!Path_converter(args[0], &path)) {
         goto exit;
     }
     if (!noptargs) {
@@ -947,7 +875,7 @@ promisedio_armdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &path)) {
+    if (!Path_converter(args[0], &path)) {
         goto exit;
     }
     return_value = promisedio_armdir_impl(module, path);
@@ -990,7 +918,7 @@ promisedio_amkdtemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, P
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &tpl)) {
+    if (!Path_converter(args[0], &tpl)) {
         goto exit;
     }
     return_value = promisedio_amkdtemp_impl(module, tpl);
@@ -1034,7 +962,7 @@ promisedio_amkstemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, P
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &tpl)) {
+    if (!Path_converter(args[0], &tpl)) {
         goto exit;
     }
     return_value = promisedio_amkstemp_impl(module, tpl);
@@ -1074,7 +1002,7 @@ promisedio_ascandir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, P
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &path)) {
+    if (!Path_converter(args[0], &path)) {
         goto exit;
     }
     return_value = promisedio_ascandir_impl(module, path);
@@ -1114,10 +1042,10 @@ promisedio_arename(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (!args) {
         goto exit;
     }
-    if (!path_converter(args[0], &path)) {
+    if (!Path_converter(args[0], &path)) {
         goto exit;
     }
-    if (!path_converter(args[1], &new_path)) {
+    if (!Path_converter(args[1], &new_path)) {
         goto exit;
     }
     return_value = promisedio_arename_impl(module, path, new_path);
@@ -1158,13 +1086,7 @@ promisedio_afsync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!args) {
         goto exit;
     }
-    if (PyFloat_Check(args[0])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
-        goto exit;
-    }
-    fd = _PyLong_AsInt(args[0]);
-    if (fd == -1 && PyErr_Occurred()) {
+    if (!File_converter(args[0], &fd)) {
         goto exit;
     }
     return_value = promisedio_afsync_impl(module, fd);
@@ -1201,13 +1123,7 @@ promisedio_aftruncate(PyObject *module, PyObject *const *args, Py_ssize_t nargs,
     if (!args) {
         goto exit;
     }
-    if (PyFloat_Check(args[0])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
-        goto exit;
-    }
-    fd = _PyLong_AsInt(args[0]);
-    if (fd == -1 && PyErr_Occurred()) {
+    if (!File_converter(args[0], &fd)) {
         goto exit;
     }
     if (PyFloat_Check(args[1])) {
@@ -1232,4 +1148,600 @@ promisedio_aftruncate(PyObject *module, PyObject *const *args, Py_ssize_t nargs,
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=292078479e78ad4f input=a9049054013a1b77]*/
+
+PyDoc_STRVAR(promisedio_afdatasync__doc__,
+"afdatasync($module, /, fd)\n"
+"--\n"
+"\n"
+"Force write of file with file descriptor fd to disk. Does not force update of metadata.\n"
+"\n"
+"Equivalent to [fdatasync(2)](https://man7.org/linux/man-pages/man2/fdatasync.2.html).");
+
+#define PROMISEDIO_AFDATASYNC_METHODDEF    \
+    {"afdatasync", (PyCFunction)(void(*)(void))promisedio_afdatasync, METH_FASTCALL|METH_KEYWORDS, promisedio_afdatasync__doc__},
+
+static PyObject *
+promisedio_afdatasync_impl(PyObject *module, int fd);
+
+static PyObject *
+promisedio_afdatasync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"fd", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "afdatasync", 0};
+    PyObject *argsbuf[1];
+    int fd;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!File_converter(args[0], &fd)) {
+        goto exit;
+    }
+    return_value = promisedio_afdatasync_impl(module, fd);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_acopyfile__doc__,
+"acopyfile($module, /, path, new_path, flags=0)\n"
+"--\n"
+"\n"
+"Copies a file from path to new_path. Supported flags are: \n"
+"- COPYFILE_EXCL\n"
+"- COPYFILE_FICLONE\n"
+"- COPYFILE_FICLONE_FORCE\n"
+"\n"
+"For more information, see [uvfs_copyfile](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fscopyfile).");
+
+#define PROMISEDIO_ACOPYFILE_METHODDEF    \
+    {"acopyfile", (PyCFunction)(void(*)(void))promisedio_acopyfile, METH_FASTCALL|METH_KEYWORDS, promisedio_acopyfile__doc__},
+
+static PyObject *
+promisedio_acopyfile_impl(PyObject *module, PyObject *path,
+                          PyObject *new_path, int flags);
+
+static PyObject *
+promisedio_acopyfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"path", "new_path", "flags", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "acopyfile", 0};
+    PyObject *argsbuf[3];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
+    PyObject *path = NULL;
+    PyObject *new_path = NULL;
+    int flags = 0;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 3, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!Path_converter(args[0], &path)) {
+        goto exit;
+    }
+    if (!Path_converter(args[1], &new_path)) {
+        goto exit;
+    }
+    if (!noptargs) {
+        goto skip_optional_pos;
+    }
+    if (PyFloat_Check(args[2])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    flags = _PyLong_AsInt(args[2]);
+    if (flags == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+skip_optional_pos:
+    return_value = promisedio_acopyfile_impl(module, path, new_path, flags);
+
+exit:
+    /* Cleanup for path */
+    Py_XDECREF(path);
+    /* Cleanup for new_path */
+    Py_XDECREF(new_path);
+
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_asendfile__doc__,
+"asendfile($module, /, out_fd, in_fd, offset, count)\n"
+"--\n"
+"\n"
+"Copy count bytes from file descriptor in_fd to file descriptor out_fd starting at offset.\n"
+"Return the number of bytes sent.\n"
+"\n"
+"Equivalent to [sendfile(2)](https://man7.org/linux/man-pages/man2/sendfile.2.html).");
+
+#define PROMISEDIO_ASENDFILE_METHODDEF    \
+    {"asendfile", (PyCFunction)(void(*)(void))promisedio_asendfile, METH_FASTCALL|METH_KEYWORDS, promisedio_asendfile__doc__},
+
+static PyObject *
+promisedio_asendfile_impl(PyObject *module, int out_fd, int in_fd,
+                          Py_off_t offset, Py_ssize_t count);
+
+static PyObject *
+promisedio_asendfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"out_fd", "in_fd", "offset", "count", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "asendfile", 0};
+    PyObject *argsbuf[4];
+    int out_fd;
+    int in_fd;
+    Py_off_t offset;
+    Py_ssize_t count;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 4, 4, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!File_converter(args[0], &out_fd)) {
+        goto exit;
+    }
+    if (!File_converter(args[1], &in_fd)) {
+        goto exit;
+    }
+    if (!Py_off_t_converter(args[2], &offset)) {
+        goto exit;
+    }
+    if (PyFloat_Check(args[3])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    {
+        Py_ssize_t ival = -1;
+        PyObject *iobj = PyNumber_Index(args[3]);
+        if (iobj != NULL) {
+            ival = PyLong_AsSsize_t(iobj);
+            Py_DECREF(iobj);
+        }
+        if (ival == -1 && PyErr_Occurred()) {
+            goto exit;
+        }
+        count = ival;
+    }
+    return_value = promisedio_asendfile_impl(module, out_fd, in_fd, offset, count);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_aaccess__doc__,
+"aaccess($module, /, path, mode)\n"
+"--\n"
+"\n"
+"Use the real uid/gid to test for access to path.\n"
+"Mode should be F_OK to test the existence of path, or it can be the inclusive OR of one or more of \n"
+"R_OK, W_OK, and X_OK to test permissions. \n"
+"\n"
+"Return True if access is allowed, False if not.\n"
+"\n"
+"Equivalent to [access(2)](https://man7.org/linux/man-pages/man2/access.2.html).");
+
+#define PROMISEDIO_AACCESS_METHODDEF    \
+    {"aaccess", (PyCFunction)(void(*)(void))promisedio_aaccess, METH_FASTCALL|METH_KEYWORDS, promisedio_aaccess__doc__},
+
+static PyObject *
+promisedio_aaccess_impl(PyObject *module, PyObject *path, int mode);
+
+static PyObject *
+promisedio_aaccess(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"path", "mode", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "aaccess", 0};
+    PyObject *argsbuf[2];
+    PyObject *path = NULL;
+    int mode;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!Path_converter(args[0], &path)) {
+        goto exit;
+    }
+    if (PyFloat_Check(args[1])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    mode = _PyLong_AsInt(args[1]);
+    if (mode == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+    return_value = promisedio_aaccess_impl(module, path, mode);
+
+exit:
+    /* Cleanup for path */
+    Py_XDECREF(path);
+
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_achmod__doc__,
+"achmod($module, /, path, mode)\n"
+"--\n"
+"\n"
+"Change the mode of path to the numeric mode.\n"
+"See [stat module](https://docs.python.org/3/library/stat.html#stat.S_ISUID) for available mode.\n"
+"\n"
+"Equivalent to [chmod(2)](https://man7.org/linux/man-pages/man2/chmod.2.html).");
+
+#define PROMISEDIO_ACHMOD_METHODDEF    \
+    {"achmod", (PyCFunction)(void(*)(void))promisedio_achmod, METH_FASTCALL|METH_KEYWORDS, promisedio_achmod__doc__},
+
+static PyObject *
+promisedio_achmod_impl(PyObject *module, PyObject *path, int mode);
+
+static PyObject *
+promisedio_achmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"path", "mode", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "achmod", 0};
+    PyObject *argsbuf[2];
+    PyObject *path = NULL;
+    int mode;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!Path_converter(args[0], &path)) {
+        goto exit;
+    }
+    if (PyFloat_Check(args[1])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    mode = _PyLong_AsInt(args[1]);
+    if (mode == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+    return_value = promisedio_achmod_impl(module, path, mode);
+
+exit:
+    /* Cleanup for path */
+    Py_XDECREF(path);
+
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_afchmod__doc__,
+"afchmod($module, /, fd, mode)\n"
+"--\n"
+"\n"
+"Change the mode of the file given by fd to the numeric mode.\n"
+"See [stat module](https://docs.python.org/3/library/stat.html#stat.S_ISUID) for available mode.\n"
+"\n"
+"Equivalent to [fchmod(2)](https://man7.org/linux/man-pages/man2/fchmod.2.html).");
+
+#define PROMISEDIO_AFCHMOD_METHODDEF    \
+    {"afchmod", (PyCFunction)(void(*)(void))promisedio_afchmod, METH_FASTCALL|METH_KEYWORDS, promisedio_afchmod__doc__},
+
+static PyObject *
+promisedio_afchmod_impl(PyObject *module, int fd, int mode);
+
+static PyObject *
+promisedio_afchmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"fd", "mode", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "afchmod", 0};
+    PyObject *argsbuf[2];
+    int fd;
+    int mode;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!File_converter(args[0], &fd)) {
+        goto exit;
+    }
+    if (PyFloat_Check(args[1])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    mode = _PyLong_AsInt(args[1]);
+    if (mode == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+    return_value = promisedio_afchmod_impl(module, fd, mode);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_autime__doc__,
+"autime($module, /, path, atime, mtime, *, follow_symlinks=True)\n"
+"--\n"
+"\n"
+"Set the access and modified times of the file specified by path.\n"
+"\n"
+"This function normally follows symlinks.\n"
+"\n"
+"Equivalent to [utime(2)](https://man7.org/linux/man-pages/man2/utime.2.html)\n"
+"              [lutimes(2)](https://man7.org/linux/man-pages/man3/lutimes.3.html).");
+
+#define PROMISEDIO_AUTIME_METHODDEF    \
+    {"autime", (PyCFunction)(void(*)(void))promisedio_autime, METH_FASTCALL|METH_KEYWORDS, promisedio_autime__doc__},
+
+static PyObject *
+promisedio_autime_impl(PyObject *module, PyObject *path, double atime,
+                       double mtime, int follow_symlinks);
+
+static PyObject *
+promisedio_autime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"path", "atime", "mtime", "follow_symlinks", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "autime", 0};
+    PyObject *argsbuf[4];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 3;
+    PyObject *path = NULL;
+    double atime;
+    double mtime;
+    int follow_symlinks = 1;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 3, 3, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!Path_converter(args[0], &path)) {
+        goto exit;
+    }
+    if (PyFloat_CheckExact(args[1])) {
+        atime = PyFloat_AS_DOUBLE(args[1]);
+    }
+    else
+    {
+        atime = PyFloat_AsDouble(args[1]);
+        if (atime == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
+    if (PyFloat_CheckExact(args[2])) {
+        mtime = PyFloat_AS_DOUBLE(args[2]);
+    }
+    else
+    {
+        mtime = PyFloat_AsDouble(args[2]);
+        if (mtime == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    follow_symlinks = PyObject_IsTrue(args[3]);
+    if (follow_symlinks < 0) {
+        goto exit;
+    }
+skip_optional_kwonly:
+    return_value = promisedio_autime_impl(module, path, atime, mtime, follow_symlinks);
+
+exit:
+    /* Cleanup for path */
+    Py_XDECREF(path);
+
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_afutime__doc__,
+"afutime($module, /, fd, atime, mtime)\n"
+"--\n"
+"\n"
+"Set the access and modified times of the file given by fd.\n"
+"\n"
+"Equivalent to [futimes(3)](https://man7.org/linux/man-pages/man3/futimes.3.html)");
+
+#define PROMISEDIO_AFUTIME_METHODDEF    \
+    {"afutime", (PyCFunction)(void(*)(void))promisedio_afutime, METH_FASTCALL|METH_KEYWORDS, promisedio_afutime__doc__},
+
+static PyObject *
+promisedio_afutime_impl(PyObject *module, int fd, double atime, double mtime);
+
+static PyObject *
+promisedio_afutime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"fd", "atime", "mtime", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "afutime", 0};
+    PyObject *argsbuf[3];
+    int fd;
+    double atime;
+    double mtime;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 3, 3, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!File_converter(args[0], &fd)) {
+        goto exit;
+    }
+    if (PyFloat_CheckExact(args[1])) {
+        atime = PyFloat_AS_DOUBLE(args[1]);
+    }
+    else
+    {
+        atime = PyFloat_AsDouble(args[1]);
+        if (atime == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
+    if (PyFloat_CheckExact(args[2])) {
+        mtime = PyFloat_AS_DOUBLE(args[2]);
+    }
+    else
+    {
+        mtime = PyFloat_AsDouble(args[2]);
+        if (mtime == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
+    return_value = promisedio_afutime_impl(module, fd, atime, mtime);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_alink__doc__,
+"alink($module, /, path, new_path)\n"
+"--\n"
+"\n"
+"Create a hard link pointing to path named new_path.\n"
+"\n"
+"Equivalent to [link(2)](https://man7.org/linux/man-pages/man2/link.2.html)");
+
+#define PROMISEDIO_ALINK_METHODDEF    \
+    {"alink", (PyCFunction)(void(*)(void))promisedio_alink, METH_FASTCALL|METH_KEYWORDS, promisedio_alink__doc__},
+
+static PyObject *
+promisedio_alink_impl(PyObject *module, PyObject *path, PyObject *new_path);
+
+static PyObject *
+promisedio_alink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"path", "new_path", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "alink", 0};
+    PyObject *argsbuf[2];
+    PyObject *path = NULL;
+    PyObject *new_path = NULL;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!Path_converter(args[0], &path)) {
+        goto exit;
+    }
+    if (!Path_converter(args[1], &new_path)) {
+        goto exit;
+    }
+    return_value = promisedio_alink_impl(module, path, new_path);
+
+exit:
+    /* Cleanup for path */
+    Py_XDECREF(path);
+    /* Cleanup for new_path */
+    Py_XDECREF(new_path);
+
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_asymlink__doc__,
+"asymlink($module, /, path, new_path, *, flags=0)\n"
+"--\n"
+"\n"
+"Create a symbolic link pointing to path named new_path.\n"
+"\n"
+"On Windows the flags parameter can be specified to control how the symlink will be created:\n"
+" - SYMLINK_DIR: indicates that path points to a directory.\n"
+" - SYMLINK_JUNCTION: request that the symlink is created using junction points.\n"
+"\n"
+"Equivalent to [symlink(2)](https://man7.org/linux/man-pages/man2/symlink.2.html)");
+
+#define PROMISEDIO_ASYMLINK_METHODDEF    \
+    {"asymlink", (PyCFunction)(void(*)(void))promisedio_asymlink, METH_FASTCALL|METH_KEYWORDS, promisedio_asymlink__doc__},
+
+static PyObject *
+promisedio_asymlink_impl(PyObject *module, PyObject *path,
+                         PyObject *new_path, int flags);
+
+static PyObject *
+promisedio_asymlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"path", "new_path", "flags", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "asymlink", 0};
+    PyObject *argsbuf[3];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
+    PyObject *path = NULL;
+    PyObject *new_path = NULL;
+    int flags = 0;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!Path_converter(args[0], &path)) {
+        goto exit;
+    }
+    if (!Path_converter(args[1], &new_path)) {
+        goto exit;
+    }
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    if (PyFloat_Check(args[2])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    flags = _PyLong_AsInt(args[2]);
+    if (flags == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+skip_optional_kwonly:
+    return_value = promisedio_asymlink_impl(module, path, new_path, flags);
+
+exit:
+    /* Cleanup for path */
+    Py_XDECREF(path);
+    /* Cleanup for new_path */
+    Py_XDECREF(new_path);
+
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_areadlink__doc__,
+"areadlink($module, /, path)\n"
+"--\n"
+"\n"
+"Return a string representing the path to which the symbolic link points.\n"
+"\n"
+"Equivalent to [readlink(2)](https://man7.org/linux/man-pages/man2/readlink.2.html)");
+
+#define PROMISEDIO_AREADLINK_METHODDEF    \
+    {"areadlink", (PyCFunction)(void(*)(void))promisedio_areadlink, METH_FASTCALL|METH_KEYWORDS, promisedio_areadlink__doc__},
+
+static PyObject *
+promisedio_areadlink_impl(PyObject *module, PyObject *path);
+
+static PyObject *
+promisedio_areadlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"path", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "areadlink", 0};
+    PyObject *argsbuf[1];
+    PyObject *path = NULL;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!Path_converter(args[0], &path)) {
+        goto exit;
+    }
+    return_value = promisedio_areadlink_impl(module, path);
+
+exit:
+    /* Cleanup for path */
+    Py_XDECREF(path);
+
+    return return_value;
+}
+/*[clinic end generated code: output=62a9f062ddae4cbe input=a9049054013a1b77]*/

@@ -24,7 +24,8 @@ Generate_PyType_Header(
 )
 
 PyObject * Fs_Path(PyObject *path);
-Promise * Fs_stat(const char *path, int follow_symlinks);
+Promise * Fs_stat(const char *path);
+Promise * Fs_lstat(const char *path);
 Promise * Fs_fstat(int fd);
 Promise * Fs_open(const char *path, const char *flags, int mode);
 Promise * Fs_read(int fd, Py_ssize_t size, Py_off_t offset);
@@ -39,9 +40,27 @@ Promise * Fs_mkdtemp(const char *tpl);
 Promise * Fs_mkstemp(const char *tpl);
 Promise * Fs_scandir(const char *path);
 Promise * Fs_rename(const char *path, const char *new_path);
-Promise * Fs_fsync(int fd);
 Promise * Fs_ftruncate(int fd, Py_ssize_t length);
+Promise * Fs_fsync(int fd);
+Promise * Fs_fdatasync(int fd);
+Promise * Fs_copyfile(const char *path, const char *new_path, int flags);
+Promise * Fs_sendfile(int out_fd, int in_fd, Py_off_t in_offset, size_t length);
+Promise * Fs_access(const char *path, int mode);
+Promise * Fs_chmod(const char *path, int mode);
+Promise * Fs_fchmod(int fd, int mode);
+Promise * Fs_utime(const char *path, double atime, double mtime);
+Promise * Fs_futime(int fd, double atime, double mtime);
+Promise * Fs_lutime(const char *path, double atime, double mtime);
+Promise * Fs_link(const char *path, const char *new_path);
+Promise * Fs_symlink(const char *path, const char *new_path, int flags);
+Promise * Fs_readlink(const char *path);
 
-int Fs_module_init();
+#ifndef MS_WINDOWS
+Promise * Fs_chown(const char *path, uv_uid_t uid, uv_gid_t gid);
+Promise * Fs_fchown(int fd, uv_uid_t uid, uv_gid_t gid);
+Promise * Fs_lchown(const char *path, uv_uid_t uid, uv_gid_t gid);
+#endif
+
+int Fs_module_init(PyObject *module);
 
 #endif

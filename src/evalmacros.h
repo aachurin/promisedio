@@ -5,7 +5,7 @@
 #define SECOND(a, b, ...) b
 #define THIRD(a, b, c, ...) c
 #define EMPTY()
-#define EVAL(...) EVAL32(__VA_ARGS__)
+#define EVAL(...) EVAL16(__VA_ARGS__)
 #define EVAL256(...) EVAL128(EVAL128(__VA_ARGS__))
 #define EVAL128(...) EVAL64(EVAL64(__VA_ARGS__))
 #define EVAL64(...) EVAL32(EVAL32(__VA_ARGS__))

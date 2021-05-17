@@ -27,18 +27,35 @@ from . _cext import (
     ascandir,
     arename,
     afsync,
-    aftruncate
-    )
-
-
-DIRENT_UNKNOWN = 0
-DIRENT_FILE = 1
-DIRENT_DIR = 2
-DIRENT_LINK = 3
-DIRENT_FIFO = 4
-DIRENT_SOCKET = 5
-DIRENT_CHAR = 6
-DIRENT_BLOCK = 7
+    aftruncate,
+    acopyfile,
+    asendfile,
+    aaccess,
+    achmod,
+    afchmod,
+    autime,
+    afutime,
+    alink,
+    asymlink,
+    areadlink,
+    COPYFILE_EXCL,
+    COPYFILE_FICLONE,
+    COPYFILE_FICLONE_FORCE,
+    DIRENT_UNKNOWN,
+    DIRENT_FILE,
+    DIRENT_DIR,
+    DIRENT_LINK,
+    DIRENT_FIFO,
+    DIRENT_SOCKET,
+    DIRENT_CHAR,
+    DIRENT_BLOCK,
+    F_OK,
+    R_OK,
+    W_OK,
+    X_OK,
+    SYMLINK_DIR,
+    SYMLINK_JUNCTION
+)
 
 
 def run():
