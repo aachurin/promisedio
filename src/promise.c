@@ -78,8 +78,8 @@ fetch_current_exception()
     return val;
 }
 
-static void
-print_unhandled_exception()
+void
+Promise_PrintUnhandledException()
 {
     PyObject *exc, *val, *tb;
     PyErr_Fetch(&exc, &val, &tb);
@@ -357,24 +357,17 @@ class promise.Promise "promise *" "&PromiseType"
 
 /*[clinic input]
 promise.Promise.then
-
     self: self(type="Promise *")
     fulfilled: object = None
-        success callback
     rejected: object = None
-        failure callback
-    /
 
-The then() method returns a new Promise.
-
-It takes up to two arguments:
-callback functions for the success and failure cases of the Promise.
+@doc[Promise.then]
 [clinic start generated code]*/
 
 static PyObject *
 promise_Promise_then_impl(Promise *self, PyObject *fulfilled,
                           PyObject *rejected)
-/*[clinic end generated code: output=05ba8f14e75a37d1 input=cde2596bf9a47acc]*/
+/*[clinic end generated code: output=05ba8f14e75a37d1 input=fc0a44add0ce74f7]*/
 {
     fulfilled = (fulfilled == Py_None ? NULL: fulfilled);
     if (fulfilled && !PyCallable_Check(fulfilled)) {
@@ -401,18 +394,15 @@ promise_Promise_then_impl(Promise *self, PyObject *fulfilled,
 
 /*[clinic input]
 promise.Promise.catch
-
     self: self(type="Promise *")
     rejected: object
-        failure callback
-    /
 
-The catch() method returns a new Promise and deals with rejected cases only.
+@doc[Promise.catch]
 [clinic start generated code]*/
 
 static PyObject *
-promise_Promise_catch(Promise *self, PyObject *rejected)
-/*[clinic end generated code: output=03c895dec1349232 input=105b1740f16dd015]*/
+promise_Promise_catch_impl(Promise *self, PyObject *rejected)
+/*[clinic end generated code: output=aaa0cfea90a52d1c input=66119f711bbabbc4]*/
 {
     if (!PyCallable_Check(rejected)) {
         PyErr_SetString(PyExc_TypeError,
@@ -430,22 +420,15 @@ promise_Promise_catch(Promise *self, PyObject *rejected)
 
 /*[clinic input]
 promise.Promise.finally_
-
     self: self(type="Promise *")
     finally_: object
-        finally callback
-    /
 
-The finally_() method returns a new Promise.
-
-When the promise is settled, i.e either fulfilled or rejected,
-the specified callback function is executed. This provides a way for code to be run whether the promise
-was fulfilled successfully or rejected once the Promise has been dealt with.
+@doc[Promise.finally_]
 [clinic start generated code]*/
 
 static PyObject *
-promise_Promise_finally_(Promise *self, PyObject *finally_)
-/*[clinic end generated code: output=0cb3d910e3facf7d input=181db7d6d3b9ffb8]*/
+promise_Promise_finally__impl(Promise *self, PyObject *finally_)
+/*[clinic end generated code: output=e7fa460b1de8138a input=07e9873e287ce264]*/
 {
     if (!PyCallable_Check(finally_)) {
         PyErr_SetString(PyExc_TypeError,
@@ -505,7 +488,7 @@ static PyTypeObject PromiseType = {
     .tp_doc = PromiseType__doc__,
     .tp_basicsize = sizeof(Promise),
     .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_FINALIZE,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
     .tp_dealloc = (destructor) promise_dealloc,
     .tp_traverse = (traverseproc) promise_traverse,
     .tp_clear = (inquiry) promise_clear,
@@ -631,17 +614,15 @@ class promise.Deferred "deferred *" "&DeferredType"
 
 /*[clinic input]
 promise.Deferred.resolve
-
     self: self(type="Deferred *")
     value: object
-    /
 
-Resolve an associated promise with the given value.
+@doc[Deferred.resolve]
 [clinic start generated code]*/
 
 static PyObject *
-promise_Deferred_resolve(Deferred *self, PyObject *value)
-/*[clinic end generated code: output=889732b43efb738b input=91c6bcfd68907eb9]*/
+promise_Deferred_resolve_impl(Deferred *self, PyObject *value)
+/*[clinic end generated code: output=9999903b02f4c9d6 input=da7acc2b24e502f3]*/
 {
     if (Promise_Resolve(self->promise, value)) {
         return NULL;
@@ -651,17 +632,15 @@ promise_Deferred_resolve(Deferred *self, PyObject *value)
 
 /*[clinic input]
 promise.Deferred.reject
-
     self: self(type="Deferred *")
     value: object
-    /
 
-Reject an associated promise with the given exception.
+@doc[Deferred.reject]
 [clinic start generated code]*/
 
 static PyObject *
-promise_Deferred_reject(Deferred *self, PyObject *value)
-/*[clinic end generated code: output=ead6c9f40d549dde input=ae34a69722c339b2]*/
+promise_Deferred_reject_impl(Deferred *self, PyObject *value)
+/*[clinic end generated code: output=fa387ed71244e305 input=6c9c062cb8050ed6]*/
 {
     if (Promise_Reject(self->promise, value)) {
         return NULL;
@@ -671,15 +650,14 @@ promise_Deferred_reject(Deferred *self, PyObject *value)
 
 /*[clinic input]
 promise.Deferred.promise
-
     self: self(type="Deferred *")
 
-Get an associated Promise object.
+@doc[Deferred.promise]
 [clinic start generated code]*/
 
 static PyObject *
 promise_Deferred_promise_impl(Deferred *self)
-/*[clinic end generated code: output=b560c2d8e4a6a0eb input=23308a5160e5a6c8]*/
+/*[clinic end generated code: output=b560c2d8e4a6a0eb input=21148e1ebba88ab7]*/
 {
     Promise *ret = self->promise;
     Py_INCREF(ret);
@@ -753,7 +731,7 @@ resume_coroutine(PyObject *coro, PyObject *value, unsigned int state)
                 {
                     return -1;
                 }
-                print_unhandled_exception();
+                Promise_PrintUnhandledException();
             }
             return 0;
         }
@@ -864,7 +842,7 @@ handle_scheduled_promise(Promise *promise)
                 {
                     return -1;
                 }
-                print_unhandled_exception();
+                Promise_PrintUnhandledException();
             } else {
                 Py_DECREF(tmp);
             }

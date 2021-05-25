@@ -3,47 +3,46 @@ preserve
 [clinic start generated code]*/
 
 PyDoc_STRVAR(promise_Promise_then__doc__,
-"then($self, fulfilled=None, rejected=None, /)\n"
+"then($self, /, fulfilled=None, rejected=None)\n"
 "--\n"
 "\n"
-"The then() method returns a new Promise.\n"
 "\n"
-"  fulfilled\n"
-"    success callback\n"
-"  rejected\n"
-"    failure callback\n"
-"\n"
-"It takes up to two arguments:\n"
-"callback functions for the success and failure cases of the Promise.\n"
-"\n"
-"");
+"Returns a new Promise.\n"
+"It takes up to two arguments: callback functions for the success and failure cases of the Promise.");
 
 #define PROMISE_PROMISE_THEN_METHODDEF    \
-    {"then", (PyCFunction)(void(*)(void))promise_Promise_then, METH_FASTCALL, promise_Promise_then__doc__},
+    {"then", (PyCFunction)(void(*)(void))promise_Promise_then, METH_FASTCALL|METH_KEYWORDS, promise_Promise_then__doc__},
 
 static PyObject *
 promise_Promise_then_impl(Promise *self, PyObject *fulfilled,
                           PyObject *rejected);
 
 static PyObject *
-promise_Promise_then(Promise *self, PyObject *const *args, Py_ssize_t nargs)
+promise_Promise_then(Promise *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"fulfilled", "rejected", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "then", 0};
+    PyObject *argsbuf[2];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 0;
     PyObject *fulfilled = Py_None;
     PyObject *rejected = Py_None;
 
-    if (!_PyArg_CheckPositional("then", nargs, 0, 2)) {
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 0, 2, 0, argsbuf);
+    if (!args) {
         goto exit;
     }
-    if (nargs < 1) {
-        goto skip_optional;
+    if (!noptargs) {
+        goto skip_optional_pos;
     }
-    fulfilled = args[0];
-    if (nargs < 2) {
-        goto skip_optional;
+    if (args[0]) {
+        fulfilled = args[0];
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
     }
     rejected = args[1];
-skip_optional:
+skip_optional_pos:
     return_value = promise_Promise_then_impl(self, fulfilled, rejected);
 
 exit:
@@ -51,66 +50,147 @@ exit:
 }
 
 PyDoc_STRVAR(promise_Promise_catch__doc__,
-"catch($self, rejected, /)\n"
+"catch($self, /, rejected)\n"
 "--\n"
 "\n"
-"The catch() method returns a new Promise and deals with rejected cases only.\n"
 "\n"
-"  rejected\n"
-"    failure callback\n"
-"\n"
-"");
+"Returns a new Promise.\n"
+"It is the same as `.then(None, rejected)`");
 
 #define PROMISE_PROMISE_CATCH_METHODDEF    \
-    {"catch", (PyCFunction)promise_Promise_catch, METH_O, promise_Promise_catch__doc__},
+    {"catch", (PyCFunction)(void(*)(void))promise_Promise_catch, METH_FASTCALL|METH_KEYWORDS, promise_Promise_catch__doc__},
+
+static PyObject *
+promise_Promise_catch_impl(Promise *self, PyObject *rejected);
+
+static PyObject *
+promise_Promise_catch(Promise *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"rejected", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "catch", 0};
+    PyObject *argsbuf[1];
+    PyObject *rejected;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    rejected = args[0];
+    return_value = promise_Promise_catch_impl(self, rejected);
+
+exit:
+    return return_value;
+}
 
 PyDoc_STRVAR(promise_Promise_finally___doc__,
-"finally_($self, finally_, /)\n"
+"finally_($self, /, finally_)\n"
 "--\n"
 "\n"
-"The finally_() method returns a new Promise.\n"
 "\n"
-"  finally_\n"
-"    finally callback\n"
+"Returns a new Promise.\n"
 "\n"
-"When the promise is settled, i.e either fulfilled or rejected,\n"
-"the specified callback function is executed. This provides a way for code to be run whether the promise\n"
-"was fulfilled successfully or rejected once the Promise has been dealt with.\n"
-"\n"
-"");
+"When the promise is fulfilled or rejected the specified callback function is executed.\n"
+"This provides a way for code to be run whether the promise was fulfilled successfully or rejected.");
 
 #define PROMISE_PROMISE_FINALLY__METHODDEF    \
-    {"finally_", (PyCFunction)promise_Promise_finally_, METH_O, promise_Promise_finally___doc__},
+    {"finally_", (PyCFunction)(void(*)(void))promise_Promise_finally_, METH_FASTCALL|METH_KEYWORDS, promise_Promise_finally___doc__},
+
+static PyObject *
+promise_Promise_finally__impl(Promise *self, PyObject *finally_);
+
+static PyObject *
+promise_Promise_finally_(Promise *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"finally_", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "finally_", 0};
+    PyObject *argsbuf[1];
+    PyObject *finally_;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    finally_ = args[0];
+    return_value = promise_Promise_finally__impl(self, finally_);
+
+exit:
+    return return_value;
+}
 
 PyDoc_STRVAR(promise_Deferred_resolve__doc__,
-"resolve($self, value, /)\n"
+"resolve($self, /, value)\n"
 "--\n"
 "\n"
-"Resolve an associated promise with the given value.\n"
 "\n"
-"");
+"Resolves related Promise object with the given value.");
 
 #define PROMISE_DEFERRED_RESOLVE_METHODDEF    \
-    {"resolve", (PyCFunction)promise_Deferred_resolve, METH_O, promise_Deferred_resolve__doc__},
+    {"resolve", (PyCFunction)(void(*)(void))promise_Deferred_resolve, METH_FASTCALL|METH_KEYWORDS, promise_Deferred_resolve__doc__},
+
+static PyObject *
+promise_Deferred_resolve_impl(Deferred *self, PyObject *value);
+
+static PyObject *
+promise_Deferred_resolve(Deferred *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"value", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "resolve", 0};
+    PyObject *argsbuf[1];
+    PyObject *value;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    value = args[0];
+    return_value = promise_Deferred_resolve_impl(self, value);
+
+exit:
+    return return_value;
+}
 
 PyDoc_STRVAR(promise_Deferred_reject__doc__,
-"reject($self, value, /)\n"
+"reject($self, /, value)\n"
 "--\n"
 "\n"
-"Reject an associated promise with the given exception.\n"
 "\n"
-"");
+"Rejects related Promise object with the given exception exc.");
 
 #define PROMISE_DEFERRED_REJECT_METHODDEF    \
-    {"reject", (PyCFunction)promise_Deferred_reject, METH_O, promise_Deferred_reject__doc__},
+    {"reject", (PyCFunction)(void(*)(void))promise_Deferred_reject, METH_FASTCALL|METH_KEYWORDS, promise_Deferred_reject__doc__},
+
+static PyObject *
+promise_Deferred_reject_impl(Deferred *self, PyObject *value);
+
+static PyObject *
+promise_Deferred_reject(Deferred *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"value", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "reject", 0};
+    PyObject *argsbuf[1];
+    PyObject *value;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    value = args[0];
+    return_value = promise_Deferred_reject_impl(self, value);
+
+exit:
+    return return_value;
+}
 
 PyDoc_STRVAR(promise_Deferred_promise__doc__,
 "promise($self, /)\n"
 "--\n"
 "\n"
-"Get an associated Promise object.\n"
 "\n"
-"");
+"Returns related Promise object.");
 
 #define PROMISE_DEFERRED_PROMISE_METHODDEF    \
     {"promise", (PyCFunction)promise_Deferred_promise, METH_NOARGS, promise_Deferred_promise__doc__},
@@ -123,4 +203,4 @@ promise_Deferred_promise(Deferred *self, PyObject *Py_UNUSED(ignored))
 {
     return promise_Deferred_promise_impl(self);
 }
-/*[clinic end generated code: output=d6aa75a0f653ec52 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=28b495a3054baa78 input=a9049054013a1b77]*/

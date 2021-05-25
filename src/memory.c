@@ -169,7 +169,7 @@ _Request_Close(uv_req_t *req)
 }
 
 uv_handle_t *
-_Handle_New(size_t size)
+_Handle_New(size_t size, finalizer cb)
 {
     LOGC("_Handle_New(%zu): ", size);
     uv_handle_t *handle = (uv_handle_t *) Mem_Alloc(size);
@@ -177,32 +177,15 @@ _Handle_New(size_t size)
         PyErr_NoMemory();
         return NULL;
     }
+    handle->data = cb;
     return handle;
-}
-
-#define _Handle_TRY_FREE(handle)                        \
-    if ((handle)->flags & UV_HANDLE_FREE) {             \
-        LOG("_Handle_TRY_FREE(%p) -> ok", handle);      \
-        Mem_Free(handle);                               \
-    } else {                                            \
-        LOG("_Handle_TRY_FREE(%p) -> wait", handle);    \
-        Handle_SetFreeOnClose(handle);                  \
-    }
-
-void
-_Handle_Release(uv_handle_t *handle) {
-    int closing = uv_is_closing(handle);
-    _Handle_TRY_FREE(handle);
-    if (!closing) {
-        Handle_Close(handle);
-    }
 }
 
 void
 _Handle_OnClose(uv_handle_t *handle)
 {
     ACQUIRE_GIL
-    _Handle_TRY_FREE(handle);
+    Mem_Free(handle);
     RELEASE_GIL
 }
 

@@ -127,9 +127,7 @@ PyDoc_STRVAR(promisedio_deferred__doc__,
 "deferred($module, /)\n"
 "--\n"
 "\n"
-"Create a new Deferred object.\n"
-"\n"
-"");
+"Returns new Deferred object.");
 
 #define PROMISEDIO_DEFERRED_METHODDEF    \
     {"deferred", (PyCFunction)promisedio_deferred, METH_NOARGS, promisedio_deferred__doc__},
@@ -141,49 +139,6 @@ static PyObject *
 promisedio_deferred(PyObject *module, PyObject *Py_UNUSED(ignored))
 {
     return promisedio_deferred_impl(module);
-}
-
-PyDoc_STRVAR(promisedio_asleep__doc__,
-"asleep($module, /, seconds)\n"
-"--\n"
-"\n"
-"Delay execution for a given number of seconds.\n"
-"\n"
-"");
-
-#define PROMISEDIO_ASLEEP_METHODDEF    \
-    {"asleep", (PyCFunction)(void(*)(void))promisedio_asleep, METH_FASTCALL|METH_KEYWORDS, promisedio_asleep__doc__},
-
-static PyObject *
-promisedio_asleep_impl(PyObject *module, double seconds);
-
-static PyObject *
-promisedio_asleep(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
-{
-    PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"seconds", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "asleep", 0};
-    PyObject *argsbuf[1];
-    double seconds;
-
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
-    if (!args) {
-        goto exit;
-    }
-    if (PyFloat_CheckExact(args[0])) {
-        seconds = PyFloat_AS_DOUBLE(args[0]);
-    }
-    else
-    {
-        seconds = PyFloat_AsDouble(args[0]);
-        if (seconds == -1.0 && PyErr_Occurred()) {
-            goto exit;
-        }
-    }
-    return_value = promisedio_asleep_impl(module, seconds);
-
-exit:
-    return return_value;
 }
 
 PyDoc_STRVAR(promisedio_use_python_default_sigint__doc__,
@@ -303,8 +258,49 @@ promisedio__inspectloop(PyObject *module, PyObject *Py_UNUSED(ignored))
     return promisedio__inspectloop_impl(module);
 }
 
-PyDoc_STRVAR(promisedio_astat__doc__,
-"astat($module, /, path, *, follow_symlinks=True)\n"
+PyDoc_STRVAR(promisedio_sleep__doc__,
+"sleep($module, /, seconds)\n"
+"--\n"
+"\n"
+"Delay execution for a given number of seconds.");
+
+#define PROMISEDIO_SLEEP_METHODDEF    \
+    {"sleep", (PyCFunction)(void(*)(void))promisedio_sleep, METH_FASTCALL|METH_KEYWORDS, promisedio_sleep__doc__},
+
+static PyObject *
+promisedio_sleep_impl(PyObject *module, double seconds);
+
+static PyObject *
+promisedio_sleep(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"seconds", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "sleep", 0};
+    PyObject *argsbuf[1];
+    double seconds;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (PyFloat_CheckExact(args[0])) {
+        seconds = PyFloat_AS_DOUBLE(args[0]);
+    }
+    else
+    {
+        seconds = PyFloat_AsDouble(args[0]);
+        if (seconds == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
+    return_value = promisedio_sleep_impl(module, seconds);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_stat__doc__,
+"stat($module, /, path, *, follow_symlinks=True)\n"
 "--\n"
 "\n"
 "Get the status of a file. Return a StatObj object.\n"
@@ -314,18 +310,18 @@ PyDoc_STRVAR(promisedio_astat__doc__,
 "Equivalent to [stat(2)](https://man7.org/linux/man-pages/man2/stat.2.html) \n"
 "              [lstat(2)](https://man7.org/linux/man-pages/man2/lstat.2.html).");
 
-#define PROMISEDIO_ASTAT_METHODDEF    \
-    {"astat", (PyCFunction)(void(*)(void))promisedio_astat, METH_FASTCALL|METH_KEYWORDS, promisedio_astat__doc__},
+#define PROMISEDIO_STAT_METHODDEF    \
+    {"stat", (PyCFunction)(void(*)(void))promisedio_stat, METH_FASTCALL|METH_KEYWORDS, promisedio_stat__doc__},
 
 static PyObject *
-promisedio_astat_impl(PyObject *module, PyObject *path, int follow_symlinks);
+promisedio_stat_impl(PyObject *module, PyObject *path, int follow_symlinks);
 
 static PyObject *
-promisedio_astat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_stat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "follow_symlinks", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "astat", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "stat", 0};
     PyObject *argsbuf[2];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     PyObject *path = NULL;
@@ -346,7 +342,7 @@ promisedio_astat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
         goto exit;
     }
 skip_optional_kwonly:
-    return_value = promisedio_astat_impl(module, path, follow_symlinks);
+    return_value = promisedio_stat_impl(module, path, follow_symlinks);
 
 exit:
     /* Cleanup for path */
@@ -355,26 +351,26 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_afstat__doc__,
-"afstat($module, /, fd)\n"
+PyDoc_STRVAR(promisedio_fstat__doc__,
+"fstat($module, /, fd)\n"
 "--\n"
 "\n"
 "Get the status of the file descriptor fd. Return a StatObj object.\n"
 "\n"
 "Equivalent to [fstat(2)](https://man7.org/linux/man-pages/man2/fstat.2.html).");
 
-#define PROMISEDIO_AFSTAT_METHODDEF    \
-    {"afstat", (PyCFunction)(void(*)(void))promisedio_afstat, METH_FASTCALL|METH_KEYWORDS, promisedio_afstat__doc__},
+#define PROMISEDIO_FSTAT_METHODDEF    \
+    {"fstat", (PyCFunction)(void(*)(void))promisedio_fstat, METH_FASTCALL|METH_KEYWORDS, promisedio_fstat__doc__},
 
 static PyObject *
-promisedio_afstat_impl(PyObject *module, int fd);
+promisedio_fstat_impl(PyObject *module, int fd);
 
 static PyObject *
-promisedio_afstat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_fstat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "afstat", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "fstat", 0};
     PyObject *argsbuf[1];
     int fd;
 
@@ -385,14 +381,14 @@ promisedio_afstat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!File_converter(args[0], &fd)) {
         goto exit;
     }
-    return_value = promisedio_afstat_impl(module, fd);
+    return_value = promisedio_fstat_impl(module, fd);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_aseek__doc__,
-"aseek($module, /, fd, pos, how)\n"
+PyDoc_STRVAR(promisedio_seek__doc__,
+"seek($module, /, fd, pos, how)\n"
 "--\n"
 "\n"
 "Set the current position of file descriptor fd to position pos, modified by how:\n"
@@ -404,18 +400,18 @@ PyDoc_STRVAR(promisedio_aseek__doc__,
 "\n"
 "Equivalent to [lseek(2)](https://man7.org/linux/man-pages/man2/lseek.2.html).");
 
-#define PROMISEDIO_ASEEK_METHODDEF    \
-    {"aseek", (PyCFunction)(void(*)(void))promisedio_aseek, METH_FASTCALL|METH_KEYWORDS, promisedio_aseek__doc__},
+#define PROMISEDIO_SEEK_METHODDEF    \
+    {"seek", (PyCFunction)(void(*)(void))promisedio_seek, METH_FASTCALL|METH_KEYWORDS, promisedio_seek__doc__},
 
 static PyObject *
-promisedio_aseek_impl(PyObject *module, int fd, Py_off_t pos, int how);
+promisedio_seek_impl(PyObject *module, int fd, Py_off_t pos, int how);
 
 static PyObject *
-promisedio_aseek(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_seek(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", "pos", "how", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "aseek", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "seek", 0};
     PyObject *argsbuf[3];
     int fd;
     Py_off_t pos;
@@ -440,33 +436,33 @@ promisedio_aseek(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (how == -1 && PyErr_Occurred()) {
         goto exit;
     }
-    return_value = promisedio_aseek_impl(module, fd, pos, how);
+    return_value = promisedio_seek_impl(module, fd, pos, how);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_aopen__doc__,
-"aopen($module, /, path, flags=\'r\', closefd=True)\n"
+PyDoc_STRVAR(promisedio_open__doc__,
+"open($module, /, path, flags=\'r\', closefd=True)\n"
 "--\n"
 "\n"
 "Open file and return a corresponding file object. If the file cannot be opened, an OSError is raised. \n"
 "\n"
 "Equivalent to python [open](https://docs.python.org/3/library/functions.html#open) (binary mode only).");
 
-#define PROMISEDIO_AOPEN_METHODDEF    \
-    {"aopen", (PyCFunction)(void(*)(void))promisedio_aopen, METH_FASTCALL|METH_KEYWORDS, promisedio_aopen__doc__},
+#define PROMISEDIO_OPEN_METHODDEF    \
+    {"open", (PyCFunction)(void(*)(void))promisedio_open, METH_FASTCALL|METH_KEYWORDS, promisedio_open__doc__},
 
 static PyObject *
-promisedio_aopen_impl(PyObject *module, PyObject *path, const char *flags,
-                      int closefd);
+promisedio_open_impl(PyObject *module, PyObject *path, const char *flags,
+                     int closefd);
 
 static PyObject *
-promisedio_aopen(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_open(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "flags", "closefd", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "aopen", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "open", 0};
     PyObject *argsbuf[3];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     PyObject *path;
@@ -483,7 +479,7 @@ promisedio_aopen(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     }
     if (args[1]) {
         if (!PyUnicode_Check(args[1])) {
-            _PyArg_BadArgument("aopen", "argument 'flags'", "str", args[1]);
+            _PyArg_BadArgument("open", "argument 'flags'", "str", args[1]);
             goto exit;
         }
         Py_ssize_t flags_length;
@@ -509,14 +505,14 @@ promisedio_aopen(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
         goto exit;
     }
 skip_optional_pos:
-    return_value = promisedio_aopen_impl(module, path, flags, closefd);
+    return_value = promisedio_open_impl(module, path, flags, closefd);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_aopenfd__doc__,
-"aopenfd($module, /, path, flags=\'r\', mode=438)\n"
+PyDoc_STRVAR(promisedio_openfd__doc__,
+"openfd($module, /, path, flags=\'r\', mode=438)\n"
 "--\n"
 "\n"
 "Open the file path and set various flags according to flags and possibly its mode according to mode. \n"
@@ -524,19 +520,19 @@ PyDoc_STRVAR(promisedio_aopenfd__doc__,
 "\n"
 "Equivalent to [open(2)](https://man7.org/linux/man-pages/man2/open.2.html).");
 
-#define PROMISEDIO_AOPENFD_METHODDEF    \
-    {"aopenfd", (PyCFunction)(void(*)(void))promisedio_aopenfd, METH_FASTCALL|METH_KEYWORDS, promisedio_aopenfd__doc__},
+#define PROMISEDIO_OPENFD_METHODDEF    \
+    {"openfd", (PyCFunction)(void(*)(void))promisedio_openfd, METH_FASTCALL|METH_KEYWORDS, promisedio_openfd__doc__},
 
 static PyObject *
-promisedio_aopenfd_impl(PyObject *module, PyObject *path, const char *flags,
-                        int mode);
+promisedio_openfd_impl(PyObject *module, PyObject *path, const char *flags,
+                       int mode);
 
 static PyObject *
-promisedio_aopenfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_openfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "flags", "mode", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "aopenfd", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "openfd", 0};
     PyObject *argsbuf[3];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     PyObject *path = NULL;
@@ -555,7 +551,7 @@ promisedio_aopenfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     }
     if (args[1]) {
         if (!PyUnicode_Check(args[1])) {
-            _PyArg_BadArgument("aopenfd", "argument 'flags'", "str", args[1]);
+            _PyArg_BadArgument("openfd", "argument 'flags'", "str", args[1]);
             goto exit;
         }
         Py_ssize_t flags_length;
@@ -581,7 +577,7 @@ promisedio_aopenfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
         goto exit;
     }
 skip_optional_pos:
-    return_value = promisedio_aopenfd_impl(module, path, flags, mode);
+    return_value = promisedio_openfd_impl(module, path, flags, mode);
 
 exit:
     /* Cleanup for path */
@@ -590,26 +586,26 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_aclose__doc__,
-"aclose($module, /, fd)\n"
+PyDoc_STRVAR(promisedio_close__doc__,
+"close($module, /, fd)\n"
 "--\n"
 "\n"
 "Close file descriptor fd.\n"
 "\n"
 "Equivalent to [close(2)](https://man7.org/linux/man-pages/man2/close.2.html).");
 
-#define PROMISEDIO_ACLOSE_METHODDEF    \
-    {"aclose", (PyCFunction)(void(*)(void))promisedio_aclose, METH_FASTCALL|METH_KEYWORDS, promisedio_aclose__doc__},
+#define PROMISEDIO_CLOSE_METHODDEF    \
+    {"close", (PyCFunction)(void(*)(void))promisedio_close, METH_FASTCALL|METH_KEYWORDS, promisedio_close__doc__},
 
 static PyObject *
-promisedio_aclose_impl(PyObject *module, int fd);
+promisedio_close_impl(PyObject *module, int fd);
 
 static PyObject *
-promisedio_aclose(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_close(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "aclose", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "close", 0};
     PyObject *argsbuf[1];
     int fd;
 
@@ -620,14 +616,14 @@ promisedio_aclose(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!File_converter(args[0], &fd)) {
         goto exit;
     }
-    return_value = promisedio_aclose_impl(module, fd);
+    return_value = promisedio_close_impl(module, fd);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_aread__doc__,
-"aread($module, /, fd, size=-1, offset=-1)\n"
+PyDoc_STRVAR(promisedio_read__doc__,
+"read($module, /, fd, size=-1, offset=-1)\n"
 "--\n"
 "\n"
 "Read from file descriptor fd until we have size characters or we hit EOF.\n"
@@ -637,19 +633,19 @@ PyDoc_STRVAR(promisedio_aread__doc__,
 "Equivalent to [read(2)](https://man7.org/linux/man-pages/man2/read.2.html)\n"
 "              [preadv(2)](https://man7.org/linux/man-pages/man2/preadv.2.html)");
 
-#define PROMISEDIO_AREAD_METHODDEF    \
-    {"aread", (PyCFunction)(void(*)(void))promisedio_aread, METH_FASTCALL|METH_KEYWORDS, promisedio_aread__doc__},
+#define PROMISEDIO_READ_METHODDEF    \
+    {"read", (PyCFunction)(void(*)(void))promisedio_read, METH_FASTCALL|METH_KEYWORDS, promisedio_read__doc__},
 
 static PyObject *
-promisedio_aread_impl(PyObject *module, int fd, Py_ssize_t size,
-                      Py_off_t offset);
+promisedio_read_impl(PyObject *module, int fd, Py_ssize_t size,
+                     Py_off_t offset);
 
 static PyObject *
-promisedio_aread(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_read(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", "size", "offset", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "aread", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "read", 0};
     PyObject *argsbuf[3];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     int fd;
@@ -692,14 +688,14 @@ promisedio_aread(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
         goto exit;
     }
 skip_optional_pos:
-    return_value = promisedio_aread_impl(module, fd, size, offset);
+    return_value = promisedio_read_impl(module, fd, size, offset);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_awrite__doc__,
-"awrite($module, /, fd, data, offset=-1)\n"
+PyDoc_STRVAR(promisedio_write__doc__,
+"write($module, /, fd, data, offset=-1)\n"
 "--\n"
 "\n"
 "Write the data to file descriptor fd.\n"
@@ -711,19 +707,19 @@ PyDoc_STRVAR(promisedio_awrite__doc__,
 "Equivalent to [write(2)](https://man7.org/linux/man-pages/man2/write.2.html)\n"
 "              [pwritev(2)](https://man7.org/linux/man-pages/man2/pwritev.2.html)");
 
-#define PROMISEDIO_AWRITE_METHODDEF    \
-    {"awrite", (PyCFunction)(void(*)(void))promisedio_awrite, METH_FASTCALL|METH_KEYWORDS, promisedio_awrite__doc__},
+#define PROMISEDIO_WRITE_METHODDEF    \
+    {"write", (PyCFunction)(void(*)(void))promisedio_write, METH_FASTCALL|METH_KEYWORDS, promisedio_write__doc__},
 
 static PyObject *
-promisedio_awrite_impl(PyObject *module, int fd, PyObject *data,
-                       Py_off_t offset);
+promisedio_write_impl(PyObject *module, int fd, PyObject *data,
+                      Py_off_t offset);
 
 static PyObject *
-promisedio_awrite(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_write(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", "data", "offset", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "awrite", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "write", 0};
     PyObject *argsbuf[3];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
     int fd;
@@ -745,32 +741,32 @@ promisedio_awrite(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
         goto exit;
     }
 skip_optional_pos:
-    return_value = promisedio_awrite_impl(module, fd, data, offset);
+    return_value = promisedio_write_impl(module, fd, data, offset);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_aunlink__doc__,
-"aunlink($module, /, path)\n"
+PyDoc_STRVAR(promisedio_unlink__doc__,
+"unlink($module, /, path)\n"
 "--\n"
 "\n"
 "Remove (delete) the file path.\n"
 "\n"
 "Equivalent to [unlink(2)](https://man7.org/linux/man-pages/man2/unlink.2.html).");
 
-#define PROMISEDIO_AUNLINK_METHODDEF    \
-    {"aunlink", (PyCFunction)(void(*)(void))promisedio_aunlink, METH_FASTCALL|METH_KEYWORDS, promisedio_aunlink__doc__},
+#define PROMISEDIO_UNLINK_METHODDEF    \
+    {"unlink", (PyCFunction)(void(*)(void))promisedio_unlink, METH_FASTCALL|METH_KEYWORDS, promisedio_unlink__doc__},
 
 static PyObject *
-promisedio_aunlink_impl(PyObject *module, PyObject *path);
+promisedio_unlink_impl(PyObject *module, PyObject *path);
 
 static PyObject *
-promisedio_aunlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_unlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "aunlink", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "unlink", 0};
     PyObject *argsbuf[1];
     PyObject *path = NULL;
 
@@ -781,7 +777,7 @@ promisedio_aunlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (!Path_converter(args[0], &path)) {
         goto exit;
     }
-    return_value = promisedio_aunlink_impl(module, path);
+    return_value = promisedio_unlink_impl(module, path);
 
 exit:
     /* Cleanup for path */
@@ -790,8 +786,8 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_amkdir__doc__,
-"amkdir($module, /, path, mode=511)\n"
+PyDoc_STRVAR(promisedio_mkdir__doc__,
+"mkdir($module, /, path, mode=511)\n"
 "--\n"
 "\n"
 "Create a directory named path with numeric mode mode.\n"
@@ -801,18 +797,18 @@ PyDoc_STRVAR(promisedio_amkdir__doc__,
 "\n"
 "Equivalent to [mkdir(2)](https://man7.org/linux/man-pages/man2/mkdir.2.html).");
 
-#define PROMISEDIO_AMKDIR_METHODDEF    \
-    {"amkdir", (PyCFunction)(void(*)(void))promisedio_amkdir, METH_FASTCALL|METH_KEYWORDS, promisedio_amkdir__doc__},
+#define PROMISEDIO_MKDIR_METHODDEF    \
+    {"mkdir", (PyCFunction)(void(*)(void))promisedio_mkdir, METH_FASTCALL|METH_KEYWORDS, promisedio_mkdir__doc__},
 
 static PyObject *
-promisedio_amkdir_impl(PyObject *module, PyObject *path, int mode);
+promisedio_mkdir_impl(PyObject *module, PyObject *path, int mode);
 
 static PyObject *
-promisedio_amkdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_mkdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "mode", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "amkdir", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "mkdir", 0};
     PyObject *argsbuf[2];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     PyObject *path = NULL;
@@ -838,7 +834,7 @@ promisedio_amkdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
         goto exit;
     }
 skip_optional_pos:
-    return_value = promisedio_amkdir_impl(module, path, mode);
+    return_value = promisedio_mkdir_impl(module, path, mode);
 
 exit:
     /* Cleanup for path */
@@ -847,8 +843,8 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_armdir__doc__,
-"armdir($module, /, path)\n"
+PyDoc_STRVAR(promisedio_rmdir__doc__,
+"rmdir($module, /, path)\n"
 "--\n"
 "\n"
 "Remove (delete) the directory path. If the directory does not exist or is not empty,\n"
@@ -856,18 +852,18 @@ PyDoc_STRVAR(promisedio_armdir__doc__,
 "\n"
 "Equivalent to [rmdir(2)](https://man7.org/linux/man-pages/man2/rmdir.2.html).");
 
-#define PROMISEDIO_ARMDIR_METHODDEF    \
-    {"armdir", (PyCFunction)(void(*)(void))promisedio_armdir, METH_FASTCALL|METH_KEYWORDS, promisedio_armdir__doc__},
+#define PROMISEDIO_RMDIR_METHODDEF    \
+    {"rmdir", (PyCFunction)(void(*)(void))promisedio_rmdir, METH_FASTCALL|METH_KEYWORDS, promisedio_rmdir__doc__},
 
 static PyObject *
-promisedio_armdir_impl(PyObject *module, PyObject *path);
+promisedio_rmdir_impl(PyObject *module, PyObject *path);
 
 static PyObject *
-promisedio_armdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_rmdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "armdir", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "rmdir", 0};
     PyObject *argsbuf[1];
     PyObject *path = NULL;
 
@@ -878,7 +874,7 @@ promisedio_armdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!Path_converter(args[0], &path)) {
         goto exit;
     }
-    return_value = promisedio_armdir_impl(module, path);
+    return_value = promisedio_rmdir_impl(module, path);
 
 exit:
     /* Cleanup for path */
@@ -887,8 +883,8 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_amkdtemp__doc__,
-"amkdtemp($module, /, tpl)\n"
+PyDoc_STRVAR(promisedio_mkdtemp__doc__,
+"mkdtemp($module, /, tpl)\n"
 "--\n"
 "\n"
 "Generate a uniquely named temporary directory from template tpl.\n"
@@ -899,18 +895,18 @@ PyDoc_STRVAR(promisedio_amkdtemp__doc__,
 "\n"
 "Equivalent to [mkdtemp(3)](https://man7.org/linux/man-pages/man3/mkdtemp.3.html).");
 
-#define PROMISEDIO_AMKDTEMP_METHODDEF    \
-    {"amkdtemp", (PyCFunction)(void(*)(void))promisedio_amkdtemp, METH_FASTCALL|METH_KEYWORDS, promisedio_amkdtemp__doc__},
+#define PROMISEDIO_MKDTEMP_METHODDEF    \
+    {"mkdtemp", (PyCFunction)(void(*)(void))promisedio_mkdtemp, METH_FASTCALL|METH_KEYWORDS, promisedio_mkdtemp__doc__},
 
 static PyObject *
-promisedio_amkdtemp_impl(PyObject *module, PyObject *tpl);
+promisedio_mkdtemp_impl(PyObject *module, PyObject *tpl);
 
 static PyObject *
-promisedio_amkdtemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_mkdtemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"tpl", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "amkdtemp", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "mkdtemp", 0};
     PyObject *argsbuf[1];
     PyObject *tpl = NULL;
 
@@ -921,7 +917,7 @@ promisedio_amkdtemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, P
     if (!Path_converter(args[0], &tpl)) {
         goto exit;
     }
-    return_value = promisedio_amkdtemp_impl(module, tpl);
+    return_value = promisedio_mkdtemp_impl(module, tpl);
 
 exit:
     /* Cleanup for tpl */
@@ -930,8 +926,8 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_amkstemp__doc__,
-"amkstemp($module, /, tpl)\n"
+PyDoc_STRVAR(promisedio_mkstemp__doc__,
+"mkstemp($module, /, tpl)\n"
 "--\n"
 "\n"
 "Generate a unique temporary filename from template.\n"
@@ -943,18 +939,18 @@ PyDoc_STRVAR(promisedio_amkstemp__doc__,
 "\n"
 "Equivalent to [mkstemp(3)](https://man7.org/linux/man-pages/man3/mkstemp.3.html).");
 
-#define PROMISEDIO_AMKSTEMP_METHODDEF    \
-    {"amkstemp", (PyCFunction)(void(*)(void))promisedio_amkstemp, METH_FASTCALL|METH_KEYWORDS, promisedio_amkstemp__doc__},
+#define PROMISEDIO_MKSTEMP_METHODDEF    \
+    {"mkstemp", (PyCFunction)(void(*)(void))promisedio_mkstemp, METH_FASTCALL|METH_KEYWORDS, promisedio_mkstemp__doc__},
 
 static PyObject *
-promisedio_amkstemp_impl(PyObject *module, PyObject *tpl);
+promisedio_mkstemp_impl(PyObject *module, PyObject *tpl);
 
 static PyObject *
-promisedio_amkstemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_mkstemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"tpl", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "amkstemp", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "mkstemp", 0};
     PyObject *argsbuf[1];
     PyObject *tpl = NULL;
 
@@ -965,7 +961,7 @@ promisedio_amkstemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, P
     if (!Path_converter(args[0], &tpl)) {
         goto exit;
     }
-    return_value = promisedio_amkstemp_impl(module, tpl);
+    return_value = promisedio_mkstemp_impl(module, tpl);
 
 exit:
     /* Cleanup for tpl */
@@ -974,8 +970,8 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_ascandir__doc__,
-"ascandir($module, /, path)\n"
+PyDoc_STRVAR(promisedio_scandir__doc__,
+"scandir($module, /, path)\n"
 "--\n"
 "\n"
 "Return a sequence of the entries in the directory given by path (entry_type, entry_name).  \n"
@@ -983,18 +979,18 @@ PyDoc_STRVAR(promisedio_ascandir__doc__,
 "\n"
 "Equivalent to [scandir(3)](https://man7.org/linux/man-pages/man3/scandir.3.html).");
 
-#define PROMISEDIO_ASCANDIR_METHODDEF    \
-    {"ascandir", (PyCFunction)(void(*)(void))promisedio_ascandir, METH_FASTCALL|METH_KEYWORDS, promisedio_ascandir__doc__},
+#define PROMISEDIO_SCANDIR_METHODDEF    \
+    {"scandir", (PyCFunction)(void(*)(void))promisedio_scandir, METH_FASTCALL|METH_KEYWORDS, promisedio_scandir__doc__},
 
 static PyObject *
-promisedio_ascandir_impl(PyObject *module, PyObject *path);
+promisedio_scandir_impl(PyObject *module, PyObject *path);
 
 static PyObject *
-promisedio_ascandir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_scandir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "ascandir", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "scandir", 0};
     PyObject *argsbuf[1];
     PyObject *path = NULL;
 
@@ -1005,7 +1001,7 @@ promisedio_ascandir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, P
     if (!Path_converter(args[0], &path)) {
         goto exit;
     }
-    return_value = promisedio_ascandir_impl(module, path);
+    return_value = promisedio_scandir_impl(module, path);
 
 exit:
     /* Cleanup for path */
@@ -1014,26 +1010,24 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_arename__doc__,
-"arename($module, /, path, new_path)\n"
+PyDoc_STRVAR(promisedio_rename__doc__,
+"rename($module, /, path, new_path)\n"
 "--\n"
 "\n"
-"Rename the file or directory path to new_path.\n"
-"\n"
-"Equivalent to [rename(2)](https://man7.org/linux/man-pages/man2/rename.2.html).");
+"");
 
-#define PROMISEDIO_ARENAME_METHODDEF    \
-    {"arename", (PyCFunction)(void(*)(void))promisedio_arename, METH_FASTCALL|METH_KEYWORDS, promisedio_arename__doc__},
+#define PROMISEDIO_RENAME_METHODDEF    \
+    {"rename", (PyCFunction)(void(*)(void))promisedio_rename, METH_FASTCALL|METH_KEYWORDS, promisedio_rename__doc__},
 
 static PyObject *
-promisedio_arename_impl(PyObject *module, PyObject *path, PyObject *new_path);
+promisedio_rename_impl(PyObject *module, PyObject *path, PyObject *new_path);
 
 static PyObject *
-promisedio_arename(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_rename(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "new_path", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "arename", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "rename", 0};
     PyObject *argsbuf[2];
     PyObject *path = NULL;
     PyObject *new_path = NULL;
@@ -1048,7 +1042,7 @@ promisedio_arename(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (!Path_converter(args[1], &new_path)) {
         goto exit;
     }
-    return_value = promisedio_arename_impl(module, path, new_path);
+    return_value = promisedio_rename_impl(module, path, new_path);
 
 exit:
     /* Cleanup for path */
@@ -1059,26 +1053,24 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_afsync__doc__,
-"afsync($module, /, fd)\n"
+PyDoc_STRVAR(promisedio_fsync__doc__,
+"fsync($module, /, fd)\n"
 "--\n"
 "\n"
-"Force write of file with file descriptor fd to disk.\n"
-"\n"
-"Equivalent to [fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html).");
+"");
 
-#define PROMISEDIO_AFSYNC_METHODDEF    \
-    {"afsync", (PyCFunction)(void(*)(void))promisedio_afsync, METH_FASTCALL|METH_KEYWORDS, promisedio_afsync__doc__},
+#define PROMISEDIO_FSYNC_METHODDEF    \
+    {"fsync", (PyCFunction)(void(*)(void))promisedio_fsync, METH_FASTCALL|METH_KEYWORDS, promisedio_fsync__doc__},
 
 static PyObject *
-promisedio_afsync_impl(PyObject *module, int fd);
+promisedio_fsync_impl(PyObject *module, int fd);
 
 static PyObject *
-promisedio_afsync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_fsync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "afsync", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "fsync", 0};
     PyObject *argsbuf[1];
     int fd;
 
@@ -1089,32 +1081,30 @@ promisedio_afsync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!File_converter(args[0], &fd)) {
         goto exit;
     }
-    return_value = promisedio_afsync_impl(module, fd);
+    return_value = promisedio_fsync_impl(module, fd);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_aftruncate__doc__,
-"aftruncate($module, /, fd, length)\n"
+PyDoc_STRVAR(promisedio_ftruncate__doc__,
+"ftruncate($module, /, fd, length)\n"
 "--\n"
 "\n"
-"Truncate the file corresponding to file descriptor fd, so that it is at most length bytes in size.\n"
-"\n"
-"Equivalent to [ftruncate(2)](https://man7.org/linux/man-pages/man2/ftruncate.2.html).");
+"");
 
-#define PROMISEDIO_AFTRUNCATE_METHODDEF    \
-    {"aftruncate", (PyCFunction)(void(*)(void))promisedio_aftruncate, METH_FASTCALL|METH_KEYWORDS, promisedio_aftruncate__doc__},
+#define PROMISEDIO_FTRUNCATE_METHODDEF    \
+    {"ftruncate", (PyCFunction)(void(*)(void))promisedio_ftruncate, METH_FASTCALL|METH_KEYWORDS, promisedio_ftruncate__doc__},
 
 static PyObject *
-promisedio_aftruncate_impl(PyObject *module, int fd, Py_ssize_t length);
+promisedio_ftruncate_impl(PyObject *module, int fd, Py_ssize_t length);
 
 static PyObject *
-promisedio_aftruncate(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_ftruncate(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", "length", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "aftruncate", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "ftruncate", 0};
     PyObject *argsbuf[2];
     int fd;
     Py_ssize_t length;
@@ -1143,32 +1133,30 @@ promisedio_aftruncate(PyObject *module, PyObject *const *args, Py_ssize_t nargs,
         }
         length = ival;
     }
-    return_value = promisedio_aftruncate_impl(module, fd, length);
+    return_value = promisedio_ftruncate_impl(module, fd, length);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_afdatasync__doc__,
-"afdatasync($module, /, fd)\n"
+PyDoc_STRVAR(promisedio_fdatasync__doc__,
+"fdatasync($module, /, fd)\n"
 "--\n"
 "\n"
-"Force write of file with file descriptor fd to disk. Does not force update of metadata.\n"
-"\n"
-"Equivalent to [fdatasync(2)](https://man7.org/linux/man-pages/man2/fdatasync.2.html).");
+"");
 
-#define PROMISEDIO_AFDATASYNC_METHODDEF    \
-    {"afdatasync", (PyCFunction)(void(*)(void))promisedio_afdatasync, METH_FASTCALL|METH_KEYWORDS, promisedio_afdatasync__doc__},
+#define PROMISEDIO_FDATASYNC_METHODDEF    \
+    {"fdatasync", (PyCFunction)(void(*)(void))promisedio_fdatasync, METH_FASTCALL|METH_KEYWORDS, promisedio_fdatasync__doc__},
 
 static PyObject *
-promisedio_afdatasync_impl(PyObject *module, int fd);
+promisedio_fdatasync_impl(PyObject *module, int fd);
 
 static PyObject *
-promisedio_afdatasync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_fdatasync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "afdatasync", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "fdatasync", 0};
     PyObject *argsbuf[1];
     int fd;
 
@@ -1179,36 +1167,31 @@ promisedio_afdatasync(PyObject *module, PyObject *const *args, Py_ssize_t nargs,
     if (!File_converter(args[0], &fd)) {
         goto exit;
     }
-    return_value = promisedio_afdatasync_impl(module, fd);
+    return_value = promisedio_fdatasync_impl(module, fd);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_acopyfile__doc__,
-"acopyfile($module, /, path, new_path, flags=0)\n"
+PyDoc_STRVAR(promisedio_copyfile__doc__,
+"copyfile($module, /, path, new_path, flags=0)\n"
 "--\n"
 "\n"
-"Copies a file from path to new_path. Supported flags are: \n"
-"- COPYFILE_EXCL\n"
-"- COPYFILE_FICLONE\n"
-"- COPYFILE_FICLONE_FORCE\n"
-"\n"
-"For more information, see [uvfs_copyfile](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fscopyfile).");
+"");
 
-#define PROMISEDIO_ACOPYFILE_METHODDEF    \
-    {"acopyfile", (PyCFunction)(void(*)(void))promisedio_acopyfile, METH_FASTCALL|METH_KEYWORDS, promisedio_acopyfile__doc__},
+#define PROMISEDIO_COPYFILE_METHODDEF    \
+    {"copyfile", (PyCFunction)(void(*)(void))promisedio_copyfile, METH_FASTCALL|METH_KEYWORDS, promisedio_copyfile__doc__},
 
 static PyObject *
-promisedio_acopyfile_impl(PyObject *module, PyObject *path,
-                          PyObject *new_path, int flags);
+promisedio_copyfile_impl(PyObject *module, PyObject *path,
+                         PyObject *new_path, int flags);
 
 static PyObject *
-promisedio_acopyfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_copyfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "new_path", "flags", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "acopyfile", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "copyfile", 0};
     PyObject *argsbuf[3];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
     PyObject *path = NULL;
@@ -1238,7 +1221,7 @@ promisedio_acopyfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, 
         goto exit;
     }
 skip_optional_pos:
-    return_value = promisedio_acopyfile_impl(module, path, new_path, flags);
+    return_value = promisedio_copyfile_impl(module, path, new_path, flags);
 
 exit:
     /* Cleanup for path */
@@ -1249,28 +1232,25 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_asendfile__doc__,
-"asendfile($module, /, out_fd, in_fd, offset, count)\n"
+PyDoc_STRVAR(promisedio_sendfile__doc__,
+"sendfile($module, /, out_fd, in_fd, offset, count)\n"
 "--\n"
 "\n"
-"Copy count bytes from file descriptor in_fd to file descriptor out_fd starting at offset.\n"
-"Return the number of bytes sent.\n"
-"\n"
-"Equivalent to [sendfile(2)](https://man7.org/linux/man-pages/man2/sendfile.2.html).");
+"");
 
-#define PROMISEDIO_ASENDFILE_METHODDEF    \
-    {"asendfile", (PyCFunction)(void(*)(void))promisedio_asendfile, METH_FASTCALL|METH_KEYWORDS, promisedio_asendfile__doc__},
+#define PROMISEDIO_SENDFILE_METHODDEF    \
+    {"sendfile", (PyCFunction)(void(*)(void))promisedio_sendfile, METH_FASTCALL|METH_KEYWORDS, promisedio_sendfile__doc__},
 
 static PyObject *
-promisedio_asendfile_impl(PyObject *module, int out_fd, int in_fd,
-                          Py_off_t offset, Py_ssize_t count);
+promisedio_sendfile_impl(PyObject *module, int out_fd, int in_fd,
+                         Py_off_t offset, Py_ssize_t count);
 
 static PyObject *
-promisedio_asendfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_sendfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"out_fd", "in_fd", "offset", "count", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "asendfile", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "sendfile", 0};
     PyObject *argsbuf[4];
     int out_fd;
     int in_fd;
@@ -1307,36 +1287,30 @@ promisedio_asendfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, 
         }
         count = ival;
     }
-    return_value = promisedio_asendfile_impl(module, out_fd, in_fd, offset, count);
+    return_value = promisedio_sendfile_impl(module, out_fd, in_fd, offset, count);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_aaccess__doc__,
-"aaccess($module, /, path, mode)\n"
+PyDoc_STRVAR(promisedio_access__doc__,
+"access($module, /, path, mode)\n"
 "--\n"
 "\n"
-"Use the real uid/gid to test for access to path.\n"
-"Mode should be F_OK to test the existence of path, or it can be the inclusive OR of one or more of \n"
-"R_OK, W_OK, and X_OK to test permissions. \n"
-"\n"
-"Return True if access is allowed, False if not.\n"
-"\n"
-"Equivalent to [access(2)](https://man7.org/linux/man-pages/man2/access.2.html).");
+"");
 
-#define PROMISEDIO_AACCESS_METHODDEF    \
-    {"aaccess", (PyCFunction)(void(*)(void))promisedio_aaccess, METH_FASTCALL|METH_KEYWORDS, promisedio_aaccess__doc__},
+#define PROMISEDIO_ACCESS_METHODDEF    \
+    {"access", (PyCFunction)(void(*)(void))promisedio_access, METH_FASTCALL|METH_KEYWORDS, promisedio_access__doc__},
 
 static PyObject *
-promisedio_aaccess_impl(PyObject *module, PyObject *path, int mode);
+promisedio_access_impl(PyObject *module, PyObject *path, int mode);
 
 static PyObject *
-promisedio_aaccess(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_access(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "mode", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "aaccess", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "access", 0};
     PyObject *argsbuf[2];
     PyObject *path = NULL;
     int mode;
@@ -1357,7 +1331,7 @@ promisedio_aaccess(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (mode == -1 && PyErr_Occurred()) {
         goto exit;
     }
-    return_value = promisedio_aaccess_impl(module, path, mode);
+    return_value = promisedio_access_impl(module, path, mode);
 
 exit:
     /* Cleanup for path */
@@ -1366,27 +1340,24 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_achmod__doc__,
-"achmod($module, /, path, mode)\n"
+PyDoc_STRVAR(promisedio_chmod__doc__,
+"chmod($module, /, path, mode)\n"
 "--\n"
 "\n"
-"Change the mode of path to the numeric mode.\n"
-"See [stat module](https://docs.python.org/3/library/stat.html#stat.S_ISUID) for available mode.\n"
-"\n"
-"Equivalent to [chmod(2)](https://man7.org/linux/man-pages/man2/chmod.2.html).");
+"");
 
-#define PROMISEDIO_ACHMOD_METHODDEF    \
-    {"achmod", (PyCFunction)(void(*)(void))promisedio_achmod, METH_FASTCALL|METH_KEYWORDS, promisedio_achmod__doc__},
+#define PROMISEDIO_CHMOD_METHODDEF    \
+    {"chmod", (PyCFunction)(void(*)(void))promisedio_chmod, METH_FASTCALL|METH_KEYWORDS, promisedio_chmod__doc__},
 
 static PyObject *
-promisedio_achmod_impl(PyObject *module, PyObject *path, int mode);
+promisedio_chmod_impl(PyObject *module, PyObject *path, int mode);
 
 static PyObject *
-promisedio_achmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_chmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "mode", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "achmod", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "chmod", 0};
     PyObject *argsbuf[2];
     PyObject *path = NULL;
     int mode;
@@ -1407,7 +1378,7 @@ promisedio_achmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (mode == -1 && PyErr_Occurred()) {
         goto exit;
     }
-    return_value = promisedio_achmod_impl(module, path, mode);
+    return_value = promisedio_chmod_impl(module, path, mode);
 
 exit:
     /* Cleanup for path */
@@ -1416,27 +1387,24 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_afchmod__doc__,
-"afchmod($module, /, fd, mode)\n"
+PyDoc_STRVAR(promisedio_fchmod__doc__,
+"fchmod($module, /, fd, mode)\n"
 "--\n"
 "\n"
-"Change the mode of the file given by fd to the numeric mode.\n"
-"See [stat module](https://docs.python.org/3/library/stat.html#stat.S_ISUID) for available mode.\n"
-"\n"
-"Equivalent to [fchmod(2)](https://man7.org/linux/man-pages/man2/fchmod.2.html).");
+"");
 
-#define PROMISEDIO_AFCHMOD_METHODDEF    \
-    {"afchmod", (PyCFunction)(void(*)(void))promisedio_afchmod, METH_FASTCALL|METH_KEYWORDS, promisedio_afchmod__doc__},
+#define PROMISEDIO_FCHMOD_METHODDEF    \
+    {"fchmod", (PyCFunction)(void(*)(void))promisedio_fchmod, METH_FASTCALL|METH_KEYWORDS, promisedio_fchmod__doc__},
 
 static PyObject *
-promisedio_afchmod_impl(PyObject *module, int fd, int mode);
+promisedio_fchmod_impl(PyObject *module, int fd, int mode);
 
 static PyObject *
-promisedio_afchmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_fchmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", "mode", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "afchmod", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "fchmod", 0};
     PyObject *argsbuf[2];
     int fd;
     int mode;
@@ -1457,36 +1425,31 @@ promisedio_afchmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (mode == -1 && PyErr_Occurred()) {
         goto exit;
     }
-    return_value = promisedio_afchmod_impl(module, fd, mode);
+    return_value = promisedio_fchmod_impl(module, fd, mode);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_autime__doc__,
-"autime($module, /, path, atime, mtime, *, follow_symlinks=True)\n"
+PyDoc_STRVAR(promisedio_utime__doc__,
+"utime($module, /, path, atime, mtime, *, follow_symlinks=True)\n"
 "--\n"
 "\n"
-"Set the access and modified times of the file specified by path.\n"
-"\n"
-"This function normally follows symlinks.\n"
-"\n"
-"Equivalent to [utime(2)](https://man7.org/linux/man-pages/man2/utime.2.html)\n"
-"              [lutimes(2)](https://man7.org/linux/man-pages/man3/lutimes.3.html).");
+"");
 
-#define PROMISEDIO_AUTIME_METHODDEF    \
-    {"autime", (PyCFunction)(void(*)(void))promisedio_autime, METH_FASTCALL|METH_KEYWORDS, promisedio_autime__doc__},
+#define PROMISEDIO_UTIME_METHODDEF    \
+    {"utime", (PyCFunction)(void(*)(void))promisedio_utime, METH_FASTCALL|METH_KEYWORDS, promisedio_utime__doc__},
 
 static PyObject *
-promisedio_autime_impl(PyObject *module, PyObject *path, double atime,
-                       double mtime, int follow_symlinks);
+promisedio_utime_impl(PyObject *module, PyObject *path, double atime,
+                      double mtime, int follow_symlinks);
 
 static PyObject *
-promisedio_autime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_utime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "atime", "mtime", "follow_symlinks", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "autime", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "utime", 0};
     PyObject *argsbuf[4];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 3;
     PyObject *path = NULL;
@@ -1529,7 +1492,7 @@ promisedio_autime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
         goto exit;
     }
 skip_optional_kwonly:
-    return_value = promisedio_autime_impl(module, path, atime, mtime, follow_symlinks);
+    return_value = promisedio_utime_impl(module, path, atime, mtime, follow_symlinks);
 
 exit:
     /* Cleanup for path */
@@ -1538,26 +1501,24 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_afutime__doc__,
-"afutime($module, /, fd, atime, mtime)\n"
+PyDoc_STRVAR(promisedio_futime__doc__,
+"futime($module, /, fd, atime, mtime)\n"
 "--\n"
 "\n"
-"Set the access and modified times of the file given by fd.\n"
-"\n"
-"Equivalent to [futimes(3)](https://man7.org/linux/man-pages/man3/futimes.3.html)");
+"");
 
-#define PROMISEDIO_AFUTIME_METHODDEF    \
-    {"afutime", (PyCFunction)(void(*)(void))promisedio_afutime, METH_FASTCALL|METH_KEYWORDS, promisedio_afutime__doc__},
+#define PROMISEDIO_FUTIME_METHODDEF    \
+    {"futime", (PyCFunction)(void(*)(void))promisedio_futime, METH_FASTCALL|METH_KEYWORDS, promisedio_futime__doc__},
 
 static PyObject *
-promisedio_afutime_impl(PyObject *module, int fd, double atime, double mtime);
+promisedio_futime_impl(PyObject *module, int fd, double atime, double mtime);
 
 static PyObject *
-promisedio_afutime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_futime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", "atime", "mtime", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "afutime", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "futime", 0};
     PyObject *argsbuf[3];
     int fd;
     double atime;
@@ -1590,32 +1551,30 @@ promisedio_afutime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
             goto exit;
         }
     }
-    return_value = promisedio_afutime_impl(module, fd, atime, mtime);
+    return_value = promisedio_futime_impl(module, fd, atime, mtime);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_alink__doc__,
-"alink($module, /, path, new_path)\n"
+PyDoc_STRVAR(promisedio_link__doc__,
+"link($module, /, path, new_path)\n"
 "--\n"
 "\n"
-"Create a hard link pointing to path named new_path.\n"
-"\n"
-"Equivalent to [link(2)](https://man7.org/linux/man-pages/man2/link.2.html)");
+"");
 
-#define PROMISEDIO_ALINK_METHODDEF    \
-    {"alink", (PyCFunction)(void(*)(void))promisedio_alink, METH_FASTCALL|METH_KEYWORDS, promisedio_alink__doc__},
+#define PROMISEDIO_LINK_METHODDEF    \
+    {"link", (PyCFunction)(void(*)(void))promisedio_link, METH_FASTCALL|METH_KEYWORDS, promisedio_link__doc__},
 
 static PyObject *
-promisedio_alink_impl(PyObject *module, PyObject *path, PyObject *new_path);
+promisedio_link_impl(PyObject *module, PyObject *path, PyObject *new_path);
 
 static PyObject *
-promisedio_alink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_link(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "new_path", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "alink", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "link", 0};
     PyObject *argsbuf[2];
     PyObject *path = NULL;
     PyObject *new_path = NULL;
@@ -1630,7 +1589,7 @@ promisedio_alink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!Path_converter(args[1], &new_path)) {
         goto exit;
     }
-    return_value = promisedio_alink_impl(module, path, new_path);
+    return_value = promisedio_link_impl(module, path, new_path);
 
 exit:
     /* Cleanup for path */
@@ -1641,31 +1600,25 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_asymlink__doc__,
-"asymlink($module, /, path, new_path, *, flags=0)\n"
+PyDoc_STRVAR(promisedio_symlink__doc__,
+"symlink($module, /, path, new_path, *, flags=0)\n"
 "--\n"
 "\n"
-"Create a symbolic link pointing to path named new_path.\n"
-"\n"
-"On Windows the flags parameter can be specified to control how the symlink will be created:\n"
-" - SYMLINK_DIR: indicates that path points to a directory.\n"
-" - SYMLINK_JUNCTION: request that the symlink is created using junction points.\n"
-"\n"
-"Equivalent to [symlink(2)](https://man7.org/linux/man-pages/man2/symlink.2.html)");
+"");
 
-#define PROMISEDIO_ASYMLINK_METHODDEF    \
-    {"asymlink", (PyCFunction)(void(*)(void))promisedio_asymlink, METH_FASTCALL|METH_KEYWORDS, promisedio_asymlink__doc__},
+#define PROMISEDIO_SYMLINK_METHODDEF    \
+    {"symlink", (PyCFunction)(void(*)(void))promisedio_symlink, METH_FASTCALL|METH_KEYWORDS, promisedio_symlink__doc__},
 
 static PyObject *
-promisedio_asymlink_impl(PyObject *module, PyObject *path,
-                         PyObject *new_path, int flags);
+promisedio_symlink_impl(PyObject *module, PyObject *path, PyObject *new_path,
+                        int flags);
 
 static PyObject *
-promisedio_asymlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_symlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "new_path", "flags", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "asymlink", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "symlink", 0};
     PyObject *argsbuf[3];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
     PyObject *path = NULL;
@@ -1695,7 +1648,7 @@ promisedio_asymlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, P
         goto exit;
     }
 skip_optional_kwonly:
-    return_value = promisedio_asymlink_impl(module, path, new_path, flags);
+    return_value = promisedio_symlink_impl(module, path, new_path, flags);
 
 exit:
     /* Cleanup for path */
@@ -1706,26 +1659,24 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promisedio_areadlink__doc__,
-"areadlink($module, /, path)\n"
+PyDoc_STRVAR(promisedio_readlink__doc__,
+"readlink($module, /, path)\n"
 "--\n"
 "\n"
-"Return a string representing the path to which the symbolic link points.\n"
-"\n"
-"Equivalent to [readlink(2)](https://man7.org/linux/man-pages/man2/readlink.2.html)");
+"");
 
-#define PROMISEDIO_AREADLINK_METHODDEF    \
-    {"areadlink", (PyCFunction)(void(*)(void))promisedio_areadlink, METH_FASTCALL|METH_KEYWORDS, promisedio_areadlink__doc__},
+#define PROMISEDIO_READLINK_METHODDEF    \
+    {"readlink", (PyCFunction)(void(*)(void))promisedio_readlink, METH_FASTCALL|METH_KEYWORDS, promisedio_readlink__doc__},
 
 static PyObject *
-promisedio_areadlink_impl(PyObject *module, PyObject *path);
+promisedio_readlink_impl(PyObject *module, PyObject *path);
 
 static PyObject *
-promisedio_areadlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+promisedio_readlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "areadlink", 0};
+    static _PyArg_Parser _parser = {NULL, _keywords, "readlink", 0};
     PyObject *argsbuf[1];
     PyObject *path = NULL;
 
@@ -1736,7 +1687,7 @@ promisedio_areadlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, 
     if (!Path_converter(args[0], &path)) {
         goto exit;
     }
-    return_value = promisedio_areadlink_impl(module, path);
+    return_value = promisedio_readlink_impl(module, path);
 
 exit:
     /* Cleanup for path */
@@ -1744,4 +1695,217 @@ exit:
 
     return return_value;
 }
-/*[clinic end generated code: output=62a9f062ddae4cbe input=a9049054013a1b77]*/
+
+PyDoc_STRVAR(promisedio_set_timeout__doc__,
+"set_timeout($module, /, func, timeout, *, unref=False)\n"
+"--\n"
+"\n"
+"Sets a timer which executes a function once the timer expires.\n"
+"\n"
+"Returns Timer object. This value can be passed to clear_timeout() to cancel the timeout.");
+
+#define PROMISEDIO_SET_TIMEOUT_METHODDEF    \
+    {"set_timeout", (PyCFunction)(void(*)(void))promisedio_set_timeout, METH_FASTCALL|METH_KEYWORDS, promisedio_set_timeout__doc__},
+
+static PyObject *
+promisedio_set_timeout_impl(PyObject *module, PyObject *func, double timeout,
+                            int unref);
+
+static PyObject *
+promisedio_set_timeout(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"func", "timeout", "unref", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "set_timeout", 0};
+    PyObject *argsbuf[3];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
+    PyObject *func;
+    double timeout;
+    int unref = 0;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    func = args[0];
+    if (PyFloat_CheckExact(args[1])) {
+        timeout = PyFloat_AS_DOUBLE(args[1]);
+    }
+    else
+    {
+        timeout = PyFloat_AsDouble(args[1]);
+        if (timeout == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    unref = PyObject_IsTrue(args[2]);
+    if (unref < 0) {
+        goto exit;
+    }
+skip_optional_kwonly:
+    return_value = promisedio_set_timeout_impl(module, func, timeout, unref);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_set_interval__doc__,
+"set_interval($module, /, func, interval, *, unref=False)\n"
+"--\n"
+"\n"
+"Sets a timer which executes repeatedly a function, with a fixed time delay between each call.\n"
+"\n"
+"Returns Timer object. This value can be passed to clear_interval() to cancel the interval.");
+
+#define PROMISEDIO_SET_INTERVAL_METHODDEF    \
+    {"set_interval", (PyCFunction)(void(*)(void))promisedio_set_interval, METH_FASTCALL|METH_KEYWORDS, promisedio_set_interval__doc__},
+
+static PyObject *
+promisedio_set_interval_impl(PyObject *module, PyObject *func,
+                             double interval, int unref);
+
+static PyObject *
+promisedio_set_interval(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"func", "interval", "unref", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "set_interval", 0};
+    PyObject *argsbuf[3];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
+    PyObject *func;
+    double interval;
+    int unref = 0;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    func = args[0];
+    if (PyFloat_CheckExact(args[1])) {
+        interval = PyFloat_AS_DOUBLE(args[1]);
+    }
+    else
+    {
+        interval = PyFloat_AsDouble(args[1]);
+        if (interval == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    unref = PyObject_IsTrue(args[2]);
+    if (unref < 0) {
+        goto exit;
+    }
+skip_optional_kwonly:
+    return_value = promisedio_set_interval_impl(module, func, interval, unref);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_clear_timeout__doc__,
+"clear_timeout($module, /, timer)\n"
+"--\n"
+"\n"
+"Cancels a timeout previously established by calling set_timeout().");
+
+#define PROMISEDIO_CLEAR_TIMEOUT_METHODDEF    \
+    {"clear_timeout", (PyCFunction)(void(*)(void))promisedio_clear_timeout, METH_FASTCALL|METH_KEYWORDS, promisedio_clear_timeout__doc__},
+
+static PyObject *
+promisedio_clear_timeout_impl(PyObject *module, PyObject *timer);
+
+static PyObject *
+promisedio_clear_timeout(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"timer", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "clear_timeout", 0};
+    PyObject *argsbuf[1];
+    PyObject *timer;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    timer = args[0];
+    return_value = promisedio_clear_timeout_impl(module, timer);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_clear_interval__doc__,
+"clear_interval($module, /, timer)\n"
+"--\n"
+"\n"
+"Cancels an interval previously established by calling set_interval().");
+
+#define PROMISEDIO_CLEAR_INTERVAL_METHODDEF    \
+    {"clear_interval", (PyCFunction)(void(*)(void))promisedio_clear_interval, METH_FASTCALL|METH_KEYWORDS, promisedio_clear_interval__doc__},
+
+static PyObject *
+promisedio_clear_interval_impl(PyObject *module, PyObject *timer);
+
+static PyObject *
+promisedio_clear_interval(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"timer", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "clear_interval", 0};
+    PyObject *argsbuf[1];
+    PyObject *timer;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    timer = args[0];
+    return_value = promisedio_clear_interval_impl(module, timer);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_time__doc__,
+"time($module, /)\n"
+"--\n"
+"\n"
+"Return the current timestamp in milliseconds. \n"
+"The timestamp is cached at the start of the event loop tick.");
+
+#define PROMISEDIO_TIME_METHODDEF    \
+    {"time", (PyCFunction)promisedio_time, METH_NOARGS, promisedio_time__doc__},
+
+static PyObject *
+promisedio_time_impl(PyObject *module);
+
+static PyObject *
+promisedio_time(PyObject *module, PyObject *Py_UNUSED(ignored))
+{
+    return promisedio_time_impl(module);
+}
+
+PyDoc_STRVAR(promisedio_hrtime__doc__,
+"hrtime($module, /)\n"
+"--\n"
+"\n"
+"Returns the current high-resolution real time. This is expressed in nanoseconds.");
+
+#define PROMISEDIO_HRTIME_METHODDEF    \
+    {"hrtime", (PyCFunction)promisedio_hrtime, METH_NOARGS, promisedio_hrtime__doc__},
+
+static PyObject *
+promisedio_hrtime_impl(PyObject *module);
+
+static PyObject *
+promisedio_hrtime(PyObject *module, PyObject *Py_UNUSED(ignored))
+{
+    return promisedio_hrtime_impl(module);
+}
+/*[clinic end generated code: output=b3ba9316ff5830e7 input=a9049054013a1b77]*/

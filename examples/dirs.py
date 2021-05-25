@@ -1,20 +1,20 @@
-from promisedio import exec_async, run, amkdir, armdir, amkdtemp, ascandir
+from promisedio import exec_async, run, fs
 
 
-async def mkrmdir():
-    await amkdir("demo1")
-    print (await ascandir("."))
-    await armdir("demo1")
+async def example1():
+    await fs.mkdir("demo1")
+    print (await fs.scandir("."))
+    await fs.rmdir("demo1")
 
 
-async def mkdir_temp():
-    name = await amkdtemp("example.XXXXXX")
+async def example2():
+    name = await fs.mkdtemp("example.XXXXXX")
     print(name)
-    await armdir(name)
+    await fs.rmdir(name)
 
 
-exec_async(mkrmdir())
-exec_async(mkdir_temp())
+exec_async(example1())
+exec_async(example2())
 
 run()
 

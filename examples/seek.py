@@ -1,8 +1,8 @@
-from promisedio import exec_async, run, aseek
+from promisedio import exec_async, run, fs
 
 
 async def seek_example():
-    print(await aseek(0, 0, 1))
+    print(await fs.seek(0, 0, 1))
 
 
 exec_async(seek_example())
@@ -10,6 +10,6 @@ exec_async(seek_example())
 run()
 
 # uncomment to see debug info
-# from promisedio import _getallocatedobjectscount, _printmeminfo
-# print(_getallocatedobjectscount())
-# _printmeminfo()
+from promisedio import _getallocatedobjectscount, _printmeminfo
+print(_getallocatedobjectscount())
+_printmeminfo()

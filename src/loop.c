@@ -113,9 +113,7 @@ finalise_loop(uv_loop_t *loop)
 static void
 loop_close_handle(uv_handle_t* handle, void* arg)
 {
-    if (!uv_is_closing(handle)) {
-        Handle_Close(handle);
-    }
+    Handle_Close(handle);
 }
 
 int

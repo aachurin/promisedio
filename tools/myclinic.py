@@ -35,7 +35,11 @@ class DocstringHolder:
 
 def docstring_for_c_string_from_readme(self, f):
     df = DocstringHolder()
-    df.docstring = f.docstring.rstrip("\n") + "\n\n" + get_readme_description(f.name).strip()
+    match = re.search(r"@doc\[.*]", f.docstring)
+    if match:
+        df.docstring = f.docstring.replace(match.group(), "\n" + get_readme_description(match.group()[5:-1]).strip())
+    else:
+        df.docstring = f.docstring.rstrip("\n") + "\n\n" + get_readme_description(f.name).strip()
     return docstring_for_c_string(self, df)
 
 

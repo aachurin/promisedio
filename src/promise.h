@@ -54,7 +54,7 @@ Deferred * Deferred_New();
 void PromiseChain_Clear();
 int PromiseChain_Process();
 int Promise_ExecAsync(PyObject* coro);
-
+void Promise_PrintUnhandledException();
 int Promise_module_init();
 
 #endif

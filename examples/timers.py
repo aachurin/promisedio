@@ -6,23 +6,21 @@ print("started", time.time())
 
 
 async def example1(timeout):
-    print("example1", time.time())
+    def test1():
+        print("should not be here")
 
-    def f1(_):
-        print("f1", time.time())
-        return timer.sleep(3)
+    def test2():
+        print("here", time.time())
 
-    def f2(_):
-        print("f2", time.time())
+    def test3():
+        print("interval", time.time())
 
-    timer.sleep(timeout * 2).then(f2)
-
-    await timer.sleep(timeout).then(f1)
+    timer.set_timeout(test1, timeout, unref=True)
+    timer.set_timeout(test2, timeout / 2.)
+    timer.set_interval(test3, 1., unref=True)
     print("done", time.time())
 
-
 exec_async(example1(5))
-
 run()
 
 # uncomment to see debug info

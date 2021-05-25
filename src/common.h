@@ -72,6 +72,12 @@ typedef off_t Py_off_t;
 
 #endif
 
+#if SIZEOF_LONG == 8
+#define PyLong_FromUint64_t(o) PyLong_FromUnsignedLong(o)
+#else
+#define PyLong_FromUint64_t(o) PyLong_FromUnsignedLongLong(o)
+#endif
+
 typedef union {
     float as_float;
     int as_int;

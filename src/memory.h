@@ -9,10 +9,6 @@
 #include "common.h"
 #include "promise.h"
 
-enum {
-    UV_HANDLE_FREE = 0x80000000
-};
-
 typedef void (*freelistdealloc)(void *ptr);
 typedef struct freelist_s freelist_t;
 typedef struct freelist_s {
@@ -57,21 +53,21 @@ typedef struct freelist_s {
 #define Request_Promise(ob) \
     ((Promise *)((uv_req_t *) (ob))->data)
 
-#define Handle_New(type)  \
-    (type *) _Handle_New(sizeof(type))
+#define Handle_New(type, cb)  \
+    (type *) _Handle_New(sizeof(type), (finalizer) (cb))
 
-#define Handle_SetFreeOnClose(handle) \
-    ((uv_handle_t *) (handle))->flags |= UV_HANDLE_FREE
+#define Handle_Close(handle)                         \
+    do {                                             \
+        uv_handle_t *tmp = (uv_handle_t *) (handle); \
+        if (tmp && !uv_is_closing(tmp)) {            \
+            if (tmp->data) {                         \
+                ((finalizer) (tmp->data))(tmp);      \
+            }                                        \
+            uv_close(tmp, _Handle_OnClose);          \
+        }                                            \
+    } while (0)
 
-#define Handle_Close(handle) \
-    uv_close((uv_handle_t *) (handle), _Handle_OnClose)
-
-#define Handle_Release(ptr)                          \
-    if ((ptr) != NULL) {                             \
-        uv_handle_t *handle = (uv_handle_t *) (ptr); \
-        (ptr) = NULL;                                \
-        _Handle_Release(handle);                     \
-    }
+typedef void (*finalizer)(uv_handle_t *handle);
 
 void * _Mem_Alloc(size_t size);
 void _Mem_Free(void *ptr);
@@ -80,8 +76,7 @@ PyObject * _Mem_GC_New(freelist_t *freelist, PyTypeObject *tp);
 void _Mem_GC_Del(freelist_t *freelist, PyObject *ob);
 uv_req_t * _Request_New(Promise *promise, size_t size);
 void _Request_Close(uv_req_t *req);
-uv_handle_t * _Handle_New(size_t size);
-void _Handle_Release(uv_handle_t *handle);
+uv_handle_t * _Handle_New(size_t size, finalizer cb);
 void _Handle_OnClose(uv_handle_t *handle);
 void Mem_ClearFreelists();
 size_t Mem_AllocCount();

@@ -197,7 +197,7 @@ new_fileobj(int fd, int closefd)
 }
 
 static PyObject *
-open_fstat_done(PyObject *context, StatObj *value)
+open_fstat_done(PyObject *context, Stat *value)
 {
 #if defined(S_ISDIR)
     // only for unix

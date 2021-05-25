@@ -3,7 +3,6 @@
 
 #include <errno.h>
 #include "fs.h"
-#include "c2py.h"
 
 #if BUFSIZ < (8*1024)
     #define SMALLCHUNK (8*1024)
@@ -79,25 +78,120 @@
 #endif
 #endif
 
-Generate_PyType_Impl(
-    StatObj,
-    READONLY(st_dev, st.st_dev, uint64_t),
-    READONLY(st_mode, st.st_mode, uint64_t),
-    READONLY(st_nlink, st.st_nlink, uint64_t),
-    READONLY(st_uid, st.st_uid, uint64_t),
-    READONLY(st_gid, st.st_gid, uint64_t),
-    READONLY(st_rdev, st.st_rdev, uint64_t),
-    READONLY(st_ino, st.st_ino, uint64_t),
-    READONLY(st_size, st.st_size, uint64_t),
-    READONLY(st_blksize, st.st_blksize, uint64_t),
-    READONLY(st_blocks, st.st_blocks, uint64_t),
-    READONLY(st_flags, st.st_flags, uint64_t),
-    READONLY(st_gen, st.st_gen, uint64_t),
-    READONLY(st_atim, st.st_atim, uv_timespec_t),
-    READONLY(st_mtim, st.st_mtim, uv_timespec_t),
-    READONLY(st_ctim, st.st_ctim, uv_timespec_t),
-    READONLY(st_birthtim, st.st_birthtim, uv_timespec_t)
-)
+static PyObject *
+Stat_st_dev(Stat *self, void *closure) {
+    return PyLong_FromUint64_t(self->st.st_dev);
+}
+
+static PyObject *
+Stat_st_mode(Stat *self, void *closure) {
+    return PyLong_FromUint64_t(self->st.st_mode);
+}
+
+static PyObject *
+Stat_st_nlink(Stat *self, void *closure) {
+    return PyLong_FromUint64_t(self->st.st_nlink);
+}
+
+static PyObject *
+Stat_st_uid(Stat *self, void *closure) {
+    return PyLong_FromUint64_t(self->st.st_uid);
+}
+
+static PyObject *
+Stat_st_gid(Stat *self, void *closure) {
+    return PyLong_FromUint64_t(self->st.st_gid);
+}
+
+static PyObject *
+Stat_st_rdev(Stat *self, void *closure) {
+    return PyLong_FromUint64_t(self->st.st_rdev);
+}
+
+static PyObject *
+Stat_st_ino(Stat *self, void *closure) {
+    return PyLong_FromUint64_t(self->st.st_ino);
+}
+
+static PyObject *
+Stat_st_size(Stat *self, void *closure) {
+    return PyLong_FromUint64_t(self->st.st_size);
+}
+
+static PyObject *
+Stat_st_blksize(Stat *self, void *closure) {
+    return PyLong_FromUint64_t(self->st.st_blksize);
+}
+
+static PyObject *
+Stat_st_blocks(Stat *self, void *closure) {
+    return PyLong_FromUint64_t(self->st.st_blocks);
+}
+
+static PyObject *
+Stat_st_flags(Stat *self, void *closure) {
+    return PyLong_FromUint64_t(self->st.st_flags);
+}
+
+static PyObject *
+Stat_st_gen(Stat *self, void *closure) {
+    return PyLong_FromUint64_t(self->st.st_gen);
+}
+
+static PyObject *
+Stat_st_atim(Stat *self, void *closure) {
+    return PyFloat_FromDouble((double)self->st.st_atim.tv_sec + 1e-9 * (double)self->st.st_atim.tv_nsec);
+}
+
+static PyObject *
+Stat_st_mtim(Stat *self, void *closure) {
+    return PyFloat_FromDouble((double)self->st.st_mtim.tv_sec + 1e-9 * (double)self->st.st_mtim.tv_nsec);
+}
+
+static PyObject *
+Stat_st_ctim(Stat *self, void *closure) {
+    return PyFloat_FromDouble((double)self->st.st_ctim.tv_sec + 1e-9 * (double)self->st.st_ctim.tv_nsec);
+}
+
+static PyObject *
+Stat_st_birthtim(Stat *self, void *closure) {
+    return PyFloat_FromDouble((double)self->st.st_birthtim.tv_sec + 1e-9 * (double)self->st.st_birthtim.tv_nsec);
+}
+
+static PyGetSetDef Stat_getsetlist[] = {
+    {"st_dev",      (getter) Stat_st_dev,      NULL, NULL, NULL},
+    {"st_mode",     (getter) Stat_st_mode,     NULL, NULL, NULL},
+    {"st_nlink",    (getter) Stat_st_nlink,    NULL, NULL, NULL},
+    {"st_uid",      (getter) Stat_st_uid,      NULL, NULL, NULL},
+    {"st_gid",      (getter) Stat_st_gid,      NULL, NULL, NULL},
+    {"st_rdev",     (getter) Stat_st_rdev,     NULL, NULL, NULL},
+    {"st_ino",      (getter) Stat_st_ino,      NULL, NULL, NULL},
+    {"st_size",     (getter) Stat_st_size,     NULL, NULL, NULL},
+    {"st_blksize",  (getter) Stat_st_blksize,  NULL, NULL, NULL},
+    {"st_blocks",   (getter) Stat_st_blocks,   NULL, NULL, NULL},
+    {"st_flags",    (getter) Stat_st_flags,    NULL, NULL, NULL},
+    {"st_gen",      (getter) Stat_st_gen,      NULL, NULL, NULL},
+    {"st_atim",     (getter) Stat_st_atim,     NULL, NULL, NULL},
+    {"st_mtim",     (getter) Stat_st_mtim,     NULL, NULL, NULL},
+    {"st_ctim",     (getter) Stat_st_ctim,     NULL, NULL, NULL},
+    {"st_birthtim", (getter) Stat_st_birthtim, NULL, NULL, NULL},
+    {NULL}
+};
+
+static PyTypeObject StatType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "Stat",
+    .tp_basicsize = sizeof(Stat),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_getset = Stat_getsetlist,
+    .tp_dealloc = (destructor) _Mem_Free
+};
+
+static Stat *
+Stat_New() {
+    return Mem_New(Stat, &StatType);
+}
 
 PyObject*
 Fs_Path(PyObject *path)
@@ -226,7 +320,7 @@ static void
 stat_callback(uv_fs_t *req)
 {
     BEGIN_FS_CALLBACK(req)
-    StatObj *obj = StatObj_New();
+    Stat *obj = Stat_New();
     if (obj == NULL) {
         Promise_RejectWithPyErr(Request_Promise(req));
     } else {
@@ -440,15 +534,40 @@ Fs_read(uv_file fd, Py_ssize_t size, Py_off_t offset)
     return promise;
 }
 
-Generate_PyType(
-    ReadContext,
-    MEMBER(fd, uv_file),
-    MEMBER(buffer, PyObject *),
-    MEMBER(bufsize, size_t),
-    MEMBER(bytes_read, Py_ssize_t),
-    MEMBER(pos, Py_off_t),
-    CLEAR(buffer)
-)
+typedef struct {
+    PyObject_HEAD
+    uv_file fd;
+    PyObject* buffer;
+    size_t bufsize;
+    Py_ssize_t bytes_read;
+    Py_off_t pos;
+} ReadContext;
+
+static void
+ReadContext_dealloc(ReadContext *ob)
+{
+    Py_CLEAR(ob->buffer);
+    Mem_Del(ob);
+}
+
+static PyTypeObject ReadContextType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "ReadContext",
+    .tp_basicsize = sizeof(ReadContext),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_dealloc = (destructor) ReadContext_dealloc
+};
+
+static ReadContext *
+ReadContext_New()
+{
+    ReadContext *ob = Mem_New(ReadContext, &ReadContextType);
+    if (ob != NULL) {
+        ob->buffer = NULL;
+    }
+    return ob;
+}
 
 static size_t
 new_buffersize(size_t currentsize)
@@ -789,9 +908,9 @@ FS_UV_PROXY(uv_fs_readlink, path, ptr_callback)
 int
 Fs_module_init(PyObject *module)
 {
-    if (PyType_Ready(&StatObj_Type) < 0)
+    if (PyType_Ready(&StatType) < 0)
         return -1;
-    if (PyType_Ready(&ReadContext_Type) < 0)
+    if (PyType_Ready(&ReadContextType) < 0)
         return -1;
     if (PyModule_AddIntConstant(module, "COPYFILE_EXCL", UV_FS_COPYFILE_EXCL))
         return -1;

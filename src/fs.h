@@ -10,7 +10,6 @@
 #include "promise.h"
 #include "loop.h"
 #include "memory.h"
-#include "c2py.h"
 
 #ifndef MS_WINDOWS
     #ifndef O_CLOEXEC
@@ -18,10 +17,10 @@
     #endif
 #endif
 
-Generate_PyType_Header(
-    StatObj,
-    MEMBER(st, uv_stat_t)
-)
+typedef struct {
+    PyObject_HEAD
+    uv_stat_t st;
+} Stat;
 
 PyObject * Fs_Path(PyObject *path);
 Promise * Fs_stat(const char *path);
