@@ -6,9 +6,9 @@
 #include "memory.h"
 #include "clinic/promise.c.h"
 
-#define Promise_CheckExact(obj) (Py_TYPE(obj) == &PromiseType)
+#define Promise_CHECK_EXACT(obj) (Py_TYPE(obj) == &PromiseType)
 
-#define Chain_Add(chain, chain_head, chain_tail) \
+#define Chain_ADD(chain, chain_head, chain_tail) \
     if ((chain)->head == NULL) {                 \
         (chain)->head = chain_head;              \
     } else {                                     \
@@ -38,9 +38,9 @@ enum {
     PROMISE_FREEZED = (PROMISE_RESOLVING | PROMISE_RESOLVED)
 };
 
-Mem_GC_FreeList(Promise);
-Mem_GC_FreeList(Deferred);
-Mem_GC_FreeList(Promiseiter);
+Mem_GC_FREELIST(Promise);
+Mem_GC_FREELIST(Deferred);
+Mem_GC_FREELIST(PromiseIter);
 
 static struct {
     Promise *head;
@@ -79,7 +79,7 @@ fetch_current_exception()
 }
 
 void
-Promise_PrintUnhandledException()
+promise_print_unhandled_exception()
 {
     PyObject *exc, *val, *tb;
     PyErr_Fetch(&exc, &val, &tb);
@@ -89,8 +89,7 @@ Promise_PrintUnhandledException()
     }
     PyErr_NormalizeException(&exc, &val, &tb);
     if (tb == NULL) {
-        tb = Py_None;
-        Py_INCREF(tb);
+        tb = OWNED(Py_None);
     }
     PyException_SetTraceback(val, tb);
     PyErr_Display(exc, val, tb);
@@ -111,8 +110,7 @@ print_unhandled_exception_from_dealloc(PyObject *value)
         PyObject *exc = PyExceptionInstance_Class(value);
         PyObject *tb = PyException_GetTraceback(value);
         if (tb == NULL) {
-            tb = Py_None;
-            Py_INCREF(tb);
+            tb = OWNED(Py_None);
         }
         PyErr_Display(exc, value, tb);
         PySys_WriteStderr("\n");
@@ -125,9 +123,9 @@ print_unhandled_exception_from_dealloc(PyObject *value)
 }
 
 Promise *
-Promise_New()
+promise_new()
 {
-    Promise *promise = Mem_GC_New(Promise, &PromiseType);
+    Promise *promise = Mem_GC_NEW(Promise, &PromiseType);
     if (promise == NULL)
         return NULL;
     promise->head = NULL;
@@ -137,116 +135,113 @@ Promise_New()
     promise->flags = PROMISE_INITIAL;
     promise->fulfilled = NULL;
     promise->rejected = NULL;
-    promise->finally = NULL;
     promise->context = NULL;
     PyObject_GC_Track(promise);
     return promise;
 }
 
 void
-Promise_Callback(Promise *self, promisecallback fulfilled, promisecallback rejected, PyObject *context)
-{
-    assert (!(self->flags & (PROMISE_HAS_CALLBACK | PROMISE_FREEZED)));
-    assert (!(self->finally));
-    self->flags |= PROMISE_C_CALLBACK;
-    self->fulfilled = (PyObject *) fulfilled;
-    self->rejected = (PyObject *) rejected;
-    self->context = context;
+promise_callback(Promise *p, promisecallback fulfilled, promisecallback rejected, PyObject *context) {
+    assert (!(p->flags & (PROMISE_HAS_CALLBACK | PROMISE_FREEZED)));
+    p->flags |= PROMISE_C_CALLBACK;
+    p->fulfilled = (PyObject *) fulfilled;
+    p->rejected = (PyObject *) rejected;
+    p->context = context;
 }
 
 Promise *
-Promise_Then(Promise *self)
+promise_then(Promise *p)
 {
-    Promise *promise = Promise_New();
+    Promise *promise = promise_new();
     if (promise == NULL)
         return NULL;
-    self->flags |= PROMISE_VALUABLE;
-    if (self->flags & PROMISE_RESOLVED) {
-        Py_INCREF(self->value);
-        promise->value = self->value;
-        promise->flags |= self->flags & PROMISE_SCHEDULED;
-        Chain_Add(&promise_chain, promise, promise);
+    p->flags |= PROMISE_VALUABLE;
+    if (p->flags & PROMISE_RESOLVED) {
+        promise->value = OWNED(p->value);
+        promise->flags |= p->flags & PROMISE_SCHEDULED;
+        Chain_ADD(&promise_chain, promise, promise);
     } else {
-        Chain_Add(self, promise, promise);
+        Chain_ADD(p, promise, promise);
     }
     promise->flags |= PROMISE_INTERIM;
-    Py_INCREF(promise);
-    return promise;
+    return OWNED(promise);
 }
 
 static inline void
 schedule_promise(Promise *self, PyObject *value, unsigned int flag)
 {
-    Py_INCREF(value);
-    Py_INCREF(self);
-    self->value = value;
+    self->value = OWNED(value);
     self->flags |= flag;
-    Chain_Add(&promise_chain, self, self);
+    Py_INCREF(self);
+    Chain_ADD(&promise_chain, self, self);
 }
 
 Promise *
-Promise_NewResolved(PyObject *value)
+promise_new_resolved(PyObject *value)
 {
-    Promise *promise = Promise_New();
-    if (promise != NULL) {
-        if (value == NULL) {
+    Promise *promise = promise_new();
+    if (promise) {
+        if (value == Py_None) {
             schedule_promise(promise, Py_None, PROMISE_FULFILLED);
         } else {
             schedule_promise(promise, value, PROMISE_FULFILLED);
+            Py_DECREF(value);
         }
+        return promise;
     }
-    Py_XDECREF(value);
-    return promise;
+    return NULL;
+}
+
+void
+promise_resolve(Promise *self, PyObject *value)
+{
+    assert (!(self->flags & PROMISE_INTERIM));
+    if (!(self->flags & PROMISE_SCHEDULED))
+        schedule_promise(self, value, PROMISE_FULFILLED);
+}
+
+void
+promise_reject(Promise *self, PyObject *value)
+{
+    assert (!(self->flags & PROMISE_INTERIM));
+    if (!(self->flags & PROMISE_SCHEDULED))
+        schedule_promise(self, value, PROMISE_REJECTED);
 }
 
 int
-Promise_Resolve(Promise *self, PyObject *value)
+promise_reject_args(Promise *p, PyObject *exc, PyObject *args)
 {
-    if (value == NULL) {
-        PyErr_SetString(PyExc_TypeError,
-                        "value must be an object");
-        return -1;
+    assert (!(p->flags & PROMISE_INTERIM));
+    if (!(p->flags & PROMISE_SCHEDULED)) {
+        PyObject *value = PyObject_Call(exc, args, NULL);
+        if (value == NULL)
+            return -1;
+        schedule_promise(p, value, PROMISE_REJECTED);
+        Py_DECREF(value);
     }
-    if (self->flags & PROMISE_INTERIM) {
-        PyErr_SetString(PyExc_RuntimeError,
-                        "the fulfillment of an interim promise is not allowed");
-        return -1;
-    }
-    if (self->flags & PROMISE_SCHEDULED)
-        return 0;  // ignore
-
-    schedule_promise(self, value, PROMISE_FULFILLED);
     return 0;
 }
 
 int
-Promise_Reject(Promise *self, PyObject *value)
+promise_reject_string(Promise *p, PyObject *exc, const char *msg)
 {
-    if (value == NULL || (!PyExceptionClass_Check(value) && !PyExceptionInstance_Check(value))) {
-        PyErr_SetString(PyExc_TypeError,
-                        "exceptions must be classes deriving BaseException or "
-                        "instances of such a class");
-        return -1;
+    assert (!(p->flags & PROMISE_INTERIM));
+    if (!(p->flags & PROMISE_SCHEDULED)) {
+        PyObject *value = new_exception(exc, msg);
+        if (value == NULL)
+            return -1;
+        schedule_promise(p, value, PROMISE_REJECTED);
+        Py_DECREF(value);
     }
-    if (self->flags & PROMISE_INTERIM) {
-        PyErr_SetString(PyExc_RuntimeError,
-                        "the fulfillment of an interim promise is not allowed");
-        return -1;
-    }
-    if (self->flags & PROMISE_SCHEDULED)
-        return 0;  // ignore
-
-    schedule_promise(self, value, PROMISE_REJECTED);
     return 0;
 }
 
-int
-Promise_RejectWithPyErr(Promise *self)
+void
+promise_reject_py_exc(Promise *p)
 {
     PyObject *exc = fetch_current_exception();
-    int res = Promise_Reject(self, exc);
+    promise_reject(p, exc);
     Py_XDECREF(exc);
-    return res;
 }
 
 static int
@@ -255,7 +250,6 @@ promise_traverse(Promise *self, visitproc visit, void *arg)
     Py_VISIT(self->next);
     Py_VISIT(self->head);
     Py_VISIT(self->value);
-    Py_VISIT(self->finally);
     // coro, context, fulfilled and rejected normally should be NULL
     Py_VISIT(self->coro);
     Py_VISIT(self->context);
@@ -272,7 +266,6 @@ promise_clear(Promise *self)
     Py_CLEAR(self->next);
     Py_CLEAR(self->head);
     Py_CLEAR(self->value);
-    Py_CLEAR(self->finally);
     // coro, context, fulfilled and rejected normally should be NULL
     Py_CLEAR(self->coro);
     Py_CLEAR(self->context);
@@ -291,7 +284,7 @@ promise_dealloc(Promise *self)
     }
     PyObject_GC_UnTrack(self);
     promise_clear(self);
-    Mem_GC_Del(Promise, self);
+    Mem_GC_DEL(Promise, self);
 }
 
 static PyObject*
@@ -364,10 +357,10 @@ promise.Promise.then
 @doc[Promise.then]
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promise_Promise_then_impl(Promise *self, PyObject *fulfilled,
                           PyObject *rejected)
-/*[clinic end generated code: output=05ba8f14e75a37d1 input=fc0a44add0ce74f7]*/
+/*[clinic end generated code: output=f5334e56a034be28 input=fc0a44add0ce74f7]*/
 {
     fulfilled = (fulfilled == Py_None ? NULL: fulfilled);
     if (fulfilled && !PyCallable_Check(fulfilled)) {
@@ -381,13 +374,11 @@ promise_Promise_then_impl(Promise *self, PyObject *fulfilled,
                         "`rejected` argument must be a callable");
         return NULL;
     }
-    Promise *promise = Promise_Then(self);
+    Promise *promise = promise_then(self);
     if (promise) {
-        Py_XINCREF(fulfilled);
-        Py_XINCREF(rejected);
         promise->flags |= PROMISE_PY_CALLBACK;
-        promise->fulfilled = fulfilled;
-        promise->rejected = rejected;
+        promise->fulfilled = XOWNED(fulfilled);
+        promise->rejected = XOWNED(rejected);
     }
     return (PyObject *) promise;
 }
@@ -400,80 +391,53 @@ promise.Promise.catch
 @doc[Promise.catch]
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promise_Promise_catch_impl(Promise *self, PyObject *rejected)
-/*[clinic end generated code: output=aaa0cfea90a52d1c input=66119f711bbabbc4]*/
+/*[clinic end generated code: output=6ba8d48eaec56d88 input=66119f711bbabbc4]*/
 {
     if (!PyCallable_Check(rejected)) {
         PyErr_SetString(PyExc_TypeError,
                         "`rejected` argument must be a callable");
         return NULL;
     }
-    Promise *promise = Promise_Then(self);
+    Promise *promise = promise_then(self);
     if (promise) {
-        Py_INCREF(rejected);
         promise->flags |= PROMISE_PY_CALLBACK;
-        promise->rejected = rejected;
+        promise->rejected = OWNED(rejected);
     }
     return (PyObject *) promise;
-}
-
-/*[clinic input]
-promise.Promise.finally_
-    self: self(type="Promise *")
-    finally_: object
-
-@doc[Promise.finally_]
-[clinic start generated code]*/
-
-static PyObject *
-promise_Promise_finally__impl(Promise *self, PyObject *finally_)
-/*[clinic end generated code: output=e7fa460b1de8138a input=07e9873e287ce264]*/
-{
-    if (!PyCallable_Check(finally_)) {
-        PyErr_SetString(PyExc_TypeError,
-                        "`rejected` argument must be a callable");
-        return NULL;
-    }
-    Promise *promise = Promise_Then(self);
-    if (promise) {
-        Py_INCREF(finally_);
-        self->finally = finally_;
-    }
-    return  (PyObject *) promise;
 }
 
 static PyMethodDef PromiseType_methods[] = {
     PROMISE_PROMISE_THEN_METHODDEF
     PROMISE_PROMISE_CATCH_METHODDEF
-    PROMISE_PROMISE_FINALLY__METHODDEF
     {NULL}  /* Sentinel */
 };
 
 static PyObject *
-Promiseiter_New(PyObject *self)
+promiseiter_new(PyObject *self)
 {
-    Promiseiter *it = Mem_GC_New(Promiseiter, &PromiseiterType);
-    if (it == NULL)
+    PromiseIter *it = Mem_GC_NEW(PromiseIter, &PromiseiterType);
+    if (!it)
         return NULL;
-
     PyObject_GC_Track(it);
+
     Promise *promise = (Promise *) self;
     if (promise->coro || promise->flags & PROMISE_RESOLVED) {
-        promise = Promise_Then(promise);
+        promise = promise_then(promise);
+        if (promise == NULL) {
+            Py_DECREF(it);
+            return NULL;
+        }
+        it->promise = promise;
     } else {
-        Py_INCREF(promise);
+        it->promise = OWNED(promise);
     }
-    if (promise == NULL) {
-        Py_DECREF(it);
-        return NULL;
-    }
-    it->promise = promise;
     return (PyObject *) it;
 }
 
 static PyAsyncMethods PromiseType_as_async = {
-    (unaryfunc) Promiseiter_New,     /* am_await */
+    (unaryfunc) promiseiter_new,     /* am_await */
     0,                     /* am_aiter */
     0                      /* am_anext */
 };
@@ -498,25 +462,25 @@ static PyTypeObject PromiseType = {
 };
 
 static int
-promiseiter_traverse(Promiseiter *self, visitproc visit, void *arg)
+promiseiter_traverse(PromiseIter *self, visitproc visit, void *arg)
 {
     Py_VISIT(self->promise);
     return 0;
 }
 
 static int
-promiseiter_clear(Promiseiter *self)
+promiseiter_clear(PromiseIter *self)
 {
     Py_CLEAR(self->promise);
     return 0;
 }
 
 static void
-promiseiter_dealloc(Promiseiter *self)
+promiseiter_dealloc(PromiseIter *self)
 {
     PyObject_GC_UnTrack(self);
     promiseiter_clear(self);
-    Mem_GC_Del(Promiseiter, self);
+    Mem_GC_DEL(PromiseIter, self);
 }
 
 static PyObject*
@@ -526,7 +490,7 @@ promiseiter_repr(PyObject* self)
 }
 
 static PyObject *
-promiseiter_iternext(Promiseiter *self)
+promiseiter_iternext(PromiseIter *self)
 {
     PyObject *res = (PyObject *) (self->promise);
     self->promise = NULL;
@@ -534,7 +498,7 @@ promiseiter_iternext(Promiseiter *self)
 }
 
 static PyObject *
-promiseiter_send(Promiseiter *self, PyObject *value)
+promiseiter_send(PromiseIter *self, PyObject *value)
 {
     _PyGen_SetStopIterationValue(value);
     return NULL;
@@ -548,7 +512,7 @@ static PyMethodDef PromiseIterType_methods[] = {
 static PyTypeObject PromiseiterType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "PromiseIter",
-    .tp_basicsize = sizeof(Promiseiter),
+    .tp_basicsize = sizeof(PromiseIter),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
     .tp_dealloc = (destructor) promiseiter_dealloc,
@@ -561,14 +525,14 @@ static PyTypeObject PromiseiterType = {
 };
 
 Deferred *
-Deferred_New()
+deferred_new()
 {
-    Promise *promise = Promise_New();
+    Promise *promise = promise_new();
     if (promise == NULL) {
         return NULL;
     }
 
-    Deferred *self = Mem_GC_New(Deferred, &DeferredType);
+    Deferred *self = Mem_GC_NEW(Deferred, &DeferredType);
     if (self == NULL) {
         Py_DECREF(promise);
         return NULL;
@@ -598,7 +562,7 @@ deferred_dealloc(Deferred *self)
 {
     PyObject_GC_UnTrack(self);
     deferred_clear(self);
-    Mem_GC_Del(Deferred, self);
+    Mem_GC_DEL(Deferred, self);
 }
 
 static PyObject*
@@ -620,13 +584,11 @@ promise.Deferred.resolve
 @doc[Deferred.resolve]
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promise_Deferred_resolve_impl(Deferred *self, PyObject *value)
-/*[clinic end generated code: output=9999903b02f4c9d6 input=da7acc2b24e502f3]*/
+/*[clinic end generated code: output=b54734e0189ffbe7 input=da7acc2b24e502f3]*/
 {
-    if (Promise_Resolve(self->promise, value)) {
-        return NULL;
-    }
+    promise_resolve(self->promise, value);
     Py_RETURN_NONE;
 }
 
@@ -638,13 +600,17 @@ promise.Deferred.reject
 @doc[Deferred.reject]
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promise_Deferred_reject_impl(Deferred *self, PyObject *value)
-/*[clinic end generated code: output=fa387ed71244e305 input=6c9c062cb8050ed6]*/
+/*[clinic end generated code: output=5d9badc8d68eb6af input=6c9c062cb8050ed6]*/
 {
-    if (Promise_Reject(self->promise, value)) {
+    if (value == NULL || (!PyExceptionClass_Check(value) && !PyExceptionInstance_Check(value))) {
+        PyErr_SetString(PyExc_TypeError,
+                        "exceptions must be classes deriving BaseException or "
+                        "instances of such a class");
         return NULL;
     }
+    promise_reject(self->promise, value);
     Py_RETURN_NONE;
 }
 
@@ -655,13 +621,11 @@ promise.Deferred.promise
 @doc[Deferred.promise]
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promise_Deferred_promise_impl(Deferred *self)
-/*[clinic end generated code: output=b560c2d8e4a6a0eb input=21148e1ebba88ab7]*/
+/*[clinic end generated code: output=705cbf07ed7d6867 input=21148e1ebba88ab7]*/
 {
-    Promise *ret = self->promise;
-    Py_INCREF(ret);
-    return (PyObject *) ret;
+    return (PyObject *) OWNED(self->promise);
 }
 
 static PyMethodDef DeferredType_methods[] = {
@@ -692,15 +656,14 @@ static PyTypeObject DeferredType = {
 // ---------------------- Module ----------------------
 
 int
-Promise_ExecAsync(PyObject* coro)
+promise_exec_async(PyObject* coro)
 {
-    Promise *promise = Promise_New();
+    Promise *promise = promise_new();
     if (promise == NULL) {
         return -1;
     }
     schedule_promise(promise, Py_None, PROMISE_FULFILLED | PROMISE_VALUABLE);
-    Py_INCREF(coro);
-    promise->coro = coro;
+    promise->coro = OWNED(coro);
     Py_DECREF(promise);
     return 0;
 }
@@ -714,7 +677,7 @@ resume_coroutine(PyObject *coro, PyObject *value, unsigned int state)
     Py_INCREF(value);
 
     while (1) {
-        if (state == PROMISE_REJECTED) {
+        if (state & PROMISE_REJECTED) {
             result = _PyObject_CallMethodIdOneArg(coro, &PyId_throw, value);
         } else {
             result = _PyGen_Send((PyGenObject *) coro, value);
@@ -731,12 +694,12 @@ resume_coroutine(PyObject *coro, PyObject *value, unsigned int state)
                 {
                     return -1;
                 }
-                Promise_PrintUnhandledException();
+                promise_print_unhandled_exception();
             }
             return 0;
         }
 
-        if (!Promise_CheckExact(result)) {
+        if (!Promise_CHECK_EXACT(result)) {
             Py_DECREF(result);
             value = new_exception(PyExc_RuntimeError, "`await` argument expected to be a promise.");
             if (value == NULL) {
@@ -747,8 +710,7 @@ resume_coroutine(PyObject *coro, PyObject *value, unsigned int state)
         }
 
         ((Promise *) result)->flags |= PROMISE_VALUABLE;
-        Py_INCREF(coro);
-        ((Promise *) result)->coro = coro;
+        ((Promise *) result)->coro = OWNED(coro);
         Py_DECREF(result);
 
         break;
@@ -771,9 +733,10 @@ handle_scheduled_promise(Promise *promise)
         PyObject *handler = (promise->flags & PROMISE_FULFILLED) ? promise->fulfilled : promise->rejected;
         if (handler) {
             if (promise->flags & PROMISE_C_CALLBACK) {
-                // callback should handle the context itself
-                value = ((promisecallback) handler)(promise->context, promise->value);
-                promise->context = NULL;
+                value = ((promisecallback) handler)(promise->value, promise->context);
+                if (promise->context && value == promise->context) {
+                    promise->context = NULL;
+                }
             } else {
                 // context MUST be NULL in this case
                 value = PyObject_CallOneArg(handler, promise->value);
@@ -789,10 +752,8 @@ handle_scheduled_promise(Promise *promise)
             } else {
                 state = PROMISE_FULFILLED;
             }
-        } else if (promise->flags & PROMISE_C_CALLBACK) {
-            Py_CLEAR(promise->context);
         }
-
+        Py_CLEAR(promise->context);
         if (promise->flags & PROMISE_PY_CALLBACK) {
             Py_CLEAR(promise->fulfilled);
             Py_CLEAR(promise->rejected);
@@ -800,7 +761,7 @@ handle_scheduled_promise(Promise *promise)
         promise->flags ^= promise->flags & PROMISE_HAS_CALLBACK;
 
         if (value != NULL) {
-            if (Promise_CheckExact(value)) {
+            if (Promise_CHECK_EXACT(value)) {
                 Promise *new_promise = (Promise *) value;
                 if (new_promise == promise) {
                     // The same promise. It's bad but not fatal.
@@ -809,16 +770,15 @@ handle_scheduled_promise(Promise *promise)
                     // Easy peasy. Just copy state and value.
                     state = new_promise->flags & PROMISE_SCHEDULED;
                     value = new_promise->value;
-                    Py_INCREF(value);
-                    Py_XSETREF(promise->value, value);
+                    Py_XSETREF(promise->value, OWNED(value));
                 } else {
-                    if (new_promise->coro || new_promise->finally || Py_REFCNT(new_promise) > 2) {
-                        Py_XSETREF(new_promise, Promise_Then(new_promise));
+                    if (new_promise->coro || Py_REFCNT(new_promise) > 2) {
+                        Py_XSETREF(new_promise, promise_then(new_promise));
                     }
-                    if (promise->coro || promise->finally || Py_REFCNT(promise) > 1) {
+                    if (promise->coro || Py_REFCNT(promise) > 1) {
                         // We must re-schedule promise
                         Py_INCREF(promise);
-                        Chain_Add(new_promise, promise, promise);
+                        Chain_ADD(new_promise, promise, promise);
                     } else {
                         // We can replace current promise with the new one without consequences
                         new_promise->head = promise->head;
@@ -834,20 +794,8 @@ handle_scheduled_promise(Promise *promise)
                 Py_XSETREF(promise->value, value);
             }
         }
-        if (promise->finally) {
-            PyObject *tmp = PyObject_CallNoArgs(promise->finally);
-            if (tmp == NULL) {
-                if (PyErr_ExceptionMatches(PyExc_KeyboardInterrupt) ||
-                    PyErr_ExceptionMatches(PyExc_SystemExit))
-                {
-                    return -1;
-                }
-                Promise_PrintUnhandledException();
-            } else {
-                Py_DECREF(tmp);
-            }
-            Py_CLEAR(promise->finally);
-        }
+    } else {
+        Py_CLEAR(promise->context);
     }
 
     promise->flags ^= promise->flags & PROMISE_SCHEDULED;
@@ -857,12 +805,11 @@ handle_scheduled_promise(Promise *promise)
         Promise *it = promise->head;
         PyObject *value = promise->value;
         while (it) {
-            Py_INCREF(value);
-            it->value = value;
+            it->value = OWNED(value);
             it->flags |= state;
             it = it->next;
         }
-        Chain_Add(&promise_chain, promise->head, promise->tail);
+        Chain_ADD(&promise_chain, promise->head, promise->tail);
         promise->head = NULL;
     }
 
@@ -877,7 +824,7 @@ handle_scheduled_promise(Promise *promise)
 }
 
 void
-PromiseChain_Clear()
+promise_clear_chain()
 {
     while (promise_chain.head) {
         Promise *it = promise_chain.head;
@@ -889,7 +836,7 @@ PromiseChain_Clear()
 }
 
 int
-PromiseChain_Process()
+promise_process_chain()
 {
     if (promise_chain.head != NULL) {
         while (promise_chain.head) {
@@ -908,7 +855,7 @@ PromiseChain_Process()
 }
 
 int
-Promise_module_init()
+promise_module_init()
 {
     if (PyType_Ready(&PromiseType) < 0) {
         return -1;

@@ -1,6 +1,12 @@
 // Copyright (c) 2021 Andrey Churin (aachurin@gmail.com).
 // This file is part of promisedio
 
+// Rules:
+// 1) Struct names and typedef's in camelcase: Promise, Deferred.
+// 2) Functions: module_snake_case() or type_snake_case()
+// 3) Constant definitions: UPPER_CASE
+// 4) Other definitions: as you wish, just not like 1 or 2 (more suitable: Module_UPPER_CASE)
+
 #ifndef COMMON_H
 #define COMMON_H
 
@@ -8,8 +14,6 @@
 #include <Python.h>
 
 //#define DEBUG_OUTPUT stderr
-
-#include <Python.h>
 
 #if PY_VERSION_HEX < 0x03090000
 #define PyObject_CallOneArg(a, b) PyObject_CallFunctionObjArgs(a, b, NULL)
@@ -28,10 +32,6 @@
     { PyGILState_STATE _gstate = PyGILState_Ensure();
 #define RELEASE_GIL \
     PyGILState_Release(_gstate); }
-#define BEGIN_ALLOW_THREADS \
-    Py_BEGIN_ALLOW_THREADS
-#define END_ALLOW_THREADS \
-    Py_END_ALLOW_THREADS
 
 #ifdef MS_WINDOWS
 /* Windows uses long long for offsets */
@@ -42,6 +42,7 @@ typedef long long Py_off_t;
 #define PY_OFF_T_MIN       LLONG_MIN
 #define PY_OFF_T_COMPAT    long long
 #define PY_PRIdOFF         "lld"
+#define PyLong_FromUint64_t PyLong_FromUnsignedLongLong
 #else
 /* Other platforms use off_t */
 typedef off_t Py_off_t;
@@ -69,24 +70,20 @@ typedef off_t Py_off_t;
 #else
 # error off_t does not match either size_t, long, or long long!
 #endif
-
-#endif
-
-#if SIZEOF_LONG == 8
-#define PyLong_FromUint64_t(o) PyLong_FromUnsignedLong(o)
+#if (SIZEOF_SIZE_T == 8)
+#define PyLong_FromUint64_t PyLong_FromSize_t
+#elif (SIZEOF_LONG_LONG == 8)
+#define PyLong_FromUint64_t PyLong_FromUnsignedLongLong
+#elif (SIZEOF_LONG == 8)
+#define PyLong_FromUint64_t PyLong_FromUnsignedLong
 #else
-#define PyLong_FromUint64_t(o) PyLong_FromUnsignedLongLong(o)
+# error uint64_t does not match either size_t, long, or long long!
+#endif
 #endif
 
-typedef union {
-    float as_float;
-    int as_int;
-    long as_long;
-    long long as_longlong;
-    size_t as_size;
-    Py_ssize_t as_ssize;
-    Py_off_t as_off;
-    void *as_ptr;
-} unified_t;
+#define OWNED(ob) (Py_INCREF(ob), ob)
+#define XOWNED(ob) (Py_XINCREF(ob), ob)
+
+#include "converters.h"
 
 #endif

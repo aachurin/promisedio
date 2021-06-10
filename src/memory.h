@@ -23,63 +23,41 @@ typedef struct freelist_s {
     freelistdealloc dealloc;
 } freelist_t;
 
-#define Mem_Alloc(size) \
-    _Mem_Alloc(size)
-
-#define Mem_Free(ptr) \
-    _Mem_Free(ptr)
-
-#define Mem_New(type, typeobj) \
-    ((type *) _Mem_New(typeobj))
-
-#define Mem_Del(ob) \
-    _Mem_Free(ob)
-
-#define Mem_GC_New(type, typeobj) \
-    ((type *) _Mem_GC_New(&type##__gc_freelist, typeobj))
-
-#define Mem_GC_Del(type, obj) \
-    _Mem_GC_Del(&type##__gc_freelist, (PyObject *) (obj))
-
-#define Mem_GC_FreeList(type) \
-    static freelist_t type##__gc_freelist = {.dealloc=PyObject_GC_Del, .name=#type}
-
-#define Request_New(promise, type) \
-    (type *) _Request_New(promise, sizeof(type))
-
-#define Request_Close(req) \
-    _Request_Close((uv_req_t *) (req))
-
-#define Request_Promise(ob) \
-    ((Promise *)((uv_req_t *) (ob))->data)
-
-#define Handle_New(type, cb)  \
-    (type *) _Handle_New(sizeof(type), (finalizer) (cb))
-
-#define Handle_Close(handle)                         \
+#define Mem_ALLOC(size) mem__alloc(size)
+#define Mem_FREE(ptr) mem__free(ptr)
+#define Mem_NEW(type, typeobj) ((type *) mem__new(typeobj))
+#define Mem_DEL(ob) mem__free(ob)
+#define Mem_GC_NEW(type, typeobj) ((type *) mem__gc_new(&type##__gc_freelist, typeobj))
+#define Mem_GC_DEL(type, obj) mem__gc_del(&type##__gc_freelist, (PyObject *) (obj))
+#define Mem_GC_FREELIST(type) static freelist_t type##__gc_freelist = {.dealloc=PyObject_GC_Del, .name=#type}
+#define Request_NEW(promise, type) (type *) request__new(promise, sizeof(type))
+#define Request_CLOSE(req) request__close((uv_req_t *) (req))
+#define Request_PROMISE(ob) ((Promise *)((uv_req_t *) (ob))->data)
+#define Handle_NEW(type, cb) (type *) handle__new(sizeof(type), (finalizer) (cb))
+#define Handle_CLOSE(handle)                         \
     do {                                             \
         uv_handle_t *tmp = (uv_handle_t *) (handle); \
         if (tmp && !uv_is_closing(tmp)) {            \
             if (tmp->data) {                         \
                 ((finalizer) (tmp->data))(tmp);      \
             }                                        \
-            uv_close(tmp, _Handle_OnClose);          \
+            uv_close(tmp, handle__on_close);         \
         }                                            \
     } while (0)
 
 typedef void (*finalizer)(uv_handle_t *handle);
 
-void * _Mem_Alloc(size_t size);
-void _Mem_Free(void *ptr);
-PyObject * _Mem_New(PyTypeObject *tp);
-PyObject * _Mem_GC_New(freelist_t *freelist, PyTypeObject *tp);
-void _Mem_GC_Del(freelist_t *freelist, PyObject *ob);
-uv_req_t * _Request_New(Promise *promise, size_t size);
-void _Request_Close(uv_req_t *req);
-uv_handle_t * _Handle_New(size_t size, finalizer cb);
-void _Handle_OnClose(uv_handle_t *handle);
-void Mem_ClearFreelists();
-size_t Mem_AllocCount();
-void Mem_DebugInfo();
+void * mem__alloc(size_t size);
+void mem__free(void *ptr);
+PyObject * mem__new(PyTypeObject *tp);
+PyObject * mem__gc_new(freelist_t *freelist, PyTypeObject *tp);
+void mem__gc_del(freelist_t *freelist, PyObject *ob);
+uv_req_t * request__new(Promise *promise, size_t size);
+void request__close(uv_req_t *req);
+uv_handle_t * handle__new(size_t size, finalizer cb);
+void handle__on_close(uv_handle_t *handle);
+void mem_clear_freelists();
+size_t mem_alloc_count();
+void mem_debug_info();
 
 #endif

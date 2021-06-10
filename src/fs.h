@@ -22,44 +22,54 @@ typedef struct {
     uv_stat_t st;
 } Stat;
 
-PyObject * Fs_Path(PyObject *path);
-Promise * Fs_stat(const char *path);
-Promise * Fs_lstat(const char *path);
-Promise * Fs_fstat(int fd);
-Promise * Fs_open(const char *path, const char *flags, int mode);
-Promise * Fs_read(int fd, Py_ssize_t size, Py_off_t offset);
-Promise * Fs_readall(int fd);
-Promise * Fs_write(int fd, PyObject *data, Py_off_t offset);
-Promise * Fs_seek(int fd, Py_off_t pos, int how);
-Promise * Fs_close(int fd);
-Promise * Fs_unlink(const char *path);
-Promise * Fs_mkdir(const char *path, int mode);
-Promise * Fs_rmdir(const char *path);
-Promise * Fs_mkdtemp(const char *tpl);
-Promise * Fs_mkstemp(const char *tpl);
-Promise * Fs_scandir(const char *path);
-Promise * Fs_rename(const char *path, const char *new_path);
-Promise * Fs_ftruncate(int fd, Py_ssize_t length);
-Promise * Fs_fsync(int fd);
-Promise * Fs_fdatasync(int fd);
-Promise * Fs_copyfile(const char *path, const char *new_path, int flags);
-Promise * Fs_sendfile(int out_fd, int in_fd, Py_off_t in_offset, size_t length);
-Promise * Fs_access(const char *path, int mode);
-Promise * Fs_chmod(const char *path, int mode);
-Promise * Fs_fchmod(int fd, int mode);
-Promise * Fs_utime(const char *path, double atime, double mtime);
-Promise * Fs_futime(int fd, double atime, double mtime);
-Promise * Fs_lutime(const char *path, double atime, double mtime);
-Promise * Fs_link(const char *path, const char *new_path);
-Promise * Fs_symlink(const char *path, const char *new_path, int flags);
-Promise * Fs_readlink(const char *path);
+void fs_set_error(int error);
+
+Promise * fs_stat(const char *path);
+Promise * fs_lstat(const char *path);
+Promise * fs_fstat(int fd);
+Promise * fs_open(const char *path, const char *flags, int mode);
+Promise * fs_read(int fd, Py_ssize_t size, Py_off_t offset);
+Promise * fs_readall(int fd);
+Promise * fs_write(int fd, PyObject *data, Py_off_t offset);
+Promise * fs_seek(int fd, Py_off_t pos, int how);
+Promise * fs_close(int fd);
+Promise * fs_unlink(const char *path);
+Promise * fs_mkdir(const char *path, int mode);
+Promise * fs_rmdir(const char *path);
+Promise * fs_mkdtemp(const char *tpl);
+Promise * fs_mkstemp(const char *tpl);
+Promise * fs_scandir(const char *path);
+Promise * fs_rename(const char *path, const char *new_path);
+Promise * fs_ftruncate(int fd, Py_ssize_t length);
+Promise * fs_fsync(int fd);
+Promise * fs_fdatasync(int fd);
+Promise * fs_copyfile(const char *path, const char *new_path, int flags);
+Promise * fs_sendfile(int out_fd, int in_fd, Py_off_t in_offset, size_t length);
+Promise * fs_access(const char *path, int mode);
+Promise * fs_chmod(const char *path, int mode);
+Promise * fs_fchmod(int fd, int mode);
+Promise * fs_utime(const char *path, double atime, double mtime);
+Promise * fs_futime(int fd, double atime, double mtime);
+Promise * fs_lutime(const char *path, double atime, double mtime);
+Promise * fs_link(const char *path, const char *new_path);
+Promise * fs_symlink(const char *path, const char *new_path, int flags);
+Promise * fs_readlink(const char *path);
 
 #ifndef MS_WINDOWS
-Promise * Fs_chown(const char *path, uv_uid_t uid, uv_gid_t gid);
-Promise * Fs_fchown(int fd, uv_uid_t uid, uv_gid_t gid);
-Promise * Fs_lchown(const char *path, uv_uid_t uid, uv_gid_t gid);
+Promise * fs_chown(const char *path, uv_uid_t uid, uv_gid_t gid);
+Promise * fs_fchown(int fd, uv_uid_t uid, uv_gid_t gid);
+Promise * fs_lchown(const char *path, uv_uid_t uid, uv_gid_t gid);
 #endif
 
-int Fs_module_init(PyObject *module);
+typedef struct {
+    PyObject_HEAD
+    uv_file fd;
+    int closefd;
+} FileIO;
+
+FileIO * fileio_new(int fd, int closefd);
+Promise * fs_fileio_open(const char *path, const char *flags);
+
+int fs_module_init(PyObject *module);
 
 #endif

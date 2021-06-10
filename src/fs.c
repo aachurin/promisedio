@@ -1,8 +1,15 @@
 // Copyright (c) 2021 Andrey Churin (aachurin@gmail.com).
 // This file is part of promisedio
 
-#include <errno.h>
 #include "fs.h"
+#include "utils.h"
+#include "clinic/fs.c.h"
+
+/*[clinic input]
+module fs
+[clinic start generated code]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=de53127b95d08f91]*/
+
 
 #if BUFSIZ < (8*1024)
     #define SMALLCHUNK (8*1024)
@@ -12,149 +19,112 @@
     #define SMALLCHUNK BUFSIZ
 #endif
 
-#define INIT_PROMISE_AND_REQ(promise, req, req_type)        \
-    if (((promise) = Promise_New()) == NULL) {              \
-        return NULL;                                        \
-    }                                                       \
-    if (((req) = Request_New(promise, req_type)) == NULL) { \
-        Py_DECREF(promise);                                 \
-        return NULL;                                        \
-    }
+#define BEGIN_FS_CALLBACK(req)  \
+    ACQUIRE_GIL                 \
+    uv_fs_t *_req = req;
 
-#define FS_UV_CALL(func, promise, ...) {                \
-    uv_fs_t *_req;                                      \
-    INIT_PROMISE_AND_REQ(promise, _req, uv_fs_t);       \
-    uv_loop_t *_loop = Loop_Get();                      \
-    int _ret;                                           \
-    BEGIN_ALLOW_THREADS                                 \
-    _ret = func(_loop, _req, __VA_ARGS__);              \
-    END_ALLOW_THREADS                                   \
-    if (_ret < 0) {                                     \
-        _req->result = _ret;                            \
-        raise_with_errno(_ret, GET_SYSTEM_ERROR(_req)); \
-        FS_REQUEST_CLOSE(_req);                         \
-        Py_CLEAR(promise);                              \
-        return NULL;                                    \
-    }                                                   \
+#define END_FS_CALLBACK         \
+    uv_fs_req_cleanup(_req);    \
+    Request_CLOSE(_req);        \
+    RELEASE_GIL
+
+#define UV_FS_PROXY_CALL(promise, func, ...) {      \
+    uv_fs_t *req = NULL;                            \
+    (promise) = promise_new();                      \
+    if (promise) {                                  \
+        req = Request_NEW(promise, uv_fs_t);        \
+        if (req) {                                  \
+            BEGIN_UV_CALL(func, req, __VA_ARGS__)   \
+                set_fs_error(error);                \
+                Py_DECREF(promise);                 \
+                promise = NULL;                     \
+            END_UV_CALL                             \
+        } else {                                    \
+            Py_DECREF(promise);                     \
+            promise = NULL;                         \
+        }                                           \
+    }                                               \
 }
 
-#define FS_UV_PROXY(func, ...) {            \
-    Promise *promise;                       \
-    FS_UV_CALL(func, promise, __VA_ARGS__); \
-    return promise;                         \
-}
-
-#define FS_UV_PUSH_WORK(req, work, work_cb) {           \
-    uv_loop_t *_loop = Loop_Get();                      \
-    BEGIN_ALLOW_THREADS                                 \
-    uv_queue_work(_loop, (uv_work_t *) req,             \
-                         (uv_work_cb) work,             \
-                         (uv_after_work_cb) work_cb);   \
-    END_ALLOW_THREADS                                   \
-}
-
-#define FS_REQUEST_CLOSE(req) \
-    uv_fs_req_cleanup(req);   \
-    Request_Close(req)
-
-#define BEGIN_FS_CALLBACK(req)                    \
-    ACQUIRE_GIL                                   \
-    if ((req)->result < 0) {                      \
-        reject_with_errno(Request_Promise(req),   \
-                          (int)((req)->result),   \
-                          GET_SYSTEM_ERROR(req)); \
-    } else {
-
-#define END_FS_CALLBACK(req) } \
-    FS_REQUEST_CLOSE(req); RELEASE_GIL
-
-#ifdef MS_WINDOWS
-#define GET_SYSTEM_ERROR(req) (req)->sys_errno_
-#else
-#if EDOM > 0
-#define GET_SYSTEM_ERROR(req) -((req)->result)
-#else
-#define GET_SYSTEM_ERROR(req) (req)->result
-#endif
-#endif
+static PyObject *fserror;
 
 static PyObject *
-Stat_st_dev(Stat *self, void *closure) {
+Stat_st_dev(Stat *self, __attribute__((unused)) void *closure) {
     return PyLong_FromUint64_t(self->st.st_dev);
 }
 
 static PyObject *
-Stat_st_mode(Stat *self, void *closure) {
+Stat_st_mode(Stat *self, __attribute__((unused)) void *closure) {
     return PyLong_FromUint64_t(self->st.st_mode);
 }
 
 static PyObject *
-Stat_st_nlink(Stat *self, void *closure) {
+Stat_st_nlink(Stat *self, __attribute__((unused)) void *closure) {
     return PyLong_FromUint64_t(self->st.st_nlink);
 }
 
 static PyObject *
-Stat_st_uid(Stat *self, void *closure) {
+Stat_st_uid(Stat *self, __attribute__((unused)) void *closure) {
     return PyLong_FromUint64_t(self->st.st_uid);
 }
 
 static PyObject *
-Stat_st_gid(Stat *self, void *closure) {
+Stat_st_gid(Stat *self, __attribute__((unused)) void *closure) {
     return PyLong_FromUint64_t(self->st.st_gid);
 }
 
 static PyObject *
-Stat_st_rdev(Stat *self, void *closure) {
+Stat_st_rdev(Stat *self, __attribute__((unused)) void *closure) {
     return PyLong_FromUint64_t(self->st.st_rdev);
 }
 
 static PyObject *
-Stat_st_ino(Stat *self, void *closure) {
+Stat_st_ino(Stat *self, __attribute__((unused)) void *closure) {
     return PyLong_FromUint64_t(self->st.st_ino);
 }
 
 static PyObject *
-Stat_st_size(Stat *self, void *closure) {
+Stat_st_size(Stat *self, __attribute__((unused)) void *closure) {
     return PyLong_FromUint64_t(self->st.st_size);
 }
 
 static PyObject *
-Stat_st_blksize(Stat *self, void *closure) {
+Stat_st_blksize(Stat *self, __attribute__((unused)) void *closure) {
     return PyLong_FromUint64_t(self->st.st_blksize);
 }
 
 static PyObject *
-Stat_st_blocks(Stat *self, void *closure) {
+Stat_st_blocks(Stat *self, __attribute__((unused)) void *closure) {
     return PyLong_FromUint64_t(self->st.st_blocks);
 }
 
 static PyObject *
-Stat_st_flags(Stat *self, void *closure) {
+Stat_st_flags(Stat *self, __attribute__((unused)) void *closure) {
     return PyLong_FromUint64_t(self->st.st_flags);
 }
 
 static PyObject *
-Stat_st_gen(Stat *self, void *closure) {
+Stat_st_gen(Stat *self, __attribute__((unused)) void *closure) {
     return PyLong_FromUint64_t(self->st.st_gen);
 }
 
 static PyObject *
-Stat_st_atim(Stat *self, void *closure) {
+Stat_st_atim(Stat *self, __attribute__((unused)) void *closure) {
     return PyFloat_FromDouble((double)self->st.st_atim.tv_sec + 1e-9 * (double)self->st.st_atim.tv_nsec);
 }
 
 static PyObject *
-Stat_st_mtim(Stat *self, void *closure) {
+Stat_st_mtim(Stat *self, __attribute__((unused)) void *closure) {
     return PyFloat_FromDouble((double)self->st.st_mtim.tv_sec + 1e-9 * (double)self->st.st_mtim.tv_nsec);
 }
 
 static PyObject *
-Stat_st_ctim(Stat *self, void *closure) {
+Stat_st_ctim(Stat *self, __attribute__((unused)) void *closure) {
     return PyFloat_FromDouble((double)self->st.st_ctim.tv_sec + 1e-9 * (double)self->st.st_ctim.tv_nsec);
 }
 
 static PyObject *
-Stat_st_birthtim(Stat *self, void *closure) {
+Stat_st_birthtim(Stat *self, __attribute__((unused)) void *closure) {
     return PyFloat_FromDouble((double)self->st.st_birthtim.tv_sec + 1e-9 * (double)self->st.st_birthtim.tv_nsec);
 }
 
@@ -185,163 +155,147 @@ static PyTypeObject StatType = {
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_getset = Stat_getsetlist,
-    .tp_dealloc = (destructor) _Mem_Free
+    .tp_dealloc = (destructor) mem__free
 };
 
-static Stat *
-Stat_New() {
-    return Mem_New(Stat, &StatType);
+static inline void
+set_fs_error(int uverr)
+{
+    set_uv_error(fserror, uverr);
 }
 
-PyObject*
-Fs_Path(PyObject *path)
+static inline void
+reject_fs_error(Promise *promise, int uverr)
 {
-    path = PyOS_FSPath(path);
-    if (path == NULL)
-        return NULL;
-    if (!PyBytes_Check(path)) {
-        PyObject *encoded_path = PyUnicode_AsUTF8String(path);
-        Py_DECREF(path);
-        if (encoded_path == NULL)
-            return NULL;
-        path = encoded_path;
-    }
-    if (PyBytes_GET_SIZE(path) != (Py_ssize_t) strlen(PyBytes_AS_STRING(path))) {
-        PyErr_SetString(PyExc_ValueError, "embedded null byte");
-        Py_DECREF(path);
-        return NULL;
-    }
-    return path;
-}
-
-static PyObject *
-create_oserror(int uverr, int oserr)
-{
-    PyObject *args, *exc;
-#ifdef MS_WINDOWS
-    args = Py_BuildValue("(isOi)", 0, uv_strerror(uverr), Py_None, oserr);
-#else
-    args = Py_BuildValue("(is)", oserr, uv_strerror(uverr));
-#endif
-    if (args != NULL) {
-        exc = PyObject_Call(PyExc_OSError, args, NULL);
-        Py_DECREF(args);
-        return exc;
-    }
-    return NULL;
-}
-
-static void
-raise_with_errno(int uverr, int oserr)
-{
-    PyObject *exc = create_oserror(uverr, oserr);
-    if (exc != NULL) {
-        PyErr_SetObject(PyExc_OSError, exc);
-        Py_DECREF(exc);
-    }
-}
-
-static void
-reject_with_errno(Promise *promise, int uverr, int oserr)
-{
-    PyObject *exc = create_oserror(uverr, oserr);
-    if (exc != NULL) {
-        Promise_Reject(promise, exc);
-        Py_DECREF(exc);
-        return;
-    }
-    Promise_RejectWithPyErr(promise);
+    promise_reject_uv_error(promise, fserror, uverr);
 }
 
 static void
 int_callback(uv_fs_t *req)
 {
     BEGIN_FS_CALLBACK(req)
-    PyObject *value = PyLong_FromSsize_t(req->result);
-    if (value == NULL) {
-        Promise_RejectWithPyErr(Request_Promise(req));
+    Promise *promise = Request_PROMISE(req);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
     } else {
-        Promise_Resolve(Request_Promise(req), value);
-        Py_DECREF(value);
+        PyObject *value = PyLong_FromSsize_t(req->result);
+        if (!value) {
+            promise_reject_py_exc(promise);
+        } else {
+            promise_resolve(promise, value);
+            Py_DECREF(value);
+        }
     }
-    END_FS_CALLBACK(req)
+    END_FS_CALLBACK
 }
 
 static void
 none_callback(uv_fs_t *req)
 {
     BEGIN_FS_CALLBACK(req)
-    Promise_Resolve(Request_Promise(req), Py_None);
-    END_FS_CALLBACK(req)
+    Promise *promise = Request_PROMISE(req);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
+    } else {
+        promise_resolve(promise, Py_None);
+    }
+    END_FS_CALLBACK
 }
 
 static void
 bool_callback(uv_fs_t *req)
 {
-    ACQUIRE_GIL
+    BEGIN_FS_CALLBACK(req)
+    Promise *promise = Request_PROMISE(req);
     if (req->result < 0) {
-        Promise_Resolve(Request_Promise(req), Py_False);
+        promise_resolve(promise, Py_False);
     } else {
-        Promise_Resolve(Request_Promise(req), Py_True);
+        promise_resolve(promise, Py_True);
     }
-    FS_REQUEST_CLOSE(req);
-    RELEASE_GIL
+    END_FS_CALLBACK
 }
 
 static void
 path_callback(uv_fs_t *req)
 {
     BEGIN_FS_CALLBACK(req)
-    PyObject *result = PyBytes_FromString(req->path);
-    if (result == NULL) {
-        Promise_RejectWithPyErr(Request_Promise(req));
+    Promise *promise = Request_PROMISE(req);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
     } else {
-        Promise_Resolve(Request_Promise(req), result);
-        Py_DECREF(result);
+        PyObject *result = PyUnicode_DecodeFSDefault(req->path);
+        if (!result) {
+            promise_reject_py_exc(promise);
+        } else {
+            promise_resolve(promise, result);
+            Py_DECREF(result);
+        }
     }
-    END_FS_CALLBACK(req)
+    END_FS_CALLBACK
 }
 
 static void
-ptr_callback(uv_fs_t *req)
+ptr_path_callback(uv_fs_t *req)
 {
     BEGIN_FS_CALLBACK(req)
-    PyObject *result = PyBytes_FromString(req->ptr);
-    if (result == NULL) {
-        Promise_RejectWithPyErr(Request_Promise(req));
+    Promise *promise = Request_PROMISE(req);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
     } else {
-        Promise_Resolve(Request_Promise(req), result);
-        Py_DECREF(result);
+        PyObject *result = PyUnicode_DecodeFSDefault(req->ptr);
+        if (!result) {
+            promise_reject_py_exc(promise);
+        } else {
+            promise_resolve(promise, result);
+            Py_DECREF(result);
+        }
     }
-    END_FS_CALLBACK(req)
+    END_FS_CALLBACK
 }
 
 static void
 stat_callback(uv_fs_t *req)
 {
     BEGIN_FS_CALLBACK(req)
-    Stat *obj = Stat_New();
-    if (obj == NULL) {
-        Promise_RejectWithPyErr(Request_Promise(req));
+    Promise *promise = Request_PROMISE(req);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
     } else {
-        obj->st = req->statbuf;
-        Promise_Resolve(Request_Promise(req), (PyObject *) obj);
-        Py_DECREF(obj);
+        Stat *obj = Mem_NEW(Stat, &StatType);
+        if (!obj) {
+            promise_reject_py_exc(promise);
+        } else {
+            obj->st = req->statbuf;
+            promise_resolve(promise, (PyObject *) obj);
+            Py_DECREF(obj);
+        }
     }
-    END_FS_CALLBACK(req)
+    END_FS_CALLBACK
 }
 
 Promise *
-Fs_stat(const char *path)
-FS_UV_PROXY(uv_fs_stat, path, stat_callback)
+fs_stat(const char *path)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_stat, path, stat_callback);
+    return promise;
+}
 
 Promise *
-Fs_lstat(const char *path)
-FS_UV_PROXY(uv_fs_lstat, path, stat_callback)
+fs_lstat(const char *path)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_lstat, path, stat_callback);
+    return promise;
+}
 
 Promise *
-Fs_fstat(uv_file fd)
-FS_UV_PROXY(uv_fs_fstat, fd, stat_callback)
+fs_fstat(uv_file fd)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_fstat, fd, stat_callback);
+    return promise;
+}
 
 typedef struct {
     uv_work_t work;
@@ -349,9 +303,6 @@ typedef struct {
     Py_off_t pos;
     int whence;
     Py_off_t result;
-#ifdef MS_WINDOWS
-    DWORD sys_errno;
-#endif
 } fs_seek_req_t;
 
 static void
@@ -366,8 +317,7 @@ seek_work(fs_seek_req_t* req)
 #endif
     if (pos == -1) {
 #ifdef MS_WINDOWS
-        req->sys_errno = GetLastError();
-        req->result = uv_translate_sys_error(req->sys_errno);
+        req->result = uv_translate_sys_error(GetLastError());
 #else
         req->result = uv_translate_sys_error(errno);
 #endif
@@ -376,51 +326,117 @@ seek_work(fs_seek_req_t* req)
     }
 }
 
-static void
-seek_callback(fs_seek_req_t* req, int status)
+static int
+fs__seek(uv_loop_t *loop, fs_seek_req_t *req, uv_file fd, Py_off_t pos, int how, uv_after_work_cb cb)
 {
-    ACQUIRE_GIL
-    if (req->result < 0) {
-        reject_with_errno(Request_Promise(req),
-                          (int)req->result,
-                          GET_SYSTEM_ERROR(req));
-    } else {
-        PyObject *value = PyLong_FromOff_t(req->result);
-        if (value == NULL) {
-            Promise_RejectWithPyErr(Request_Promise(req));
-        } else {
-            Promise_Resolve(Request_Promise(req), value);
-            Py_DECREF(value);
-        }
-    }
-    Request_Close(req);
-    RELEASE_GIL
-}
-
-Promise *
-Fs_seek(uv_file fd, Py_off_t pos, int how)
-{
-    #ifdef SEEK_SET
+#ifdef SEEK_SET
     /* Turn 0, 1, 2 into SEEK_{SET,CUR,END} */
     switch (how) { // NOLINT(hicpp-multiway-paths-covered)
         case 0: how = SEEK_SET; break;
         case 1: how = SEEK_CUR; break;
         case 2: how = SEEK_END; break;
     }
-    #endif
-
-    Promise *promise;
-    fs_seek_req_t *req;
-    INIT_PROMISE_AND_REQ(promise, req, fs_seek_req_t)
+#endif
     req->fd = fd;
     req->pos = pos;
     req->whence = how;
-    FS_UV_PUSH_WORK(req, seek_work, seek_callback);
-    return promise;
+    uv_queue_work(loop, (uv_work_t *) req, (uv_work_cb) seek_work, cb);
+    return 0;
+}
+
+static void
+seek_callback(fs_seek_req_t* req, int status)
+{
+    ACQUIRE_GIL
+    Promise *promise = Request_PROMISE(req);
+    if (status == UV_ECANCELED) {
+        reject_fs_error(promise, status);
+    } else if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
+    } else {
+        PyObject *value = PyLong_FromOff_t(req->result);
+        if (!value) {
+            promise_reject_py_exc(promise);
+        } else {
+            promise_resolve(promise, value);
+            Py_DECREF(value);
+        }
+    }
+    Request_CLOSE(req);
+    RELEASE_GIL
 }
 
 Promise *
-Fs_open(const char *path, const char *flags, int mode)
+fs_seek(uv_file fd, Py_off_t pos, int how)
+{
+    Promise *promise = promise_new();
+    if (!promise)
+        return NULL;
+
+    fs_seek_req_t *req = Request_NEW(promise, fs_seek_req_t);
+    if (!req) {
+        Py_DECREF(promise);
+        return NULL;
+    }
+    BEGIN_UV_CALL(fs__seek, req, fd, pos, how, (uv_after_work_cb) seek_callback) END_UV_CALL
+    return promise;
+}
+
+static void
+open_stat_callback(uv_fs_t *req)
+{
+    BEGIN_FS_CALLBACK(req)
+    Promise *promise = Request_PROMISE(req);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
+    } else {
+        #if defined(S_ISDIR)
+        if (S_ISDIR(req->statbuf.st_mode)) {
+            reject_fs_error(promise, UV_EISDIR);
+            goto finally;
+        }
+        #endif
+        PyObject *fd = PyLong_FromSsize_t(*Promise_DATA(promise, uv_file));
+        if (!fd) {
+            promise_reject_py_exc(promise);
+        } else {
+            promise_resolve(promise, fd);
+            Py_DECREF(fd);
+        }
+    }
+    finally:
+    END_FS_CALLBACK
+}
+
+static void
+open_callback(uv_fs_t *req)
+{
+    BEGIN_FS_CALLBACK(req)
+    Promise *promise = Request_PROMISE(req);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
+        goto finally;
+    }
+
+    uv_fs_t *nreq = Request_NEW(promise, uv_fs_t);
+    if (!nreq) {
+        promise_reject_py_exc(promise);
+        goto finally;
+    }
+
+    uv_file fd = (uv_file) req->result;
+    *Promise_DATA(promise, uv_file) = fd;
+
+    BEGIN_UV_CALL(uv_fs_fstat, nreq, fd, open_stat_callback)
+        reject_fs_error(promise, error);
+    END_UV_CALL
+
+    finally:
+    END_FS_CALLBACK
+}
+
+Promise *
+fs_open(const char *path, const char *flags, int mode)
 {
     int open_flags = 0, writable = 0, readable = 0;
 
@@ -495,78 +511,62 @@ Fs_open(const char *path, const char *flags, int mode)
     #endif
 
     Promise *promise;
-    FS_UV_CALL(uv_fs_open, promise, path, open_flags, mode, int_callback);
+    UV_FS_PROXY_CALL(promise, uv_fs_open, path, open_flags, mode, open_callback);
     return promise;
 }
 
-static PyObject *
-read_callback(PyObject *buffer, PyObject *result)
+static inline int
+fs__read(uv_loop_t *loop, uv_fs_t *req, uv_file fd, char* buffer, size_t size, Py_off_t offset, uv_fs_cb cb)
 {
-    Py_ssize_t size = PyLong_AsSsize_t(result);
-    if (size < PyBytes_GET_SIZE(buffer)) {
-        if (_PyBytes_Resize(&buffer, size) != 0)
-            return NULL;
+    uv_buf_t buf;
+    buf.base = buffer;
+    buf.len = size > _PY_READ_MAX ? _PY_READ_MAX : size;
+    return uv_fs_read(loop, req, fd, &buf, 1, offset, cb);
+}
+
+static void
+read_callback(uv_fs_t *req)
+{
+    BEGIN_FS_CALLBACK(req)
+    Promise *promise = Request_PROMISE(req);
+    PyObject *buffer = *Promise_DATA(promise, PyObject *);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
+        goto finally;
     }
-    return buffer;
-}
 
-static Promise *
-readbuf(uv_file fd, char* buffer, size_t size, Py_off_t offset)
-{
-    Promise *promise;
-    uv_buf_t buf = uv_buf_init(buffer, size);
-    FS_UV_CALL(uv_fs_read, promise, fd, &buf, 1, offset, int_callback);
-    return promise;
+    Py_ssize_t size = req->result;
+    if (size < PyBytes_GET_SIZE(buffer)) {
+        if (_PyBytes_Resize(&buffer, size) != 0) {
+            promise_reject_py_exc(promise);
+            goto finally;
+        }
+    }
+
+    promise_resolve(promise, buffer);
+
+    finally:
+    Py_XDECREF(buffer);
+    END_FS_CALLBACK
 }
 
 Promise *
-Fs_read(uv_file fd, Py_ssize_t size, Py_off_t offset)
+fs_read(uv_file fd, Py_ssize_t size, Py_off_t offset)
 {
+    if (size > _PY_READ_MAX) {
+        size = _PY_READ_MAX;
+    }
     PyObject *buffer = PyBytes_FromStringAndSize(NULL, size);
-    if (buffer == NULL)
+    if (!buffer)
         return NULL;
-    Promise *promise = readbuf(fd, PyBytes_AS_STRING(buffer), size, offset);
-    if (promise == NULL) {
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, fs__read, fd, PyBytes_AS_STRING(buffer), size, offset, read_callback);
+    if (!promise) {
         Py_DECREF(buffer);
         return NULL;
     }
-    Promise_CALLBACK(promise, read_callback, NULL, buffer);
+    *Promise_DATA(promise, PyObject *) = buffer;
     return promise;
-}
-
-typedef struct {
-    PyObject_HEAD
-    uv_file fd;
-    PyObject* buffer;
-    size_t bufsize;
-    Py_ssize_t bytes_read;
-    Py_off_t pos;
-} ReadContext;
-
-static void
-ReadContext_dealloc(ReadContext *ob)
-{
-    Py_CLEAR(ob->buffer);
-    Mem_Del(ob);
-}
-
-static PyTypeObject ReadContextType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "ReadContext",
-    .tp_basicsize = sizeof(ReadContext),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_dealloc = (destructor) ReadContext_dealloc
-};
-
-static ReadContext *
-ReadContext_New()
-{
-    ReadContext *ob = Mem_New(ReadContext, &ReadContextType);
-    if (ob != NULL) {
-        ob->buffer = NULL;
-    }
-    return ob;
 }
 
 static size_t
@@ -587,330 +587,674 @@ new_buffersize(size_t currentsize)
     return addend + currentsize;
 }
 
-static PyObject *
-readall_readbuf_callback(ReadContext *context, PyObject *n)
+typedef struct {
+    uv_file fd;
+    PyObject* buffer;
+    Py_ssize_t bytes_read;
+    Py_off_t pos;
+} read_state_t;
+
+static void
+readall_read_callback(uv_fs_t *req)
 {
-    if (n != NULL) {
-        Py_ssize_t size = PyLong_AsSsize_t(n);
-        if (size == 0) {
-            if (PyBytes_GET_SIZE(context->buffer) > context->bytes_read) {
-                if (_PyBytes_Resize(&context->buffer, context->bytes_read) < 0)
-                    return NULL;
-            }
-            PyObject *result = context->buffer;
-            context->buffer = NULL;
-            Py_DECREF(context);
-            return result;
-        }
-        context->bytes_read += size;
+    BEGIN_FS_CALLBACK(req)
+    Promise *promise = Request_PROMISE(req);
+    read_state_t *state = Promise_DATA(promise, read_state_t);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
+        cleanup:
+        Py_DECREF(state->buffer);
+        goto finally;
     }
-    if (context->bytes_read >= (Py_ssize_t) context->bufsize) {
-        context->bufsize = new_buffersize(context->bytes_read);
-        if (context->bufsize > PY_SSIZE_T_MAX || context->bufsize <= 0) {
-            PyErr_SetString(PyExc_OverflowError,
-                            "unbounded read returned more bytes "
-                            "than a Python bytes object can hold");
-            Py_DECREF(context);
-            return NULL;
-        }
-        if (PyBytes_GET_SIZE(context->buffer) < (Py_ssize_t) context->bufsize) {
-            if (_PyBytes_Resize(&context->buffer, (Py_ssize_t) context->bufsize) < 0) {
-                Py_DECREF(context);
-                return NULL;
+
+    if (req->result == 0) {
+        if (PyBytes_GET_SIZE(state->buffer) > state->bytes_read) {
+            if (_PyBytes_Resize(&state->buffer, state->bytes_read) < 0) {
+                promise_reject_py_exc(promise);
+                goto finally;
             }
         }
+        promise_resolve(promise, state->buffer);
+        goto cleanup;
     }
-    Promise *promise = readbuf(context->fd,
-                               PyBytes_AS_STRING(context->buffer) + context->bytes_read,
-                               context->bufsize - context->bytes_read, -1);
-    if (promise == NULL) {
-        Py_DECREF(context);
-        return NULL;
+
+    state->bytes_read += req->result;
+    if (state->bytes_read >= PyBytes_GET_SIZE(state->buffer)) {
+        size_t new_size = new_buffersize(state->bytes_read);
+        if (new_size > PY_SSIZE_T_MAX) {
+            promise_reject_string(promise, PyExc_OverflowError,
+                                  "unbounded read returned more bytes "
+                                  "than a Python bytes object can hold");
+            goto cleanup;
+        }
+        if (_PyBytes_Resize(&state->buffer, (Py_ssize_t) new_size) < 0) {
+            promise_reject_py_exc(promise);
+            goto finally;
+        }
     }
-    Promise_CALLBACK(promise, readall_readbuf_callback, NULL, context);
-    return (PyObject *) promise;
+    uv_fs_t *nreq = Request_NEW(promise, uv_fs_t);
+    if (!nreq) {
+        promise_reject_py_exc(promise);
+        goto cleanup;
+    }
+
+    char *buf = PyBytes_AS_STRING(state->buffer) + state->bytes_read;
+    Py_ssize_t size = PyBytes_GET_SIZE(state->buffer) - state->bytes_read;
+    BEGIN_UV_CALL(fs__read, nreq, state->fd, buf, size, -1, readall_read_callback)
+        reject_fs_error(promise, error);
+        goto cleanup;
+    END_UV_CALL
+
+    finally:
+    END_FS_CALLBACK
 }
 
-static PyObject *
-readall_init2_callback(ReadContext *context, PyObject *size)
+static void
+readall_stat_callback(uv_fs_t *req)
 {
-    Py_off_t pos = context->pos;
+    BEGIN_FS_CALLBACK(req)
+    Promise *promise = Request_PROMISE(req);
+    read_state_t *state = Promise_DATA(promise, read_state_t);
+    Py_off_t pos = state->pos;
     Py_off_t end;
-    if ((PyObject *) size == Py_None) {
+    size_t bufsize;
+
+    if (req->result < 0) {
         end = (Py_off_t) -1;
     } else {
-        end = PyLong_AsOff_t(size);
+        end = (Py_off_t) req->statbuf.st_size;
     }
     if (end > 0 && end >= pos && pos >= 0 && end - pos < PY_SSIZE_T_MAX) {
         /* This is probably a real file, so we try to allocate a
            buffer one byte larger than the rest of the file.  If the
            calculation is right then we should get EOF without having
            to enlarge the buffer. */
-        context->bufsize = (size_t)(end - pos + 1);
+        bufsize = (size_t) end - pos + 1;
     } else {
-        context->bufsize = SMALLCHUNK;
+        bufsize = SMALLCHUNK;
     }
-    context->buffer = PyBytes_FromStringAndSize(NULL, (Py_ssize_t) context->bufsize);
-    if (context->buffer == NULL) {
-        Py_DECREF(context);
-        return NULL;
+
+    PyObject *buffer = PyBytes_FromStringAndSize(NULL, (Py_ssize_t) bufsize);
+    if (!buffer) {
+        promise_reject_py_exc(promise);
+        goto finally;
     }
-    return readall_readbuf_callback(context, NULL);
+
+    uv_fs_t *nreq = Request_NEW(promise, uv_fs_t);
+    if (!nreq) {
+        promise_reject_py_exc(promise);
+        cleanup:
+        Py_DECREF(buffer);
+        goto finally;
+    }
+
+    state->buffer = buffer;
+    BEGIN_UV_CALL(fs__read, nreq, state->fd, PyBytes_AS_STRING(buffer), bufsize, -1, readall_read_callback)
+        reject_fs_error(promise, error);
+        goto cleanup;
+    END_UV_CALL
+
+    finally:
+    END_FS_CALLBACK
 }
 
 static void
-get_filesize_callback(uv_fs_t *req)
+readall_seek_callback(fs_seek_req_t *req, int status)
 {
     ACQUIRE_GIL
-    ssize_t result = req->result;
-    if (result >= 0) {
-        PyObject *size = PyLong_FromSize_t(req->statbuf.st_size);
-        Promise_Resolve(Request_Promise(req), size);
-        Py_DECREF(size);
-    } else {
-        Promise_Resolve(Request_Promise(req), Py_None);
+    Promise *promise = Request_PROMISE(req);
+    if (status == UV_ECANCELED) {
+        reject_fs_error(promise, status);
+        goto finally;
     }
-    FS_REQUEST_CLOSE(req);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
+        goto finally;
+    }
+
+    read_state_t *state = Promise_DATA(promise, read_state_t);
+    state->pos = req->result;
+    uv_fs_t *nreq = Request_NEW(promise, uv_fs_t);
+    if (!nreq) {
+        promise_reject_py_exc(promise);
+        goto finally;
+    }
+
+    BEGIN_UV_CALL(uv_fs_fstat, nreq, state->fd, readall_stat_callback)
+        reject_fs_error(promise, error);
+    END_UV_CALL
+
+    finally:
+    Request_CLOSE(req);
     RELEASE_GIL
 }
 
-static PyObject *
-readall_init1_callback(ReadContext *context, PyObject *pos)
+Promise *
+fs_readall(int fd)
 {
-    context->pos = PyLong_AsOff_t(pos);
-    Promise *promise;
-    FS_UV_CALL(uv_fs_fstat, promise, context->fd, get_filesize_callback);
-    if (promise == NULL) {
-        Py_DECREF(context);
+    Promise *promise = promise_new();
+    if (!promise)
+        return NULL;
+
+    fs_seek_req_t *req = Request_NEW(promise, fs_seek_req_t);
+    if (!req) {
+        Py_DECREF(promise);
         return NULL;
     }
-    Promise_CALLBACK(promise, readall_init2_callback, NULL, context);
-    return (PyObject *) promise;
+
+    read_state_t *state = Promise_DATA(promise, read_state_t);
+    state->fd = fd;
+    state->pos = 0;
+    state->bytes_read = 0;
+    BEGIN_UV_CALL(fs__seek, req, fd, 0, 1, (uv_after_work_cb) readall_seek_callback) END_UV_CALL
+    return promise;
+}
+
+static inline int
+fs__write(uv_loop_t *loop, uv_fs_t *req, uv_file fd, char* buffer, size_t size, Py_off_t offset, uv_fs_cb cb)
+{
+    uv_buf_t buf;
+    buf.base = buffer;
+    buf.len = size > _PY_READ_MAX ? _PY_READ_MAX : size;
+    return uv_fs_write(loop, req, fd, &buf, 1, offset, cb);
+}
+
+static void
+write_callback(uv_fs_t *req)
+{
+    BEGIN_FS_CALLBACK(req)
+    Promise *promise = Request_PROMISE(req);
+    PyObject *buffer = *Promise_DATA(promise, PyObject *);
+    Py_DECREF(buffer);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
+    } else {
+        PyObject *size = PyLong_FromSsize_t(req->result);
+        promise_resolve(promise, size);
+        Py_DECREF(size);
+    }
+    END_FS_CALLBACK
 }
 
 Promise *
-Fs_readall(int fd)
+fs_write(int fd, PyObject *data, Py_off_t offset)
 {
-    ReadContext *context = ReadContext_New();
-    if (context == NULL)
-        return NULL;
-    context->fd = fd;
-    context->pos = 0;
-    context->bytes_read = 0;
-    Promise *promise = Fs_seek(fd, 0, 1);
-    if (promise == NULL) {
-        Py_DECREF(context);
-        return NULL;
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, fs__write, fd, PyBytes_AS_STRING(data), PyBytes_GET_SIZE(data), offset, write_callback);
+    if (promise) {
+        *Promise_DATA(promise, PyObject *) = data;
     }
-    Promise_CALLBACK(promise, readall_init1_callback, NULL, context);
     return promise;
 }
 
 Promise *
-Fs_write(int fd, PyObject *data, Py_off_t offset)
+fs_close(uv_file fd)
 {
-    // can crash if data is not PyBytes
     Promise *promise;
-    uv_buf_t buf = uv_buf_init(PyBytes_AS_STRING(data), PyBytes_GET_SIZE(data));
-    FS_UV_CALL(uv_fs_write, promise, fd, &buf, 1, offset, int_callback)
-    Promise_CALLBACK(promise, NULL, NULL, data);
+    UV_FS_PROXY_CALL(promise, uv_fs_close, fd, none_callback);
+    return promise;
+}
+
+
+Promise *
+fs_unlink(const char *path)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_unlink, path, none_callback);
     return promise;
 }
 
 Promise *
-Fs_close(uv_file fd)
-FS_UV_PROXY(uv_fs_close, fd, none_callback)
+fs_mkdir(const char *path, int mode)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_mkdir, path, mode, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_unlink(const char *path)
-FS_UV_PROXY(uv_fs_unlink, path, none_callback)
+fs_rmdir(const char *path)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_rmdir, path, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_mkdir(const char *path, int mode)
-FS_UV_PROXY(uv_fs_mkdir, path, mode, none_callback)
-
-Promise *
-Fs_rmdir(const char *path)
-FS_UV_PROXY(uv_fs_rmdir, path, none_callback)
-
-Promise *
-Fs_mkdtemp(const char *tpl)
-FS_UV_PROXY(uv_fs_mkdtemp, tpl, path_callback)
+fs_mkdtemp(const char *tpl)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_mkdtemp, tpl, path_callback);
+    return promise;
+}
 
 static void
 mkstemp_callback(uv_fs_t *req)
 {
     BEGIN_FS_CALLBACK(req)
-    PyObject *r1 = PyLong_FromSsize_t(req->result);
-    if (r1 != NULL) {
-        PyObject *r2 = PyBytes_FromString(req->path);
-        if (r2 != NULL) {
-            PyObject *result = PyTuple_New(2);
-            if (result != NULL) {
-                PyTuple_SET_ITEM(result, 0, r1);
-                PyTuple_SET_ITEM(result, 1, r2);
-                Promise_Resolve(Request_Promise(req), result);
-                Py_DECREF(result);
-            } else {
-                Py_DECREF(r1);
-                Py_DECREF(r2);
-                goto error;
-            }
-        } else {
-            Py_DECREF(r1);
-            goto error;
-        }
+    Promise *promise = Request_PROMISE(req);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
     } else {
-        error:
-        Promise_RejectWithPyErr(Request_Promise(req));
+        PyObject *result = Py_BuildValue("ns", req->result, req->path);
+        if (result) {
+            promise_resolve(promise, result);
+            Py_DECREF(result);
+        } else {
+            promise_reject_py_exc(promise);
+        }
     }
-    END_FS_CALLBACK(req)
+    END_FS_CALLBACK
 }
 
 Promise *
-Fs_mkstemp(const char *tpl)
-FS_UV_PROXY(uv_fs_mkstemp, tpl, mkstemp_callback)
+fs_mkstemp(const char *tpl)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_mkstemp, tpl, mkstemp_callback);
+    return promise;
+}
 
 static void
 scandir_callback(uv_fs_t *req)
 {
     BEGIN_FS_CALLBACK(req)
+    Promise *promise = Request_PROMISE(req);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
+        goto finally;
+    }
+
     Py_ssize_t n = req->result;
     PyObject *result = PyTuple_New(n);
-    if (result != NULL) {
-        if (n) {
-            uv_dirent_t dent;
-            Py_ssize_t index = 0;
-            while (UV_EOF != uv_fs_scandir_next(req, &dent)) {
-                PyObject *item = PyTuple_New(2);
-                if (item == NULL) {
-                    error1:
-                    Py_DECREF(result);
-                    goto error0;
-                }
-                Py_ssize_t type = 0;
-                switch (dent.type) {
-                    case UV_DIRENT_UNKNOWN:
-                        type = 0;
-                        break;
-                    case UV_DIRENT_FILE:
-                        type = 1;
-                        break;
-                    case UV_DIRENT_DIR:
-                        type = 2;
-                        break;
-                    case UV_DIRENT_LINK:
-                        type = 3;
-                        break;
-                    case UV_DIRENT_FIFO:
-                        type = 4;
-                        break;
-                    case UV_DIRENT_SOCKET:
-                        type = 5;
-                        break;
-                    case UV_DIRENT_CHAR:
-                        type = 6;
-                        break;
-                    case UV_DIRENT_BLOCK:
-                        type = 7;
-                        break;
-                }
-                PyObject *r1 = PyLong_FromSsize_t(type);
-                if (r1 == NULL) {
-                    error2:
-                    Py_DECREF(item);
-                    goto error1;
-                }
-                PyObject *r2 = PyBytes_FromString(dent.name);
-                if (r2 == NULL) {
-                    Py_DECREF(r1);
-                    goto error2;
-                }
-                PyTuple_SET_ITEM(item, 0, r1);
-                PyTuple_SET_ITEM(item, 1, r2);
-                PyTuple_SET_ITEM(result, index, item);
-                index++;
-            }
-        }
-        Promise_Resolve(Request_Promise(req), result);
-        Py_DECREF(result);
-    } else {
-        error0:
-        Promise_RejectWithPyErr(Request_Promise(req));
+    if (!result) {
+        error:
+        promise_reject_py_exc(promise);
+        goto finally;
     }
-    END_FS_CALLBACK(req)
+    if (n) {
+        uv_dirent_t dent;
+        Py_ssize_t index = 0;
+        while (UV_EOF != uv_fs_scandir_next(req, &dent)) {
+            int type = 0;
+            switch (dent.type) {
+                case UV_DIRENT_UNKNOWN:
+                    type = 0;
+                    break;
+                case UV_DIRENT_FILE:
+                    type = 1;
+                    break;
+                case UV_DIRENT_DIR:
+                    type = 2;
+                    break;
+                case UV_DIRENT_LINK:
+                    type = 3;
+                    break;
+                case UV_DIRENT_FIFO:
+                    type = 4;
+                    break;
+                case UV_DIRENT_SOCKET:
+                    type = 5;
+                    break;
+                case UV_DIRENT_CHAR:
+                    type = 6;
+                    break;
+                case UV_DIRENT_BLOCK:
+                    type = 7;
+                    break;
+            }
+            PyObject *item = Py_BuildValue("is", type, dent.name);
+            if (!item) {
+                Py_DECREF(result);
+                goto error;
+            }
+            PyTuple_SET_ITEM(result, index, item);
+            index++;
+        }
+    }
+
+    promise_resolve(promise, result);
+    Py_DECREF(result);
+
+    finally:
+    END_FS_CALLBACK
 }
 
 Promise *
-Fs_scandir(const char *path)
-FS_UV_PROXY(uv_fs_scandir, path, 0, scandir_callback)
+fs_scandir(const char *path)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_scandir, path, 0, scandir_callback);
+    return promise;
+}
 
 Promise *
-Fs_rename(const char *path, const char *new_path)
-FS_UV_PROXY(uv_fs_rename, path, new_path, none_callback)
+fs_rename(const char *path, const char *new_path)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_rename, path, new_path, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_fsync(int fd)
-FS_UV_PROXY(uv_fs_fsync, fd, none_callback)
+fs_fsync(int fd)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_fsync, fd, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_ftruncate(int fd, Py_ssize_t length)
-FS_UV_PROXY(uv_fs_ftruncate, fd, length, none_callback)
+fs_ftruncate(int fd, Py_ssize_t length)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_ftruncate, fd, length, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_fdatasync(int fd)
-FS_UV_PROXY(uv_fs_fdatasync, fd, none_callback)
+fs_fdatasync(int fd)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_fdatasync, fd, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_copyfile(const char *path, const char *new_path, int flags)
-FS_UV_PROXY(uv_fs_copyfile, path, new_path, flags, none_callback)
+fs_copyfile(const char *path, const char *new_path, int flags)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_copyfile, path, new_path, flags, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_sendfile(int out_fd, int in_fd, Py_off_t in_offset, size_t length)
-FS_UV_PROXY(uv_fs_sendfile, out_fd, in_fd, in_offset, length, int_callback)
+fs_sendfile(int out_fd, int in_fd, Py_off_t in_offset, size_t length)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_sendfile, out_fd, in_fd, in_offset, length, int_callback);
+    return promise;
+}
 
 Promise *
-Fs_access(const char *path, int mode)
-FS_UV_PROXY(uv_fs_access, path, mode, bool_callback)
+fs_access(const char *path, int mode)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_access, path, mode, bool_callback);
+    return promise;
+}
 
 Promise *
-Fs_chmod(const char *path, int mode)
-FS_UV_PROXY(uv_fs_chmod, path, mode, none_callback)
+fs_chmod(const char *path, int mode)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_chmod, path, mode, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_fchmod(int fd, int mode)
-FS_UV_PROXY(uv_fs_fchmod, fd, mode, none_callback)
+fs_fchmod(int fd, int mode)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_fchmod, fd, mode, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_utime(const char *path, double atime, double mtime)
-FS_UV_PROXY(uv_fs_utime, path, atime, mtime, none_callback)
+fs_utime(const char *path, double atime, double mtime)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_utime, path, atime, mtime, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_futime(int fd, double atime, double mtime)
-FS_UV_PROXY(uv_fs_futime, fd, atime, mtime, none_callback)
+fs_futime(int fd, double atime, double mtime)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_futime, fd, atime, mtime, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_lutime(const char *path, double atime, double mtime)
-FS_UV_PROXY(uv_fs_lutime, path, atime, mtime, none_callback)
+fs_lutime(const char *path, double atime, double mtime)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_lutime, path, atime, mtime, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_link(const char *path, const char *new_path)
-FS_UV_PROXY(uv_fs_link, path, new_path, none_callback)
+fs_link(const char *path, const char *new_path)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_link, path, new_path, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_symlink(const char *path, const char *new_path, int flags)
-FS_UV_PROXY(uv_fs_symlink, path, new_path, flags, none_callback)
+fs_symlink(const char *path, const char *new_path, int flags)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_symlink, path, new_path, flags, none_callback);
+    return promise;
+}
 
 Promise *
-Fs_readlink(const char *path)
-FS_UV_PROXY(uv_fs_readlink, path, ptr_callback)
+fs_readlink(const char *path)
+{
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_readlink, path, ptr_path_callback);
+    return promise;
+}
+
+/*[clinic input]
+class fs.FileIO "FileIO *" "&FileIOType"
+[clinic start generated code]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=60e4ff47d829f04a]*/
+
+/*[clinic input]
+fs.FileIO.close
+
+Close this stream.
+
+This method has no effect if the file is already closed. Once the file is closed,
+any operation on the file (e.g. reading or writing) will raise a ValueError.
+As a convenience, it is allowed to call this method more than once; only the first
+call, however, will have an effect.
+[clinic start generated code]*/
+
+static inline PyObject *
+fs_FileIO_close_impl(FileIO *self)
+/*[clinic end generated code: output=d56ab91c4e369cda input=cf8d6fe4f00cec49]*/
+{
+    if (self->fd < 0) {
+        return (PyObject *) promise_new_resolved(Py_None);
+    } else if (!self->closefd) {
+        self->fd = -1;
+        return (PyObject *) promise_new_resolved(Py_None);
+    } else {
+        int fd = self->fd;
+        self->fd = -1;
+        return (PyObject *) fs_close(fd);
+    }
+}
+
+static inline PyObject *
+fileio_err_closed(void)
+{
+    PyErr_SetString(PyExc_ValueError, "I/O operation on closed file");
+    return NULL;
+}
+
+/*[clinic input]
+fs.FileIO.fileno
+
+Return the underlying file descriptor (an integer).
+[clinic start generated code]*/
+
+static inline PyObject *
+fs_FileIO_fileno_impl(FileIO *self)
+/*[clinic end generated code: output=b1a47ffee4b47bd3 input=d2d29c72594b6486]*/
+{
+    if (self->fd < 0)
+        return fileio_err_closed();
+    return PyLong_FromLong((long) self->fd);
+}
+
+/*[clinic input]
+fs.FileIO.read
+    size: ssize_t = -1
+    offset: off_t = -1
+
+Read at most size bytes, returned as bytes.
+[clinic start generated code]*/
+
+static inline PyObject *
+fs_FileIO_read_impl(FileIO *self, Py_ssize_t size, Py_off_t offset)
+/*[clinic end generated code: output=d3e0eb218f81f033 input=1e3d51dfb810aac3]*/
+{
+    if (self->fd < 0)
+        return fileio_err_closed();
+    if (size < 0) {
+        if (offset >= 0) {
+            PyErr_SetString(PyExc_ValueError,
+                            "offset could only be used with the size argument");
+            return NULL;
+        }
+        return (PyObject *) fs_readall(self->fd);
+    } else {
+        return (PyObject *) fs_read(self->fd, size, offset);
+    }
+}
+
+/*[clinic input]
+fs.FileIO.write
+    data: object
+    offset: off_t = -1
+
+Write the given bytes to the IO stream.
+
+Returns the number of bytes written, which is always the length of data in bytes.
+[clinic start generated code]*/
+
+static inline PyObject *
+fs_FileIO_write_impl(FileIO *self, PyObject *data, Py_off_t offset)
+/*[clinic end generated code: output=88ae5db085c04d84 input=ce3445150d5a415a]*/
+{
+    if (self->fd < 0)
+        return fileio_err_closed();
+    if (!PyBytes_Check(data)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "bytes expected");
+        return NULL;
+    }
+    return (PyObject *) fs_write(self->fd, data, offset);
+}
+
+/*[clinic input]
+fs.FileIO.seek
+    offset: off_t
+    whence: int = 0
+
+Read at most size bytes, returned as bytes.
+[clinic start generated code]*/
+
+static inline PyObject *
+fs_FileIO_seek_impl(FileIO *self, Py_off_t offset, int whence)
+/*[clinic end generated code: output=2ccb813ff272c60f input=34a065c6cb86e967]*/
+{
+    if (self->fd < 0)
+        return fileio_err_closed();
+    return (PyObject *) fs_seek(self->fd, offset, whence);
+}
+
+static void
+fileio_dealloc(FileIO *self)
+{
+    if (self->fd >= 0) {
+        // close silently, ignore errors, sync
+        int fd = self->fd;
+        self->fd = -1;
+        uv_fs_t req;
+        uv_fs_close(loop_get(), &req, fd, NULL);
+    }
+    Mem_DEL(self);
+}
+
+static PyObject *
+get_closed(FileIO *self, void *closure)
+{
+    return PyBool_FromLong((long)(self->fd < 0));
+}
+
+static PyObject *
+get_closefd(FileIO *self, void *closure)
+{
+    return PyBool_FromLong((long)(self->closefd));
+}
+
+static PyGetSetDef FileIOType_getsetlist[] = {
+    {"closed", (getter)get_closed, NULL, "True if the file is closed"},
+    {"closefd", (getter)get_closefd, NULL, "True if the file descriptor will be closed by close()."},
+    {NULL},
+};
+
+static PyMethodDef FileIOType_methods[] = {
+    FS_FILEIO_CLOSE_METHODDEF
+    FS_FILEIO_FILENO_METHODDEF
+    FS_FILEIO_READ_METHODDEF
+    FS_FILEIO_SEEK_METHODDEF
+    FS_FILEIO_WRITE_METHODDEF
+    {NULL}  /* Sentinel */
+};
+
+static PyTypeObject FileIOType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "FileIO",
+    .tp_basicsize = sizeof(FileIO),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_dealloc = (destructor) fileio_dealloc,
+    .tp_methods = FileIOType_methods,
+    .tp_getset = FileIOType_getsetlist
+};
+
+FileIO *
+fileio_new(int fd, int closefd)
+{
+    FileIO *fileobj = Mem_NEW(FileIO, &FileIOType);
+    if (!fileobj)
+        return NULL;
+    fileobj->fd = fd;
+    fileobj->closefd = closefd;
+    return fileobj;
+}
+
+static FileIO *
+fileio_open_callback(void *ctx, PyObject *value)
+{
+    FileIO *fileobj = fileio_new(_PyLong_AsInt(value), 1);
+    return fileobj;
+}
+
+Promise *
+fs_fileio_open(const char *path, const char *flags)
+{
+    Promise *promise = fs_open(path, flags, 0666);
+    if (!promise) {
+        return NULL;
+    }
+    Promise_CALLBACK(promise, fileio_open_callback, NULL, NULL);
+    return promise;
+}
 
 int
-Fs_module_init(PyObject *module)
+fs_module_init(PyObject *module)
 {
     if (PyType_Ready(&StatType) < 0)
         return -1;
-    if (PyType_Ready(&ReadContextType) < 0)
+    if (PyType_Ready(&FileIOType) < 0)
         return -1;
     if (PyModule_AddIntConstant(module, "COPYFILE_EXCL", UV_FS_COPYFILE_EXCL))
         return -1;
@@ -946,5 +1290,10 @@ Fs_module_init(PyObject *module)
         return -1;
     if (PyModule_AddIntConstant(module, "SYMLINK_JUNCTION", UV_FS_SYMLINK_JUNCTION))
         return -1;
+    fserror = PyErr_NewException("promisedio.fserror", PyExc_OSError, NULL);
+    if (!fserror)
+        return -1;
+    Py_INCREF(fserror);
+    PyModule_AddObject(module, "fserror", fserror);
     return 0;
 }

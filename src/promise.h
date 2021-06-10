@@ -4,32 +4,26 @@
 #ifndef PROMISE_H
 #define PROMISE_H
 
-#define Promise_RETURN_RESOLVED(value) \
-    return (PyObject *) Promise_NewResolved(value)
-
-#define Promise_RETURN_NONE() \
-    return (PyObject *) Promise_NewResolved(NULL)
-
 #define Promise_CALLBACK(promise, fulfilled, rejected, context) \
-    Promise_Callback(promise,                                   \
-        (promisecallback) fulfilled,                            \
-        (promisecallback) rejected,                             \
-        (PyObject *) context)
+    promise_callback(promise, (promisecallback) fulfilled, (promisecallback) rejected, (PyObject *) context)
 
-typedef PyObject * (*promisecallback)(PyObject* context, PyObject *value);
-typedef struct promise_obj Promise;
+#define Promise_DATA(promise, type) \
+        ((type *) &((promise)->data))
 
-struct promise_obj {
+typedef PyObject * (*promisecallback)(PyObject *value, void *data);
+typedef struct promise_s Promise;
+
+struct promise_s {
     PyObject_HEAD
     Promise *next;              // next promise in the chain
     Promise *head;              // own promise chain head
     Promise *tail;              // own promise chain tail
     PyObject *fulfilled;
     PyObject *rejected;
-    PyObject *finally;
     PyObject *coro;
     PyObject *value;
     PyObject *context;
+    char data[64];
     unsigned int flags;
 };
 
@@ -41,20 +35,22 @@ typedef struct {
 typedef struct {
     PyObject_HEAD
     Promise *promise;
-} Promiseiter;
+} PromiseIter;
 
-Promise * Promise_New();
-Promise * Promise_NewResolved(PyObject *value);
-Promise * Promise_Then(Promise *self);
-int Promise_Resolve(Promise *self, PyObject *value);
-int Promise_Reject(Promise *self, PyObject *value);
-int Promise_RejectWithPyErr(Promise *self);
-void Promise_Callback(Promise *self, promisecallback fulfilled, promisecallback rejected, PyObject *context);
-Deferred * Deferred_New();
-void PromiseChain_Clear();
-int PromiseChain_Process();
-int Promise_ExecAsync(PyObject* coro);
-void Promise_PrintUnhandledException();
-int Promise_module_init();
+Promise * promise_new();
+Promise * promise_new_resolved(PyObject *value);
+Promise * promise_then(Promise *p);
+void promise_resolve(Promise *p, PyObject *value);
+void promise_reject(Promise *p, PyObject *value);
+int promise_reject_args(Promise *p, PyObject *exc, PyObject *args);
+int promise_reject_string(Promise *p, PyObject *exc, const char *msg);
+void promise_reject_py_exc(Promise *p);
+void promise_callback(Promise *p, promisecallback fulfilled, promisecallback rejected, PyObject *context);
+Deferred * deferred_new();
+void promise_clear_chain();
+int promise_process_chain();
+int promise_exec_async(PyObject* coro);
+void promise_print_unhandled_exception();
+int promise_module_init();
 
 #endif

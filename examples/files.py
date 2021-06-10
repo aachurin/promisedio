@@ -35,6 +35,8 @@ async def example3():
     f = await fs.mkdir("demo3")
     try:
         await fs.open("demo3")
+    except OSError as e:
+        print(type(e), e.errno, e.strerror)
     finally:
         await fs.rmdir("demo3")
 

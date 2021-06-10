@@ -21,13 +21,13 @@ LoopConfig loop_config = {
 };
 
 int
-Loop_IsCreated()
+loop_is_created()
 {
     return default_loop_ptr != NULL;
 }
 
 uv_loop_t*
-Loop_Get()
+loop_get()
 {
     if (default_loop_ptr != NULL)
         return default_loop_ptr;
@@ -40,7 +40,7 @@ Loop_Get()
 }
 
 LoopConfig *
-Loop_GetConfig()
+loop_get_config()
 {
     if (loop_initialised) {
         PyErr_SetString(PyExc_RuntimeError, "The loop has been started.");
@@ -113,32 +113,32 @@ finalise_loop(uv_loop_t *loop)
 static void
 loop_close_handle(uv_handle_t* handle, void* arg)
 {
-    Handle_Close(handle);
+    Handle_CLOSE(handle);
 }
 
 int
-Loop_Close()
+loop_close()
 {
     if (loop_running) {
         PyErr_SetString(PyExc_RuntimeError, "The loop is running.");
         return -1;
     }
     loop_running = 1;
-    uv_loop_t *loop = Loop_Get();
+    uv_loop_t *loop = loop_get();
     finalise_loop(loop);
     uv_walk(loop, loop_close_handle, NULL);
     uv_run(loop, UV_RUN_DEFAULT);
-    LOG("Loop_Close(%p)", loop);
+    LOG("loop_close(%p)", loop);
     uv_loop_close(loop);
     default_loop_ptr = NULL;
-    PromiseChain_Clear();
+    promise_clear_chain();
     loop_initialised = 0;
     loop_running = 0;
     return 0;
 }
 
 int
-Loop_Run()
+loop_run()
 {
     if (loop_running) {
         PyErr_SetString(PyExc_RuntimeError, "The loop is running.");
@@ -147,8 +147,8 @@ Loop_Run()
 
     loop_break = 0;
     loop_running = 1;
-    uv_loop_t *loop = Loop_Get();
-    LOG("Loop_Run() -> %p", loop);
+    uv_loop_t *loop = loop_get();
+    LOG("loop_run() -> %p", loop);
 
     if (!loop_initialised) {
         loop_initialised = 1;
@@ -156,12 +156,12 @@ Loop_Run()
     }
 
     int uv_do_more = 1, promise_do_more = 1;
-    BEGIN_ALLOW_THREADS
-    while (uv_do_more || promise_do_more) {
+    Py_BEGIN_ALLOW_THREADS
+    while (1) {
         ACQUIRE_GIL
-        promise_do_more = PromiseChain_Process();
+        promise_do_more = promise_process_chain();
         RELEASE_GIL
-        if (promise_do_more < 0) {
+        if (promise_do_more < 0 || (promise_do_more == 0 && uv_do_more == 0)) {
             break;
         }
         uv_do_more = uv_run(loop, UV_RUN_ONCE);
@@ -169,7 +169,7 @@ Loop_Run()
             break;
         }
     }
-    END_ALLOW_THREADS
+    Py_END_ALLOW_THREADS
 
     loop_running = 0;
     if (PyErr_Occurred()) {

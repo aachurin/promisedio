@@ -4,14 +4,14 @@
 #include "memory.h"
 #include "promise.h"
 
-static freelist_t generic_freelists[128] = {[0 ... 127] = {.dealloc = PyMem_Free}};
+static freelist_t generic_freelists[192] = {[0 ... 191] = {.dealloc = PyMem_Free}};
 static struct {
     freelist_t *root;
     size_t allocs;
 } freelist_context = {0};
 
 size_t
-Mem_AllocCount()
+mem_alloc_count()
 {
     return freelist_context.allocs;
 }
@@ -19,7 +19,7 @@ Mem_AllocCount()
 #define max(a,b) (((a)>(b))?(a):(b))
 
 void
-Mem_ClearFreelists()
+mem_clear_freelists()
 {
     freelist_t *it = freelist_context.root;
     while (it) {
@@ -78,10 +78,10 @@ freelist_after_alloc(freelist_t *freelist)
 }
 
 void *
-_Mem_Alloc(size_t size) {
+mem__alloc(size_t size) {
     size_t alloc_size = size + sizeof(void *);
-    LOGC("_Mem_Alloc(%zu) -> ", alloc_size);
-    assert (alloc_size <= 512);
+    LOGC("mem__alloc(%zu) -> ", alloc_size);
+    assert (alloc_size <= 1536);
     size_t index = (alloc_size >> 3) - 1;
     freelist_t *freelist = &generic_freelists[index];
     void *ptr = freelist_pop(freelist);
@@ -99,9 +99,9 @@ _Mem_Alloc(size_t size) {
 }
 
 void
-_Mem_Free(void *ptr)
+mem__free(void *ptr)
 {
-    LOG("_Mem_Free(%p)", ptr);
+    LOG("mem__free(%p)", ptr);
     --freelist_context.allocs;
     ptr -= sizeof(void *);
     freelist_t *freelist = *(freelist_t **) ptr;
@@ -109,10 +109,10 @@ _Mem_Free(void *ptr)
 }
 
 PyObject *
-_Mem_New(PyTypeObject *tp)
+mem__new(PyTypeObject *tp)
 {
-    LOGC("_Mem_New(%s, %zu): ", tp->tp_name, _PyObject_SIZE(tp));
-    PyObject *op = (PyObject *) Mem_Alloc(_PyObject_SIZE(tp));
+    LOGC("mem__new(%s, %zu): ", tp->tp_name, _PyObject_SIZE(tp));
+    PyObject *op = (PyObject *) Mem_ALLOC(_PyObject_SIZE(tp));
     if (op == NULL) {
         return PyErr_NoMemory();
     }
@@ -121,9 +121,9 @@ _Mem_New(PyTypeObject *tp)
 }
 
 PyObject *
-_Mem_GC_New(freelist_t *freelist, PyTypeObject *tp)
+mem__gc_new(freelist_t *freelist, PyTypeObject *tp)
 {
-    LOGC("_Mem_GC_New(%s, %zu) -> ", tp->tp_name, _PyObject_SIZE(tp));
+    LOGC("mem__gc_new(%s, %zu) -> ", tp->tp_name, _PyObject_SIZE(tp));
     void *ptr = freelist_pop(freelist);
     if (ptr != NULL) {
         PyObject_INIT(ptr, tp);
@@ -139,18 +139,18 @@ _Mem_GC_New(freelist_t *freelist, PyTypeObject *tp)
 }
 
 void
-_Mem_GC_Del(freelist_t *freelist, PyObject *ptr)
+mem__gc_del(freelist_t *freelist, PyObject *ob)
 {
-    LOG("_Mem_GC_Del(%s(%p))", ptr->ob_type->tp_name, ptr);
+    LOG("mem__gc_del(%s(%p))", ob->ob_type->tp_name, ob);
     --freelist_context.allocs;
-    freelist_push(freelist, ptr);
+    freelist_push(freelist, ob);
 }
 
 uv_req_t *
-_Request_New(Promise *promise, size_t size)
+request__new(Promise *promise, size_t size)
 {
-    LOGC("_Request_New(%zu): ", size);
-    uv_req_t *req = (uv_req_t *) Mem_Alloc(size);
+    LOGC("request__new(%zu): ", size);
+    uv_req_t *req = (uv_req_t *) Mem_ALLOC(size);
     if (req == NULL) {
         PyErr_NoMemory();
         return NULL;
@@ -161,18 +161,18 @@ _Request_New(Promise *promise, size_t size)
 }
 
 void
-_Request_Close(uv_req_t *req)
+request__close(uv_req_t *req)
 {
-    LOGC("_Request_Close(%p, %d): ", req, req->type);
+    LOGC("request__close(%p, %d): ", req, req->type);
     Py_XDECREF(req->data);
-    Mem_Free(req);
+    Mem_FREE(req);
 }
 
 uv_handle_t *
-_Handle_New(size_t size, finalizer cb)
+handle__new(size_t size, finalizer cb)
 {
-    LOGC("_Handle_New(%zu): ", size);
-    uv_handle_t *handle = (uv_handle_t *) Mem_Alloc(size);
+    LOGC("handle__new(%zu): ", size);
+    uv_handle_t *handle = (uv_handle_t *) Mem_ALLOC(size);
     if (handle == NULL) {
         PyErr_NoMemory();
         return NULL;
@@ -182,18 +182,18 @@ _Handle_New(size_t size, finalizer cb)
 }
 
 void
-_Handle_OnClose(uv_handle_t *handle)
+handle__on_close(uv_handle_t *handle)
 {
     ACQUIRE_GIL
-    Mem_Free(handle);
+    Mem_FREE(handle);
     RELEASE_GIL
 }
 
 void
-Mem_DebugInfo()
+mem_debug_info()
 {
     fprintf(stderr, "%-25s%10s%10s%10s\n", "Type", "size", "limit", "minsize");
-    for (int i = 0; i < 64; ++i) {
+    for (int i = 0; i < 192; ++i) {
         int index = (i + 1) << 3;
         if (generic_freelists[i].chained) {
             fprintf(stderr, "%-25d%10zd%10zd%10zd\n",

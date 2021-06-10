@@ -13,7 +13,7 @@ PyDoc_STRVAR(promisedio__getallocatedobjectscount__doc__,
 #define PROMISEDIO__GETALLOCATEDOBJECTSCOUNT_METHODDEF    \
     {"_getallocatedobjectscount", (PyCFunction)promisedio__getallocatedobjectscount, METH_NOARGS, promisedio__getallocatedobjectscount__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio__getallocatedobjectscount_impl(PyObject *module);
 
 static PyObject *
@@ -33,7 +33,7 @@ PyDoc_STRVAR(promisedio__printmeminfo__doc__,
 #define PROMISEDIO__PRINTMEMINFO_METHODDEF    \
     {"_printmeminfo", (PyCFunction)promisedio__printmeminfo, METH_NOARGS, promisedio__printmeminfo__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio__printmeminfo_impl(PyObject *module);
 
 static PyObject *
@@ -53,7 +53,7 @@ PyDoc_STRVAR(promisedio__clearfreelists__doc__,
 #define PROMISEDIO__CLEARFREELISTS_METHODDEF    \
     {"_clearfreelists", (PyCFunction)promisedio__clearfreelists, METH_NOARGS, promisedio__clearfreelists__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio__clearfreelists_impl(PyObject *module);
 
 static PyObject *
@@ -73,7 +73,7 @@ PyDoc_STRVAR(promisedio_exec_async__doc__,
 #define PROMISEDIO_EXEC_ASYNC_METHODDEF    \
     {"exec_async", (PyCFunction)promisedio_exec_async, METH_O, promisedio_exec_async__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_exec_async_impl(PyObject *module, PyObject *coro);
 
 static PyObject *
@@ -104,7 +104,7 @@ PyDoc_STRVAR(promisedio_process_promise_chain__doc__,
 #define PROMISEDIO_PROCESS_PROMISE_CHAIN_METHODDEF    \
     {"process_promise_chain", (PyCFunction)promisedio_process_promise_chain, METH_NOARGS, promisedio_process_promise_chain__doc__},
 
-static int
+static inline int
 promisedio_process_promise_chain_impl(PyObject *module);
 
 static PyObject *
@@ -132,7 +132,7 @@ PyDoc_STRVAR(promisedio_deferred__doc__,
 #define PROMISEDIO_DEFERRED_METHODDEF    \
     {"deferred", (PyCFunction)promisedio_deferred, METH_NOARGS, promisedio_deferred__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_deferred_impl(PyObject *module);
 
 static PyObject *
@@ -152,7 +152,7 @@ PyDoc_STRVAR(promisedio_use_python_default_sigint__doc__,
 #define PROMISEDIO_USE_PYTHON_DEFAULT_SIGINT_METHODDEF    \
     {"use_python_default_sigint", (PyCFunction)(void(*)(void))promisedio_use_python_default_sigint, METH_FASTCALL|METH_KEYWORDS, promisedio_use_python_default_sigint__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_use_python_default_sigint_impl(PyObject *module, int flag);
 
 static PyObject *
@@ -189,7 +189,7 @@ PyDoc_STRVAR(promisedio_run_loop__doc__,
 #define PROMISEDIO_RUN_LOOP_METHODDEF    \
     {"run_loop", (PyCFunction)promisedio_run_loop, METH_NOARGS, promisedio_run_loop__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_run_loop_impl(PyObject *module);
 
 static PyObject *
@@ -209,7 +209,7 @@ PyDoc_STRVAR(promisedio_close_loop__doc__,
 #define PROMISEDIO_CLOSE_LOOP_METHODDEF    \
     {"close_loop", (PyCFunction)promisedio_close_loop, METH_NOARGS, promisedio_close_loop__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_close_loop_impl(PyObject *module);
 
 static PyObject *
@@ -227,7 +227,7 @@ PyDoc_STRVAR(promisedio_check_can_fork__doc__,
 #define PROMISEDIO_CHECK_CAN_FORK_METHODDEF    \
     {"check_can_fork", (PyCFunction)promisedio_check_can_fork, METH_NOARGS, promisedio_check_can_fork__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_check_can_fork_impl(PyObject *module);
 
 static PyObject *
@@ -249,7 +249,7 @@ PyDoc_STRVAR(promisedio__inspectloop__doc__,
 #define PROMISEDIO__INSPECTLOOP_METHODDEF    \
     {"_inspectloop", (PyCFunction)promisedio__inspectloop, METH_NOARGS, promisedio__inspectloop__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio__inspectloop_impl(PyObject *module);
 
 static PyObject *
@@ -267,7 +267,7 @@ PyDoc_STRVAR(promisedio_sleep__doc__,
 #define PROMISEDIO_SLEEP_METHODDEF    \
     {"sleep", (PyCFunction)(void(*)(void))promisedio_sleep, METH_FASTCALL|METH_KEYWORDS, promisedio_sleep__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_sleep_impl(PyObject *module, double seconds);
 
 static PyObject *
@@ -313,7 +313,7 @@ PyDoc_STRVAR(promisedio_stat__doc__,
 #define PROMISEDIO_STAT_METHODDEF    \
     {"stat", (PyCFunction)(void(*)(void))promisedio_stat, METH_FASTCALL|METH_KEYWORDS, promisedio_stat__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_stat_impl(PyObject *module, PyObject *path, int follow_symlinks);
 
 static PyObject *
@@ -331,7 +331,7 @@ promisedio_stat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
     if (!noptargs) {
@@ -362,7 +362,7 @@ PyDoc_STRVAR(promisedio_fstat__doc__,
 #define PROMISEDIO_FSTAT_METHODDEF    \
     {"fstat", (PyCFunction)(void(*)(void))promisedio_fstat, METH_FASTCALL|METH_KEYWORDS, promisedio_fstat__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_fstat_impl(PyObject *module, int fd);
 
 static PyObject *
@@ -378,7 +378,7 @@ promisedio_fstat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!args) {
         goto exit;
     }
-    if (!File_converter(args[0], &fd)) {
+    if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
     return_value = promisedio_fstat_impl(module, fd);
@@ -403,7 +403,7 @@ PyDoc_STRVAR(promisedio_seek__doc__,
 #define PROMISEDIO_SEEK_METHODDEF    \
     {"seek", (PyCFunction)(void(*)(void))promisedio_seek, METH_FASTCALL|METH_KEYWORDS, promisedio_seek__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_seek_impl(PyObject *module, int fd, Py_off_t pos, int how);
 
 static PyObject *
@@ -421,10 +421,10 @@ promisedio_seek(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
     if (!args) {
         goto exit;
     }
-    if (!File_converter(args[0], &fd)) {
+    if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
-    if (!Py_off_t_converter(args[1], &pos)) {
+    if (!off_t_converter(args[1], &pos)) {
         goto exit;
     }
     if (PyFloat_Check(args[2])) {
@@ -453,7 +453,7 @@ PyDoc_STRVAR(promisedio_open__doc__,
 #define PROMISEDIO_OPEN_METHODDEF    \
     {"open", (PyCFunction)(void(*)(void))promisedio_open, METH_FASTCALL|METH_KEYWORDS, promisedio_open__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_open_impl(PyObject *module, PyObject *path, const char *flags,
                      int closefd);
 
@@ -478,17 +478,7 @@ promisedio_open(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
         goto skip_optional_pos;
     }
     if (args[1]) {
-        if (!PyUnicode_Check(args[1])) {
-            _PyArg_BadArgument("open", "argument 'flags'", "str", args[1]);
-            goto exit;
-        }
-        Py_ssize_t flags_length;
-        flags = PyUnicode_AsUTF8AndSize(args[1], &flags_length);
-        if (flags == NULL) {
-            goto exit;
-        }
-        if (strlen(flags) != (size_t)flags_length) {
-            PyErr_SetString(PyExc_ValueError, "embedded null character");
+        if (!cstring_converter(args[1], &flags)) {
             goto exit;
         }
         if (!--noptargs) {
@@ -523,7 +513,7 @@ PyDoc_STRVAR(promisedio_openfd__doc__,
 #define PROMISEDIO_OPENFD_METHODDEF    \
     {"openfd", (PyCFunction)(void(*)(void))promisedio_openfd, METH_FASTCALL|METH_KEYWORDS, promisedio_openfd__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_openfd_impl(PyObject *module, PyObject *path, const char *flags,
                        int mode);
 
@@ -543,24 +533,14 @@ promisedio_openfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
     if (!noptargs) {
         goto skip_optional_pos;
     }
     if (args[1]) {
-        if (!PyUnicode_Check(args[1])) {
-            _PyArg_BadArgument("openfd", "argument 'flags'", "str", args[1]);
-            goto exit;
-        }
-        Py_ssize_t flags_length;
-        flags = PyUnicode_AsUTF8AndSize(args[1], &flags_length);
-        if (flags == NULL) {
-            goto exit;
-        }
-        if (strlen(flags) != (size_t)flags_length) {
-            PyErr_SetString(PyExc_ValueError, "embedded null character");
+        if (!cstring_converter(args[1], &flags)) {
             goto exit;
         }
         if (!--noptargs) {
@@ -597,7 +577,7 @@ PyDoc_STRVAR(promisedio_close__doc__,
 #define PROMISEDIO_CLOSE_METHODDEF    \
     {"close", (PyCFunction)(void(*)(void))promisedio_close, METH_FASTCALL|METH_KEYWORDS, promisedio_close__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_close_impl(PyObject *module, int fd);
 
 static PyObject *
@@ -613,7 +593,7 @@ promisedio_close(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!args) {
         goto exit;
     }
-    if (!File_converter(args[0], &fd)) {
+    if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
     return_value = promisedio_close_impl(module, fd);
@@ -636,7 +616,7 @@ PyDoc_STRVAR(promisedio_read__doc__,
 #define PROMISEDIO_READ_METHODDEF    \
     {"read", (PyCFunction)(void(*)(void))promisedio_read, METH_FASTCALL|METH_KEYWORDS, promisedio_read__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_read_impl(PyObject *module, int fd, Py_ssize_t size,
                      Py_off_t offset);
 
@@ -656,35 +636,21 @@ promisedio_read(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
     if (!args) {
         goto exit;
     }
-    if (!File_converter(args[0], &fd)) {
+    if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
     if (!noptargs) {
         goto skip_optional_pos;
     }
     if (args[1]) {
-        if (PyFloat_Check(args[1])) {
-            PyErr_SetString(PyExc_TypeError,
-                            "integer argument expected, got float" );
+        if (!ssize_t_converter(args[1], &size)) {
             goto exit;
-        }
-        {
-            Py_ssize_t ival = -1;
-            PyObject *iobj = PyNumber_Index(args[1]);
-            if (iobj != NULL) {
-                ival = PyLong_AsSsize_t(iobj);
-                Py_DECREF(iobj);
-            }
-            if (ival == -1 && PyErr_Occurred()) {
-                goto exit;
-            }
-            size = ival;
         }
         if (!--noptargs) {
             goto skip_optional_pos;
         }
     }
-    if (!Py_off_t_converter(args[2], &offset)) {
+    if (!off_t_converter(args[2], &offset)) {
         goto exit;
     }
 skip_optional_pos:
@@ -710,7 +676,7 @@ PyDoc_STRVAR(promisedio_write__doc__,
 #define PROMISEDIO_WRITE_METHODDEF    \
     {"write", (PyCFunction)(void(*)(void))promisedio_write, METH_FASTCALL|METH_KEYWORDS, promisedio_write__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_write_impl(PyObject *module, int fd, PyObject *data,
                       Py_off_t offset);
 
@@ -730,14 +696,14 @@ promisedio_write(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!args) {
         goto exit;
     }
-    if (!File_converter(args[0], &fd)) {
+    if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
     data = args[1];
     if (!noptargs) {
         goto skip_optional_pos;
     }
-    if (!Py_off_t_converter(args[2], &offset)) {
+    if (!off_t_converter(args[2], &offset)) {
         goto exit;
     }
 skip_optional_pos:
@@ -758,7 +724,7 @@ PyDoc_STRVAR(promisedio_unlink__doc__,
 #define PROMISEDIO_UNLINK_METHODDEF    \
     {"unlink", (PyCFunction)(void(*)(void))promisedio_unlink, METH_FASTCALL|METH_KEYWORDS, promisedio_unlink__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_unlink_impl(PyObject *module, PyObject *path);
 
 static PyObject *
@@ -774,7 +740,7 @@ promisedio_unlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
     return_value = promisedio_unlink_impl(module, path);
@@ -800,7 +766,7 @@ PyDoc_STRVAR(promisedio_mkdir__doc__,
 #define PROMISEDIO_MKDIR_METHODDEF    \
     {"mkdir", (PyCFunction)(void(*)(void))promisedio_mkdir, METH_FASTCALL|METH_KEYWORDS, promisedio_mkdir__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_mkdir_impl(PyObject *module, PyObject *path, int mode);
 
 static PyObject *
@@ -818,7 +784,7 @@ promisedio_mkdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
     if (!noptargs) {
@@ -855,7 +821,7 @@ PyDoc_STRVAR(promisedio_rmdir__doc__,
 #define PROMISEDIO_RMDIR_METHODDEF    \
     {"rmdir", (PyCFunction)(void(*)(void))promisedio_rmdir, METH_FASTCALL|METH_KEYWORDS, promisedio_rmdir__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_rmdir_impl(PyObject *module, PyObject *path);
 
 static PyObject *
@@ -871,7 +837,7 @@ promisedio_rmdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
     return_value = promisedio_rmdir_impl(module, path);
@@ -898,7 +864,7 @@ PyDoc_STRVAR(promisedio_mkdtemp__doc__,
 #define PROMISEDIO_MKDTEMP_METHODDEF    \
     {"mkdtemp", (PyCFunction)(void(*)(void))promisedio_mkdtemp, METH_FASTCALL|METH_KEYWORDS, promisedio_mkdtemp__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_mkdtemp_impl(PyObject *module, PyObject *tpl);
 
 static PyObject *
@@ -914,7 +880,7 @@ promisedio_mkdtemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &tpl)) {
+    if (!PyUnicode_FSConverter(args[0], &tpl)) {
         goto exit;
     }
     return_value = promisedio_mkdtemp_impl(module, tpl);
@@ -942,7 +908,7 @@ PyDoc_STRVAR(promisedio_mkstemp__doc__,
 #define PROMISEDIO_MKSTEMP_METHODDEF    \
     {"mkstemp", (PyCFunction)(void(*)(void))promisedio_mkstemp, METH_FASTCALL|METH_KEYWORDS, promisedio_mkstemp__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_mkstemp_impl(PyObject *module, PyObject *tpl);
 
 static PyObject *
@@ -958,7 +924,7 @@ promisedio_mkstemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &tpl)) {
+    if (!PyUnicode_FSConverter(args[0], &tpl)) {
         goto exit;
     }
     return_value = promisedio_mkstemp_impl(module, tpl);
@@ -982,7 +948,7 @@ PyDoc_STRVAR(promisedio_scandir__doc__,
 #define PROMISEDIO_SCANDIR_METHODDEF    \
     {"scandir", (PyCFunction)(void(*)(void))promisedio_scandir, METH_FASTCALL|METH_KEYWORDS, promisedio_scandir__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_scandir_impl(PyObject *module, PyObject *path);
 
 static PyObject *
@@ -998,7 +964,7 @@ promisedio_scandir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
     return_value = promisedio_scandir_impl(module, path);
@@ -1019,7 +985,7 @@ PyDoc_STRVAR(promisedio_rename__doc__,
 #define PROMISEDIO_RENAME_METHODDEF    \
     {"rename", (PyCFunction)(void(*)(void))promisedio_rename, METH_FASTCALL|METH_KEYWORDS, promisedio_rename__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_rename_impl(PyObject *module, PyObject *path, PyObject *new_path);
 
 static PyObject *
@@ -1036,10 +1002,10 @@ promisedio_rename(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
-    if (!Path_converter(args[1], &new_path)) {
+    if (!PyUnicode_FSConverter(args[1], &new_path)) {
         goto exit;
     }
     return_value = promisedio_rename_impl(module, path, new_path);
@@ -1062,7 +1028,7 @@ PyDoc_STRVAR(promisedio_fsync__doc__,
 #define PROMISEDIO_FSYNC_METHODDEF    \
     {"fsync", (PyCFunction)(void(*)(void))promisedio_fsync, METH_FASTCALL|METH_KEYWORDS, promisedio_fsync__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_fsync_impl(PyObject *module, int fd);
 
 static PyObject *
@@ -1078,7 +1044,7 @@ promisedio_fsync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!args) {
         goto exit;
     }
-    if (!File_converter(args[0], &fd)) {
+    if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
     return_value = promisedio_fsync_impl(module, fd);
@@ -1096,7 +1062,7 @@ PyDoc_STRVAR(promisedio_ftruncate__doc__,
 #define PROMISEDIO_FTRUNCATE_METHODDEF    \
     {"ftruncate", (PyCFunction)(void(*)(void))promisedio_ftruncate, METH_FASTCALL|METH_KEYWORDS, promisedio_ftruncate__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_ftruncate_impl(PyObject *module, int fd, Py_ssize_t length);
 
 static PyObject *
@@ -1113,25 +1079,11 @@ promisedio_ftruncate(PyObject *module, PyObject *const *args, Py_ssize_t nargs, 
     if (!args) {
         goto exit;
     }
-    if (!File_converter(args[0], &fd)) {
+    if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
-    if (PyFloat_Check(args[1])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
+    if (!ssize_t_converter(args[1], &length)) {
         goto exit;
-    }
-    {
-        Py_ssize_t ival = -1;
-        PyObject *iobj = PyNumber_Index(args[1]);
-        if (iobj != NULL) {
-            ival = PyLong_AsSsize_t(iobj);
-            Py_DECREF(iobj);
-        }
-        if (ival == -1 && PyErr_Occurred()) {
-            goto exit;
-        }
-        length = ival;
     }
     return_value = promisedio_ftruncate_impl(module, fd, length);
 
@@ -1148,7 +1100,7 @@ PyDoc_STRVAR(promisedio_fdatasync__doc__,
 #define PROMISEDIO_FDATASYNC_METHODDEF    \
     {"fdatasync", (PyCFunction)(void(*)(void))promisedio_fdatasync, METH_FASTCALL|METH_KEYWORDS, promisedio_fdatasync__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_fdatasync_impl(PyObject *module, int fd);
 
 static PyObject *
@@ -1164,7 +1116,7 @@ promisedio_fdatasync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, 
     if (!args) {
         goto exit;
     }
-    if (!File_converter(args[0], &fd)) {
+    if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
     return_value = promisedio_fdatasync_impl(module, fd);
@@ -1182,7 +1134,7 @@ PyDoc_STRVAR(promisedio_copyfile__doc__,
 #define PROMISEDIO_COPYFILE_METHODDEF    \
     {"copyfile", (PyCFunction)(void(*)(void))promisedio_copyfile, METH_FASTCALL|METH_KEYWORDS, promisedio_copyfile__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_copyfile_impl(PyObject *module, PyObject *path,
                          PyObject *new_path, int flags);
 
@@ -1202,10 +1154,10 @@ promisedio_copyfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, P
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
-    if (!Path_converter(args[1], &new_path)) {
+    if (!PyUnicode_FSConverter(args[1], &new_path)) {
         goto exit;
     }
     if (!noptargs) {
@@ -1241,7 +1193,7 @@ PyDoc_STRVAR(promisedio_sendfile__doc__,
 #define PROMISEDIO_SENDFILE_METHODDEF    \
     {"sendfile", (PyCFunction)(void(*)(void))promisedio_sendfile, METH_FASTCALL|METH_KEYWORDS, promisedio_sendfile__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_sendfile_impl(PyObject *module, int out_fd, int in_fd,
                          Py_off_t offset, Py_ssize_t count);
 
@@ -1261,31 +1213,17 @@ promisedio_sendfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, P
     if (!args) {
         goto exit;
     }
-    if (!File_converter(args[0], &out_fd)) {
+    if (!fd_converter(args[0], &out_fd)) {
         goto exit;
     }
-    if (!File_converter(args[1], &in_fd)) {
+    if (!fd_converter(args[1], &in_fd)) {
         goto exit;
     }
-    if (!Py_off_t_converter(args[2], &offset)) {
+    if (!off_t_converter(args[2], &offset)) {
         goto exit;
     }
-    if (PyFloat_Check(args[3])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
+    if (!ssize_t_converter(args[3], &count)) {
         goto exit;
-    }
-    {
-        Py_ssize_t ival = -1;
-        PyObject *iobj = PyNumber_Index(args[3]);
-        if (iobj != NULL) {
-            ival = PyLong_AsSsize_t(iobj);
-            Py_DECREF(iobj);
-        }
-        if (ival == -1 && PyErr_Occurred()) {
-            goto exit;
-        }
-        count = ival;
     }
     return_value = promisedio_sendfile_impl(module, out_fd, in_fd, offset, count);
 
@@ -1302,7 +1240,7 @@ PyDoc_STRVAR(promisedio_access__doc__,
 #define PROMISEDIO_ACCESS_METHODDEF    \
     {"access", (PyCFunction)(void(*)(void))promisedio_access, METH_FASTCALL|METH_KEYWORDS, promisedio_access__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_access_impl(PyObject *module, PyObject *path, int mode);
 
 static PyObject *
@@ -1319,7 +1257,7 @@ promisedio_access(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
     if (PyFloat_Check(args[1])) {
@@ -1349,7 +1287,7 @@ PyDoc_STRVAR(promisedio_chmod__doc__,
 #define PROMISEDIO_CHMOD_METHODDEF    \
     {"chmod", (PyCFunction)(void(*)(void))promisedio_chmod, METH_FASTCALL|METH_KEYWORDS, promisedio_chmod__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_chmod_impl(PyObject *module, PyObject *path, int mode);
 
 static PyObject *
@@ -1366,7 +1304,7 @@ promisedio_chmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
     if (PyFloat_Check(args[1])) {
@@ -1396,7 +1334,7 @@ PyDoc_STRVAR(promisedio_fchmod__doc__,
 #define PROMISEDIO_FCHMOD_METHODDEF    \
     {"fchmod", (PyCFunction)(void(*)(void))promisedio_fchmod, METH_FASTCALL|METH_KEYWORDS, promisedio_fchmod__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_fchmod_impl(PyObject *module, int fd, int mode);
 
 static PyObject *
@@ -1413,7 +1351,7 @@ promisedio_fchmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!args) {
         goto exit;
     }
-    if (!File_converter(args[0], &fd)) {
+    if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
     if (PyFloat_Check(args[1])) {
@@ -1440,7 +1378,7 @@ PyDoc_STRVAR(promisedio_utime__doc__,
 #define PROMISEDIO_UTIME_METHODDEF    \
     {"utime", (PyCFunction)(void(*)(void))promisedio_utime, METH_FASTCALL|METH_KEYWORDS, promisedio_utime__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_utime_impl(PyObject *module, PyObject *path, double atime,
                       double mtime, int follow_symlinks);
 
@@ -1461,7 +1399,7 @@ promisedio_utime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
     if (PyFloat_CheckExact(args[1])) {
@@ -1510,7 +1448,7 @@ PyDoc_STRVAR(promisedio_futime__doc__,
 #define PROMISEDIO_FUTIME_METHODDEF    \
     {"futime", (PyCFunction)(void(*)(void))promisedio_futime, METH_FASTCALL|METH_KEYWORDS, promisedio_futime__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_futime_impl(PyObject *module, int fd, double atime, double mtime);
 
 static PyObject *
@@ -1528,7 +1466,7 @@ promisedio_futime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!args) {
         goto exit;
     }
-    if (!File_converter(args[0], &fd)) {
+    if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
     if (PyFloat_CheckExact(args[1])) {
@@ -1566,7 +1504,7 @@ PyDoc_STRVAR(promisedio_link__doc__,
 #define PROMISEDIO_LINK_METHODDEF    \
     {"link", (PyCFunction)(void(*)(void))promisedio_link, METH_FASTCALL|METH_KEYWORDS, promisedio_link__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_link_impl(PyObject *module, PyObject *path, PyObject *new_path);
 
 static PyObject *
@@ -1583,10 +1521,10 @@ promisedio_link(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
-    if (!Path_converter(args[1], &new_path)) {
+    if (!PyUnicode_FSConverter(args[1], &new_path)) {
         goto exit;
     }
     return_value = promisedio_link_impl(module, path, new_path);
@@ -1609,7 +1547,7 @@ PyDoc_STRVAR(promisedio_symlink__doc__,
 #define PROMISEDIO_SYMLINK_METHODDEF    \
     {"symlink", (PyCFunction)(void(*)(void))promisedio_symlink, METH_FASTCALL|METH_KEYWORDS, promisedio_symlink__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_symlink_impl(PyObject *module, PyObject *path, PyObject *new_path,
                         int flags);
 
@@ -1629,10 +1567,10 @@ promisedio_symlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
-    if (!Path_converter(args[1], &new_path)) {
+    if (!PyUnicode_FSConverter(args[1], &new_path)) {
         goto exit;
     }
     if (!noptargs) {
@@ -1668,7 +1606,7 @@ PyDoc_STRVAR(promisedio_readlink__doc__,
 #define PROMISEDIO_READLINK_METHODDEF    \
     {"readlink", (PyCFunction)(void(*)(void))promisedio_readlink, METH_FASTCALL|METH_KEYWORDS, promisedio_readlink__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_readlink_impl(PyObject *module, PyObject *path);
 
 static PyObject *
@@ -1684,7 +1622,7 @@ promisedio_readlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, P
     if (!args) {
         goto exit;
     }
-    if (!Path_converter(args[0], &path)) {
+    if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
     return_value = promisedio_readlink_impl(module, path);
@@ -1707,7 +1645,7 @@ PyDoc_STRVAR(promisedio_set_timeout__doc__,
 #define PROMISEDIO_SET_TIMEOUT_METHODDEF    \
     {"set_timeout", (PyCFunction)(void(*)(void))promisedio_set_timeout, METH_FASTCALL|METH_KEYWORDS, promisedio_set_timeout__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_set_timeout_impl(PyObject *module, PyObject *func, double timeout,
                             int unref);
 
@@ -1763,7 +1701,7 @@ PyDoc_STRVAR(promisedio_set_interval__doc__,
 #define PROMISEDIO_SET_INTERVAL_METHODDEF    \
     {"set_interval", (PyCFunction)(void(*)(void))promisedio_set_interval, METH_FASTCALL|METH_KEYWORDS, promisedio_set_interval__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_set_interval_impl(PyObject *module, PyObject *func,
                              double interval, int unref);
 
@@ -1817,7 +1755,7 @@ PyDoc_STRVAR(promisedio_clear_timeout__doc__,
 #define PROMISEDIO_CLEAR_TIMEOUT_METHODDEF    \
     {"clear_timeout", (PyCFunction)(void(*)(void))promisedio_clear_timeout, METH_FASTCALL|METH_KEYWORDS, promisedio_clear_timeout__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_clear_timeout_impl(PyObject *module, PyObject *timer);
 
 static PyObject *
@@ -1849,7 +1787,7 @@ PyDoc_STRVAR(promisedio_clear_interval__doc__,
 #define PROMISEDIO_CLEAR_INTERVAL_METHODDEF    \
     {"clear_interval", (PyCFunction)(void(*)(void))promisedio_clear_interval, METH_FASTCALL|METH_KEYWORDS, promisedio_clear_interval__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_clear_interval_impl(PyObject *module, PyObject *timer);
 
 static PyObject *
@@ -1882,7 +1820,7 @@ PyDoc_STRVAR(promisedio_time__doc__,
 #define PROMISEDIO_TIME_METHODDEF    \
     {"time", (PyCFunction)promisedio_time, METH_NOARGS, promisedio_time__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_time_impl(PyObject *module);
 
 static PyObject *
@@ -1900,7 +1838,7 @@ PyDoc_STRVAR(promisedio_hrtime__doc__,
 #define PROMISEDIO_HRTIME_METHODDEF    \
     {"hrtime", (PyCFunction)promisedio_hrtime, METH_NOARGS, promisedio_hrtime__doc__},
 
-static PyObject *
+static inline PyObject *
 promisedio_hrtime_impl(PyObject *module);
 
 static PyObject *
@@ -1908,4 +1846,153 @@ promisedio_hrtime(PyObject *module, PyObject *Py_UNUSED(ignored))
 {
     return promisedio_hrtime_impl(module);
 }
-/*[clinic end generated code: output=b3ba9316ff5830e7 input=a9049054013a1b77]*/
+
+PyDoc_STRVAR(promisedio_getaddrinfo__doc__,
+"getaddrinfo($module, /, node, service, family=0, type=0, proto=0,\n"
+"            flags=0)\n"
+"--\n"
+"\n"
+"Translate the host/port argument into a sequence of 5-tuples that contain all the necessary arguments for \n"
+"creating a socket connected to that service. host is a domain name, a string representation of an IPv4/v6 address or None.\n"
+"port is a string service name such as \'http\', a numeric port number or None. \n"
+"\n"
+"For more information, see [getaddrinfo](https://docs.python.org/3/library/socket.html#socket.getaddrinfo)");
+
+#define PROMISEDIO_GETADDRINFO_METHODDEF    \
+    {"getaddrinfo", (PyCFunction)(void(*)(void))promisedio_getaddrinfo, METH_FASTCALL|METH_KEYWORDS, promisedio_getaddrinfo__doc__},
+
+static inline PyObject *
+promisedio_getaddrinfo_impl(PyObject *module, const char *node,
+                            PyObject *service, int family, int type,
+                            int proto, int flags);
+
+static PyObject *
+promisedio_getaddrinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"node", "service", "family", "type", "proto", "flags", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "getaddrinfo", 0};
+    PyObject *argsbuf[6];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
+    const char *node = NULL;
+    PyObject *service;
+    int family = 0;
+    int type = 0;
+    int proto = 0;
+    int flags = AF_UNSPEC;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 6, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!cstring_optional_converter(args[0], &node)) {
+        goto exit;
+    }
+    service = args[1];
+    if (!noptargs) {
+        goto skip_optional_pos;
+    }
+    if (args[2]) {
+        if (PyFloat_Check(args[2])) {
+            PyErr_SetString(PyExc_TypeError,
+                            "integer argument expected, got float" );
+            goto exit;
+        }
+        family = _PyLong_AsInt(args[2]);
+        if (family == -1 && PyErr_Occurred()) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
+    }
+    if (args[3]) {
+        if (PyFloat_Check(args[3])) {
+            PyErr_SetString(PyExc_TypeError,
+                            "integer argument expected, got float" );
+            goto exit;
+        }
+        type = _PyLong_AsInt(args[3]);
+        if (type == -1 && PyErr_Occurred()) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
+    }
+    if (args[4]) {
+        if (PyFloat_Check(args[4])) {
+            PyErr_SetString(PyExc_TypeError,
+                            "integer argument expected, got float" );
+            goto exit;
+        }
+        proto = _PyLong_AsInt(args[4]);
+        if (proto == -1 && PyErr_Occurred()) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
+    }
+    if (PyFloat_Check(args[5])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    flags = _PyLong_AsInt(args[5]);
+    if (flags == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+skip_optional_pos:
+    return_value = promisedio_getaddrinfo_impl(module, node, service, family, type, proto, flags);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(promisedio_getnameinfo__doc__,
+"getnameinfo($module, /, sockaddr, flags)\n"
+"--\n"
+"\n"
+"Translate a socket address sockaddr into a 2-tuple (host, port). Depending on the settings of flags,\n"
+"the result can contain a fully-qualified domain name or numeric address representation in host.\n"
+"Similarly, port can contain a string port name or a numeric port number.\n"
+"\n"
+"For more information about flags you can consult [getnameinfo(3)](https://man7.org/linux/man-pages/man3/getnameinfo.3.html)");
+
+#define PROMISEDIO_GETNAMEINFO_METHODDEF    \
+    {"getnameinfo", (PyCFunction)(void(*)(void))promisedio_getnameinfo, METH_FASTCALL|METH_KEYWORDS, promisedio_getnameinfo__doc__},
+
+static inline PyObject *
+promisedio_getnameinfo_impl(PyObject *module, PyObject *sockaddr, int flags);
+
+static PyObject *
+promisedio_getnameinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"sockaddr", "flags", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "getnameinfo", 0};
+    PyObject *argsbuf[2];
+    PyObject *sockaddr;
+    int flags;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    sockaddr = args[0];
+    if (PyFloat_Check(args[1])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    flags = _PyLong_AsInt(args[1]);
+    if (flags == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+    return_value = promisedio_getnameinfo_impl(module, sockaddr, flags);
+
+exit:
+    return return_value;
+}
+/*[clinic end generated code: output=6ea8af07d347b6b1 input=a9049054013a1b77]*/

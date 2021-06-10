@@ -8,9 +8,9 @@
 #include "promise.h"
 #include <uv.h>
 
-Promise * Timer_Timeout(uint64_t timeout);
-PyObject * Timer_Start(PyObject *func, uint64_t timeout, uint64_t repeat, int unref);
-int Timer_Stop(PyObject *ob);
-int Timer_module_init();
+Promise * timer_timeout(uint64_t timeout);
+PyObject * timer_start(PyObject *func, uint64_t timeout, uint64_t repeat, int unref);
+int timer_stop(PyObject *ob);
+int timer_module_init();
 
 #endif

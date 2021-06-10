@@ -1,4 +1,5 @@
 from ._cext import (
+    fserror,
     stat,
     fstat,
     openfd,

@@ -13,7 +13,7 @@ PyDoc_STRVAR(promise_Promise_then__doc__,
 #define PROMISE_PROMISE_THEN_METHODDEF    \
     {"then", (PyCFunction)(void(*)(void))promise_Promise_then, METH_FASTCALL|METH_KEYWORDS, promise_Promise_then__doc__},
 
-static PyObject *
+static inline PyObject *
 promise_Promise_then_impl(Promise *self, PyObject *fulfilled,
                           PyObject *rejected);
 
@@ -60,7 +60,7 @@ PyDoc_STRVAR(promise_Promise_catch__doc__,
 #define PROMISE_PROMISE_CATCH_METHODDEF    \
     {"catch", (PyCFunction)(void(*)(void))promise_Promise_catch, METH_FASTCALL|METH_KEYWORDS, promise_Promise_catch__doc__},
 
-static PyObject *
+static inline PyObject *
 promise_Promise_catch_impl(Promise *self, PyObject *rejected);
 
 static PyObject *
@@ -83,42 +83,6 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(promise_Promise_finally___doc__,
-"finally_($self, /, finally_)\n"
-"--\n"
-"\n"
-"\n"
-"Returns a new Promise.\n"
-"\n"
-"When the promise is fulfilled or rejected the specified callback function is executed.\n"
-"This provides a way for code to be run whether the promise was fulfilled successfully or rejected.");
-
-#define PROMISE_PROMISE_FINALLY__METHODDEF    \
-    {"finally_", (PyCFunction)(void(*)(void))promise_Promise_finally_, METH_FASTCALL|METH_KEYWORDS, promise_Promise_finally___doc__},
-
-static PyObject *
-promise_Promise_finally__impl(Promise *self, PyObject *finally_);
-
-static PyObject *
-promise_Promise_finally_(Promise *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
-{
-    PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"finally_", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "finally_", 0};
-    PyObject *argsbuf[1];
-    PyObject *finally_;
-
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
-    if (!args) {
-        goto exit;
-    }
-    finally_ = args[0];
-    return_value = promise_Promise_finally__impl(self, finally_);
-
-exit:
-    return return_value;
-}
-
 PyDoc_STRVAR(promise_Deferred_resolve__doc__,
 "resolve($self, /, value)\n"
 "--\n"
@@ -129,7 +93,7 @@ PyDoc_STRVAR(promise_Deferred_resolve__doc__,
 #define PROMISE_DEFERRED_RESOLVE_METHODDEF    \
     {"resolve", (PyCFunction)(void(*)(void))promise_Deferred_resolve, METH_FASTCALL|METH_KEYWORDS, promise_Deferred_resolve__doc__},
 
-static PyObject *
+static inline PyObject *
 promise_Deferred_resolve_impl(Deferred *self, PyObject *value);
 
 static PyObject *
@@ -162,7 +126,7 @@ PyDoc_STRVAR(promise_Deferred_reject__doc__,
 #define PROMISE_DEFERRED_REJECT_METHODDEF    \
     {"reject", (PyCFunction)(void(*)(void))promise_Deferred_reject, METH_FASTCALL|METH_KEYWORDS, promise_Deferred_reject__doc__},
 
-static PyObject *
+static inline PyObject *
 promise_Deferred_reject_impl(Deferred *self, PyObject *value);
 
 static PyObject *
@@ -195,7 +159,7 @@ PyDoc_STRVAR(promise_Deferred_promise__doc__,
 #define PROMISE_DEFERRED_PROMISE_METHODDEF    \
     {"promise", (PyCFunction)promise_Deferred_promise, METH_NOARGS, promise_Deferred_promise__doc__},
 
-static PyObject *
+static inline PyObject *
 promise_Deferred_promise_impl(Deferred *self);
 
 static PyObject *
@@ -203,4 +167,4 @@ promise_Deferred_promise(Deferred *self, PyObject *Py_UNUSED(ignored))
 {
     return promise_Deferred_promise_impl(self);
 }
-/*[clinic end generated code: output=28b495a3054baa78 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=e1d8c715730977ff input=a9049054013a1b77]*/

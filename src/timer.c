@@ -4,57 +4,58 @@
 #include "timer.h"
 #include "memory.h"
 #include "loop.h"
+#include "utils.h"
 
 typedef struct {
     uv_timer_t base;
     Promise *promise;
-} timeout_handle;
+} timeout_handle_t;
 
 static void
-timeout_callback(timeout_handle *handle)
+timeout_callback(timeout_handle_t *handle)
 {
     ACQUIRE_GIL
-    Promise_Resolve((Promise *) handle->promise, Py_None);
-    Handle_Close(handle);
+    promise_resolve((Promise *) handle->promise, Py_None);
+    Handle_CLOSE(handle);
     RELEASE_GIL
 }
 
 static void
-timeout_finalizer(timeout_handle *handle)
+timeout_finalizer(timeout_handle_t *handle)
 {
     Py_XDECREF(handle->promise);
 }
 
 Promise *
-Timer_Timeout(uint64_t timeout)
+timer_timeout(uint64_t timeout)
 {
     Promise *promise;
-    timeout_handle *handle;
-    if ((promise = Promise_New()) == NULL)
+    timeout_handle_t *handle;
+    if ((promise = promise_new()) == NULL)
         return NULL;
-    if ((handle = Handle_New(timeout_handle, timeout_finalizer)) == NULL) {
+    if ((handle = Handle_NEW(timeout_handle_t, timeout_finalizer)) == NULL) {
         Py_DECREF(promise);
         return NULL;
     }
     Py_INCREF(promise);
     handle->promise = promise;
-    uv_timer_init(Loop_Get(), (uv_timer_t *) handle);
+    uv_timer_init(loop_get(), (uv_timer_t *) handle);
     uv_timer_start((uv_timer_t *) handle, (uv_timer_cb) timeout_callback, timeout, 0);
     return promise;
 }
 
-typedef struct timer_handle_s timer_handle;
+typedef struct timer_handle_s timer_handle_t;
 
 typedef struct {
     PyObject_HEAD
-    timer_handle *handle;
+    timer_handle_t *handle;
 } Timer;
 
 typedef struct timer_handle_s {
     uv_timer_t base;
     Timer *timer;
     PyObject *func;
-} timer_handle;
+} timer_handle_t;
 
 static void
 timer_dealloc(Timer *ob)
@@ -62,45 +63,38 @@ timer_dealloc(Timer *ob)
     if (ob->handle) {
         ob->handle->timer = NULL;
     }
-    Mem_Del(ob);
+    Mem_DEL(ob);
 }
 
-static PyTypeObject TimerType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "Timer",
-    .tp_basicsize = sizeof(Timer),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_dealloc = (destructor) timer_dealloc
-};
+DefinePyType(TimerType, Timer, timer_dealloc);
 
 static inline Timer*
 Timer_New()
 {
-    return Mem_New(Timer, &TimerType);
+    return Mem_NEW(Timer, &TimerType);
 }
 
 static void
-timer_callback(timer_handle *handle)
+timer_callback(timer_handle_t *handle)
 {
     ACQUIRE_GIL
-    PyObject *tmp = PyObject_CallNoArgs(handle->func);
-    if (tmp == NULL) {
-        Promise_PrintUnhandledException();
+    PyObject *ret = PyObject_CallNoArgs(handle->func);
+    if (ret == NULL) {
+        promise_print_unhandled_exception();
     } else {
-        Py_DECREF(tmp);
+        Py_DECREF(ret);
     }
-    Handle_Close(handle);
+    Handle_CLOSE(handle);
     RELEASE_GIL
 }
 
 static void
-interval_callback(timer_handle *handle)
+interval_callback(timer_handle_t *handle)
 {
     ACQUIRE_GIL
     PyObject *tmp = PyObject_CallNoArgs(handle->func);
     if (tmp == NULL) {
-        Promise_PrintUnhandledException();
+        promise_print_unhandled_exception();
     } else {
         Py_DECREF(tmp);
     }
@@ -108,7 +102,7 @@ interval_callback(timer_handle *handle)
 }
 
 static void
-timer_finalizer(timer_handle *handle)
+timer_finalizer(timer_handle_t *handle)
 {
     if (handle->timer) {
         handle->timer->handle = NULL;
@@ -117,13 +111,13 @@ timer_finalizer(timer_handle *handle)
 }
 
 PyObject *
-Timer_Start(PyObject *func, uint64_t timeout, uint64_t repeat, int unref)
+timer_start(PyObject *func, uint64_t timeout, uint64_t repeat, int unref)
 {
     Timer *timer = Timer_New();
     if (timer == NULL) {
         return NULL;
     }
-    timer_handle *handle = Handle_New(timer_handle, timer_finalizer);
+    timer_handle_t *handle = Handle_NEW(timer_handle_t, timer_finalizer);
     if (handle == NULL) {
         Py_DECREF(timer);
         return NULL;
@@ -132,7 +126,7 @@ Timer_Start(PyObject *func, uint64_t timeout, uint64_t repeat, int unref)
     handle->func = func;
     handle->timer = timer;
     timer->handle = handle;
-    uv_timer_init(Loop_Get(), (uv_timer_t *) handle);
+    uv_timer_init(loop_get(), (uv_timer_t *) handle);
     if (unref) {
         uv_unref((uv_handle_t *) handle);
     }
@@ -145,18 +139,18 @@ Timer_Start(PyObject *func, uint64_t timeout, uint64_t repeat, int unref)
 }
 
 int
-Timer_Stop(PyObject *ob)
+timer_stop(PyObject *ob)
 {
     if (Py_TYPE(ob) != &TimerType) {
         PyErr_SetString(PyExc_TypeError, "Timer object expected");
         return -1;
     }
-    Handle_Close(((Timer *) ob)->handle);
+    Handle_CLOSE(((Timer *) ob)->handle);
     return 0;
 }
 
 int
-Timer_module_init()
+timer_module_init()
 {
     if (PyType_Ready(&TimerType) < 0)
         return -1;

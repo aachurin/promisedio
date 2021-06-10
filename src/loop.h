@@ -10,10 +10,10 @@ typedef struct {
     int use_python_default_sigint;
 } LoopConfig;
 
-LoopConfig * Loop_GetConfig();
-int Loop_Run();
-int Loop_Close();
-uv_loop_t* Loop_Get();
-int Loop_IsCreated();
+LoopConfig * loop_get_config();
+int loop_run();
+int loop_close();
+uv_loop_t* loop_get();
+int loop_is_created();
 
 #endif

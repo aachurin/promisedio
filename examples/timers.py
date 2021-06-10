@@ -15,9 +15,9 @@ async def example1(timeout):
     def test3():
         print("interval", time.time())
 
-    timer.set_timeout(test1, timeout, unref=True)
+    # timer.set_timeout(test1, timeout, unref=True)
     timer.set_timeout(test2, timeout / 2.)
-    timer.set_interval(test3, 1., unref=True)
+    # timer.set_interval(test3, 1., unref=True)
     print("done", time.time())
 
 exec_async(example1(5))

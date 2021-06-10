@@ -3,63 +3,12 @@
 
 #include <uv.h>
 #include "common.h"
-//#include "general_types.h"
 #include "promise.h"
 #include "timer.h"
 #include "fs.h"
 #include "loop.h"
-#include "fileio.h"
-
-/*[python input]
-class Path_converter(CConverter):
-    type = "PyObject *"
-    converter = "Path_converter"
-    c_default = "NULL"
-    def cleanup(self):
-        return f"Py_XDECREF({self.name});"
-
-class File_converter(CConverter):
-    type = "int"
-    converter = "File_converter"
-
-class Py_off_t_converter(CConverter):
-    type = "Py_off_t"
-    converter = "Py_off_t_converter"
-
-[python start generated code]*/
-/*[python end generated code: output=da39a3ee5e6b4b0d input=95148387e689d4f2]*/
-
-static int
-Path_converter(PyObject *arg, PyObject **addr)
-{
-    *addr = Fs_Path(arg);
-    if (*addr == NULL)
-        return 0;
-    return 1;
-}
-
-static int
-Py_off_t_converter(PyObject *arg, Py_off_t *addr)
-{
-    *addr = PyLong_AsOff_t(arg);
-    if (PyErr_Occurred())
-        return 0;
-    return 1;
-}
-
-static int
-File_converter(PyObject *arg, int *addr)
-{
-    int fd = _PyLong_AsInt(arg);
-    if (fd < 0) {
-        if (!PyErr_Occurred()) {
-            PyErr_SetString(PyExc_ValueError, "negative file descriptor");
-        }
-        return 0;
-    }
-    *addr = fd;
-    return 1;
-}
+#include "ns.h"
+#include "error.h"
 
 #include "clinic/module.c.h"
 
@@ -110,6 +59,8 @@ static PyMethodDef module_methods[] = {
     PROMISEDIO_CLEAR_INTERVAL_METHODDEF
     PROMISEDIO_TIME_METHODDEF
     PROMISEDIO_HRTIME_METHODDEF
+    PROMISEDIO_GETADDRINFO_METHODDEF
+    PROMISEDIO_GETNAMEINFO_METHODDEF
     {NULL, NULL}
 };
 
@@ -124,11 +75,11 @@ promisedio._getallocatedobjectscount
 Get number of allocated objects,
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio__getallocatedobjectscount_impl(PyObject *module)
-/*[clinic end generated code: output=64fa0ceb8c702eeb input=3653fe3582a0c7df]*/
+/*[clinic end generated code: output=78ee3f549d41f1ec input=3653fe3582a0c7df]*/
 {
-    return PyLong_FromSize_t(Mem_AllocCount());
+    return PyLong_FromSize_t(mem_alloc_count());
 }
 
 /*[clinic input]
@@ -137,11 +88,11 @@ promisedio._printmeminfo
 Memory debug info
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio__printmeminfo_impl(PyObject *module)
-/*[clinic end generated code: output=44a238f01c620815 input=8411c0de2085c335]*/
+/*[clinic end generated code: output=4672078ac623b846 input=8411c0de2085c335]*/
 {
-    Mem_DebugInfo();
+    mem_debug_info();
     Py_RETURN_NONE;
 }
 
@@ -151,11 +102,11 @@ promisedio._clearfreelists
 Clear freelists
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio__clearfreelists_impl(PyObject *module)
-/*[clinic end generated code: output=c8dea74416142a83 input=5134b1016c9494a9]*/
+/*[clinic end generated code: output=c018206e005ea267 input=5134b1016c9494a9]*/
 {
-    Mem_ClearFreelists();
+    mem_clear_freelists();
     Py_RETURN_NONE;
 }
 
@@ -167,11 +118,11 @@ promisedio.exec_async
 Schedule coroutine execution.
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_exec_async_impl(PyObject *module, PyObject *coro)
-/*[clinic end generated code: output=278e1ced79dfa3ac input=b4b82522f580b96c]*/
+/*[clinic end generated code: output=f80415fd23a668f9 input=b4b82522f580b96c]*/
 {
-    if (Promise_ExecAsync(coro)) {
+    if (promise_exec_async(coro)) {
         return NULL;
     }
     Py_RETURN_NONE;
@@ -183,22 +134,22 @@ promisedio.process_promise_chain -> bool
 Process promise async chain once.
 [clinic start generated code]*/
 
-static int
+static inline int
 promisedio_process_promise_chain_impl(PyObject *module)
-/*[clinic end generated code: output=8f2b7be1a7c1c33b input=7b52b2c804a788a8]*/
+/*[clinic end generated code: output=bda7976b28f227f9 input=7b52b2c804a788a8]*/
 {
-    return PromiseChain_Process();
+    return promise_process_chain();
 }
 
 /*[clinic input]
 promisedio.deferred
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_deferred_impl(PyObject *module)
-/*[clinic end generated code: output=cf587616d6ede614 input=58fd5ec8c6556282]*/
+/*[clinic end generated code: output=eda3b94d3cc8b309 input=58fd5ec8c6556282]*/
 {
-    return (PyObject *) Deferred_New();
+    return (PyObject *) deferred_new();
 }
 
 /*[clinic input]
@@ -208,11 +159,11 @@ promisedio.use_python_default_sigint
 Use python default SIGINT handler.
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_use_python_default_sigint_impl(PyObject *module, int flag)
-/*[clinic end generated code: output=8988d961a83023c5 input=78af53302a06dc97]*/
+/*[clinic end generated code: output=629df2435c5de933 input=78af53302a06dc97]*/
 {
-    LoopConfig *config = Loop_GetConfig();
+    LoopConfig *config = loop_get_config();
     if (config == NULL) {
         return NULL;
     }
@@ -226,11 +177,11 @@ promisedio.run_loop
 Run event loop.
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_run_loop_impl(PyObject *module)
-/*[clinic end generated code: output=85e004b460bfcf13 input=db37076872c5af31]*/
+/*[clinic end generated code: output=eee980c99f23e09c input=db37076872c5af31]*/
 {
-    if (Loop_Run()) {
+    if (loop_run()) {
         return NULL;
     }
     Py_RETURN_NONE;
@@ -242,11 +193,11 @@ promisedio.close_loop
 Close event loop.
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_close_loop_impl(PyObject *module)
-/*[clinic end generated code: output=85b576004e22a3f6 input=2719b6868cff99dd]*/
+/*[clinic end generated code: output=32d2480c1e923efe input=2719b6868cff99dd]*/
 {
-    if (Loop_Close()) {
+    if (loop_close()) {
         return NULL;
     }
     Py_RETURN_NONE;
@@ -257,12 +208,12 @@ promisedio.check_can_fork
 
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_check_can_fork_impl(PyObject *module)
-/*[clinic end generated code: output=fc0d77cc39bd1fe9 input=b5e47eb7aedda36c]*/
+/*[clinic end generated code: output=60685c271edecbe4 input=b5e47eb7aedda36c]*/
 {
-    if (Loop_IsCreated()) {
-        fprintf(stderr, "RuntimeWarning: It's unsafe to use fork. Run Loop_Close before fork.\n");
+    if (loop_is_created()) {
+        fprintf(stderr, "RuntimeWarning: It's unsafe to use fork. Run loop_close before fork.\n");
     }
     Py_RETURN_NONE;
 }
@@ -275,11 +226,11 @@ Prints all handles associated with the given loop.
 Warning: This function is meant for ad hoc debugging, there is no API/ABI stability guarantees.
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio__inspectloop_impl(PyObject *module)
-/*[clinic end generated code: output=3fb3fc307ee4edc6 input=439b20f545d96ff0]*/
+/*[clinic end generated code: output=8f8d48d85d2f632a input=439b20f545d96ff0]*/
 {
-    uv_print_all_handles(Loop_Get(), stderr);
+    uv_print_all_handles(loop_get(), stderr);
     Py_RETURN_NONE;
 }
 
@@ -288,15 +239,15 @@ promisedio.sleep
     seconds: double
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_sleep_impl(PyObject *module, double seconds)
-/*[clinic end generated code: output=db7bf8f2c1e0f2da input=dd7b38342420d4a2]*/
+/*[clinic end generated code: output=8a88aab6f9fb1be9 input=dd7b38342420d4a2]*/
 {
     if (seconds < 0) {
         PyErr_SetString(PyExc_ValueError, "sleep length must be non-negative");
         return NULL;
     }
-    return (PyObject *) Timer_Timeout((uint64_t) (seconds * 1000));
+    return (PyObject *) timer_timeout((uint64_t) (seconds * 1000));
 }
 
 /*[clinic input]
@@ -306,131 +257,151 @@ promisedio.stat
     follow_symlinks: bool = True
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_stat_impl(PyObject *module, PyObject *path, int follow_symlinks)
-/*[clinic end generated code: output=652e62289cfd1010 input=98f7a21ff01529d7]*/
+/*[clinic end generated code: output=ed0b1c09085669df input=98f7a21ff01529d7]*/
 {
     if (follow_symlinks) {
-        return (PyObject *) Fs_stat(PyBytes_AS_STRING(path));
+        return (PyObject *) fs_stat(PyBytes_AS_STRING(path));
     } else {
-        return (PyObject *) Fs_lstat(PyBytes_AS_STRING(path));
+        return (PyObject *) fs_lstat(PyBytes_AS_STRING(path));
     }
 }
 
 /*[clinic input]
 promisedio.fstat
-    fd: File
+    fd: FD
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_fstat_impl(PyObject *module, int fd)
-/*[clinic end generated code: output=cb1c99d842780871 input=c35238d28ba2f7bb]*/
+/*[clinic end generated code: output=f3b6877ded2592af input=86f7d64645c008e3]*/
 {
-    return (PyObject *) Fs_fstat(fd);
+    return (PyObject *) fs_fstat(fd);
 }
 
 /*[clinic input]
 promisedio.seek
-    fd: File
-    pos: Py_off_t
+    fd: FD
+    pos: off_t
     how: int
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_seek_impl(PyObject *module, int fd, Py_off_t pos, int how)
-/*[clinic end generated code: output=abc2e2c73224c917 input=4b9c20aa787a3c37]*/
+/*[clinic end generated code: output=6dd01686171cb80a input=0d8750bdad86367f]*/
 {
-    return (PyObject *) Fs_seek(fd, pos, how);
+    return (PyObject *) fs_seek(fd, pos, how);
 }
 
 /*[clinic input]
 promisedio.open
     path: object
-    flags: str = "r"
+    flags: cstring = "r"
     closefd: bool(accept={int}) = True
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_open_impl(PyObject *module, PyObject *path, const char *flags,
                      int closefd)
-/*[clinic end generated code: output=3992fbaabfcba0a1 input=5e582c492f82641b]*/
+/*[clinic end generated code: output=be30497ea6c56495 input=991d28e6eccffe1c]*/
 {
-    return FileIO_Open(path, flags, closefd);
-}
+    if (PyNumber_Check(path)) {
+        int fd = _PyLong_AsInt(path);
+        if (fd < 0) {
+            if (!PyErr_Occurred()) {
+                PyErr_SetString(PyExc_ValueError, "negative file descriptor");
+            }
+            return NULL;
+        }
+        FileIO *fileobj = fileio_new(fd, closefd);
+        if (!fileobj)
+            return NULL;
+        return (PyObject *) promise_new_resolved((PyObject *) fileobj);
+    }
+    if (!closefd) {
+        PyErr_SetString(PyExc_ValueError, "Cannot use closefd=False with file name");
+        return NULL;
+    }
+    PyObject *fspath;
+    if (!PyUnicode_FSConverter(path, &fspath)) {
+        return NULL;
+    }
+    PyObject *result = (PyObject *) fs_fileio_open(PyBytes_AS_STRING(fspath), flags);
+    Py_DECREF(fspath);
 
+    return result;
+}
 
 /*[clinic input]
 promisedio.openfd
     path: Path
-    flags: str = "r"
+    flags: cstring = "r"
     mode: int = 0o666
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_openfd_impl(PyObject *module, PyObject *path, const char *flags,
                        int mode)
-/*[clinic end generated code: output=4eb112caef422753 input=76377e3f41f79e0a]*/
+/*[clinic end generated code: output=062197276215e6d4 input=25bc023de82be48e]*/
 {
-    return (PyObject *) Fs_open(PyBytes_AS_STRING(path), flags, mode);
+    return (PyObject *) fs_open(PyBytes_AS_STRING(path), flags, mode);
 }
 
 /*[clinic input]
 promisedio.close
-    fd: File
+    fd: FD
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_close_impl(PyObject *module, int fd)
-/*[clinic end generated code: output=b78edd95980d5449 input=42c8429e8949095c]*/
+/*[clinic end generated code: output=484218cfdf21f281 input=79abb0f3fe6f1b75]*/
 {
-    return (PyObject *) Fs_close(fd);
+    return (PyObject *) fs_close(fd);
 }
 
 /*[clinic input]
 promisedio.read
-    fd: File
-    size: Py_ssize_t = -1
-    offset: Py_off_t = -1
+    fd: FD
+    size: ssize_t = -1
+    offset: off_t = -1
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_read_impl(PyObject *module, int fd, Py_ssize_t size,
                      Py_off_t offset)
-/*[clinic end generated code: output=bf79255a1889159c input=5595f1d0d1c82909]*/
+/*[clinic end generated code: output=14b4f5ac084e7b12 input=70a0cf743f84fc91]*/
 {
-    if (size > _PY_READ_MAX) {
-        size = _PY_READ_MAX;
-    }
     if (size < 0) {
         if (offset >= 0) {
             PyErr_SetString(PyExc_ValueError,
                             "offset could only be specified in conjunction with the size parameter");
             return NULL;
         }
-        return (PyObject *) Fs_readall(fd);
+        return (PyObject *) fs_readall(fd);
     } else {
-        return (PyObject *) Fs_read(fd, size, offset);
+        return (PyObject *) fs_read(fd, size, offset);
     }
 }
 
 /*[clinic input]
 promisedio.write
-    fd: File
+    fd: FD
     data: object
-    offset: Py_off_t = -1
+    offset: off_t = -1
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_write_impl(PyObject *module, int fd, PyObject *data,
                       Py_off_t offset)
-/*[clinic end generated code: output=f9bd04b3053da614 input=f762c6588819b788]*/
+/*[clinic end generated code: output=33443daca17d9d42 input=9d08477df3f20c78]*/
 {
     if (!PyBytes_Check(data)) {
         PyErr_SetString(PyExc_TypeError,
                         "bytes expected");
         return NULL;
     }
-    return (PyObject *) Fs_write(fd, data, offset);
+    return (PyObject *) fs_write(fd, data, offset);
 }
 
 /*[clinic input]
@@ -438,11 +409,11 @@ promisedio.unlink
     path: Path
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_unlink_impl(PyObject *module, PyObject *path)
-/*[clinic end generated code: output=38e87ecd56c68fb5 input=57de5ab5fcfccd18]*/
+/*[clinic end generated code: output=2e48182cf50c59de input=57de5ab5fcfccd18]*/
 {
-    return (PyObject *) Fs_unlink(PyBytes_AS_STRING(path));
+    return (PyObject *) fs_unlink(PyBytes_AS_STRING(path));
 }
 
 /*[clinic input]
@@ -451,22 +422,22 @@ promisedio.mkdir
     mode: int = 0o777
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_mkdir_impl(PyObject *module, PyObject *path, int mode)
-/*[clinic end generated code: output=ce82906bb5a674d0 input=7ee16b48509dd5ab]*/
+/*[clinic end generated code: output=8c92fe323dead50a input=7ee16b48509dd5ab]*/
 {
-    return (PyObject *) Fs_mkdir(PyBytes_AS_STRING(path), mode);
+    return (PyObject *) fs_mkdir(PyBytes_AS_STRING(path), mode);
 }
 /*[clinic input]
 promisedio.rmdir
     path: Path
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_rmdir_impl(PyObject *module, PyObject *path)
-/*[clinic end generated code: output=dc2b65d4e534c0bd input=ac525908741e1a2b]*/
+/*[clinic end generated code: output=335e2e8ae0007d02 input=ac525908741e1a2b]*/
 {
-    return (PyObject *) Fs_rmdir(PyBytes_AS_STRING(path));
+    return (PyObject *) fs_rmdir(PyBytes_AS_STRING(path));
 }
 
 /*[clinic input]
@@ -474,11 +445,11 @@ promisedio.mkdtemp
     tpl: Path
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_mkdtemp_impl(PyObject *module, PyObject *tpl)
-/*[clinic end generated code: output=2eb44d496af8a8e1 input=3bd77b4e696b7dc4]*/
+/*[clinic end generated code: output=d9a646634b92cb6d input=3bd77b4e696b7dc4]*/
 {
-    return (PyObject *) Fs_mkdtemp(PyBytes_AS_STRING(tpl));
+    return (PyObject *) fs_mkdtemp(PyBytes_AS_STRING(tpl));
 }
 
 /*[clinic input]
@@ -486,11 +457,11 @@ promisedio.mkstemp
     tpl: Path
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_mkstemp_impl(PyObject *module, PyObject *tpl)
-/*[clinic end generated code: output=b15c3ed97b57b1df input=2a3626ee35287ceb]*/
+/*[clinic end generated code: output=66432e2abd6de73b input=2a3626ee35287ceb]*/
 {
-    return (PyObject *) Fs_mkstemp(PyBytes_AS_STRING(tpl));
+    return (PyObject *) fs_mkstemp(PyBytes_AS_STRING(tpl));
 }
 
 /*[clinic input]
@@ -498,11 +469,11 @@ promisedio.scandir
     path: Path
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_scandir_impl(PyObject *module, PyObject *path)
-/*[clinic end generated code: output=baf725f1c4b89c4e input=3f1532296bde072c]*/
+/*[clinic end generated code: output=7649a68b578af592 input=3f1532296bde072c]*/
 {
-    return (PyObject *) Fs_scandir(PyBytes_AS_STRING(path));
+    return (PyObject *) fs_scandir(PyBytes_AS_STRING(path));
 }
 
 /*[clinic input]
@@ -511,48 +482,48 @@ promisedio.rename
     new_path: Path
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_rename_impl(PyObject *module, PyObject *path, PyObject *new_path)
-/*[clinic end generated code: output=e1f10cffaf4e78ac input=a8acdd2f39a2e794]*/
+/*[clinic end generated code: output=14602ae10fe18834 input=a8acdd2f39a2e794]*/
 {
-    return (PyObject *) Fs_rename(PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path));
+    return (PyObject *) fs_rename(PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path));
 }
 
 /*[clinic input]
 promisedio.fsync
-    fd: File
+    fd: FD
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_fsync_impl(PyObject *module, int fd)
-/*[clinic end generated code: output=53ec1853d450fac8 input=4cc81acd59ff1d0d]*/
+/*[clinic end generated code: output=d45b2fa19537741f input=be3ce52521d64549]*/
 {
-    return (PyObject *) Fs_fsync(fd);
+    return (PyObject *) fs_fsync(fd);
 }
 
 /*[clinic input]
 promisedio.ftruncate
-    fd: File
-    length: Py_ssize_t
+    fd: FD
+    length: ssize_t
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_ftruncate_impl(PyObject *module, int fd, Py_ssize_t length)
-/*[clinic end generated code: output=5cf1eb0c1a81d227 input=62973f429c4c2d3e]*/
+/*[clinic end generated code: output=8d27f754e1c81c99 input=bf1b1a55b2d4ab63]*/
 {
-    return (PyObject *) Fs_ftruncate(fd, length);
+    return (PyObject *) fs_ftruncate(fd, length);
 }
 
 /*[clinic input]
 promisedio.fdatasync
-    fd: File
+    fd: FD
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_fdatasync_impl(PyObject *module, int fd)
-/*[clinic end generated code: output=af4e82430b83379e input=7083f115af028b83]*/
+/*[clinic end generated code: output=d9327260948d82ea input=b745be78bc1b2a57]*/
 {
-    return (PyObject *) Fs_fdatasync(fd);
+    return (PyObject *) fs_fdatasync(fd);
 }
 
 /*[clinic input]
@@ -562,28 +533,28 @@ promisedio.copyfile
     flags: int = 0
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_copyfile_impl(PyObject *module, PyObject *path,
                          PyObject *new_path, int flags)
-/*[clinic end generated code: output=2f0c7b81477c4d1d input=6042223cbe47d6f3]*/
+/*[clinic end generated code: output=1ef924c579f2a771 input=6042223cbe47d6f3]*/
 {
-    return (PyObject *) Fs_copyfile(PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path), flags);
+    return (PyObject *) fs_copyfile(PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path), flags);
 }
 
 /*[clinic input]
 promisedio.sendfile
-    out_fd: File
-    in_fd: File
-    offset: Py_off_t
-    count: Py_ssize_t
+    out_fd: FD
+    in_fd: FD
+    offset: off_t
+    count: ssize_t
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_sendfile_impl(PyObject *module, int out_fd, int in_fd,
                          Py_off_t offset, Py_ssize_t count)
-/*[clinic end generated code: output=b923801061026b96 input=985be2863e29b81d]*/
+/*[clinic end generated code: output=4c7a33fd423b16d4 input=1c0436b68a935ecb]*/
 {
-    return (PyObject *) Fs_sendfile(out_fd, in_fd, offset, count);
+    return (PyObject *) fs_sendfile(out_fd, in_fd, offset, count);
 }
 
 /*[clinic input]
@@ -592,11 +563,11 @@ promisedio.access
     mode: int
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_access_impl(PyObject *module, PyObject *path, int mode)
-/*[clinic end generated code: output=72c3aad178635ebc input=f073207770803da8]*/
+/*[clinic end generated code: output=91c7c8ec28d7fc6e input=f073207770803da8]*/
 {
-    return (PyObject *) Fs_access(PyBytes_AS_STRING(path), mode);
+    return (PyObject *) fs_access(PyBytes_AS_STRING(path), mode);
 }
 
 /*[clinic input]
@@ -605,24 +576,24 @@ promisedio.chmod
     mode: int
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_chmod_impl(PyObject *module, PyObject *path, int mode)
-/*[clinic end generated code: output=8ca2aac3be1d8e63 input=abc0615429085635]*/
+/*[clinic end generated code: output=7448ff201c6d4a07 input=abc0615429085635]*/
 {
-    return (PyObject *) Fs_chmod(PyBytes_AS_STRING(path), mode);
+    return (PyObject *) fs_chmod(PyBytes_AS_STRING(path), mode);
 }
 
 /*[clinic input]
 promisedio.fchmod
-    fd: File
+    fd: FD
     mode: int
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_fchmod_impl(PyObject *module, int fd, int mode)
-/*[clinic end generated code: output=4e93ae801a3a1490 input=1586dd08e22bfef0]*/
+/*[clinic end generated code: output=3c5dd644355ab787 input=b31a3a1aef56a8a6]*/
 {
-    return (PyObject *) Fs_fchmod(fd, mode);
+    return (PyObject *) fs_fchmod(fd, mode);
 }
 
 /*[clinic input]
@@ -634,30 +605,30 @@ promisedio.utime
     follow_symlinks: bool = True
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_utime_impl(PyObject *module, PyObject *path, double atime,
                       double mtime, int follow_symlinks)
-/*[clinic end generated code: output=c3745e3c7cd89cb8 input=fe6f289d1be121b7]*/
+/*[clinic end generated code: output=ba1936e56f90341d input=fe6f289d1be121b7]*/
 {
     if (follow_symlinks) {
-        return (PyObject *) Fs_utime(PyBytes_AS_STRING(path), atime, mtime);
+        return (PyObject *) fs_utime(PyBytes_AS_STRING(path), atime, mtime);
     } else {
-        return (PyObject *) Fs_lutime(PyBytes_AS_STRING(path), atime, mtime);
+        return (PyObject *) fs_lutime(PyBytes_AS_STRING(path), atime, mtime);
     }
 }
 
 /*[clinic input]
 promisedio.futime
-    fd: File
+    fd: FD
     atime: double
     mtime: double
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_futime_impl(PyObject *module, int fd, double atime, double mtime)
-/*[clinic end generated code: output=52d2f312ca87055b input=6799823d206904f6]*/
+/*[clinic end generated code: output=95384ca2e21156b6 input=ca62fd72432c6674]*/
 {
-    return (PyObject *) Fs_futime(fd, atime, mtime);
+    return (PyObject *) fs_futime(fd, atime, mtime);
 }
 
 /*[clinic input]
@@ -666,11 +637,11 @@ promisedio.link
     new_path: Path
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_link_impl(PyObject *module, PyObject *path, PyObject *new_path)
-/*[clinic end generated code: output=1afbef79f6c14811 input=063d87676e3fe9fc]*/
+/*[clinic end generated code: output=072c45f98c1fec26 input=063d87676e3fe9fc]*/
 {
-    return (PyObject *) Fs_link(PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path));
+    return (PyObject *) fs_link(PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path));
 }
 
 /*[clinic input]
@@ -681,12 +652,12 @@ promisedio.symlink
     flags: int = 0
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_symlink_impl(PyObject *module, PyObject *path, PyObject *new_path,
                         int flags)
-/*[clinic end generated code: output=eb5fb90691d7c69a input=842c5a24a3ab8b5a]*/
+/*[clinic end generated code: output=f27c776fb4e967e1 input=842c5a24a3ab8b5a]*/
 {
-    return (PyObject *) Fs_symlink(PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path), flags);
+    return (PyObject *) fs_symlink(PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path), flags);
 }
 
 /*[clinic input]
@@ -694,11 +665,11 @@ promisedio.readlink
     path: Path
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_readlink_impl(PyObject *module, PyObject *path)
-/*[clinic end generated code: output=d2325c5a5efbf14b input=dc317bb4642016c4]*/
+/*[clinic end generated code: output=10d44834592c2911 input=dc317bb4642016c4]*/
 {
-    return (PyObject *) Fs_readlink(PyBytes_AS_STRING(path));
+    return (PyObject *) fs_readlink(PyBytes_AS_STRING(path));
 }
 
 /*[clinic input]
@@ -709,10 +680,10 @@ promisedio.set_timeout
     unref: bool = False
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_set_timeout_impl(PyObject *module, PyObject *func, double timeout,
                             int unref)
-/*[clinic end generated code: output=7830188782121ba5 input=45e7907e13826664]*/
+/*[clinic end generated code: output=2086d3347b1ed122 input=45e7907e13826664]*/
 {
     if (!PyCallable_Check(func)) {
         PyErr_SetString(PyExc_TypeError,
@@ -723,7 +694,7 @@ promisedio_set_timeout_impl(PyObject *module, PyObject *func, double timeout,
         PyErr_SetString(PyExc_ValueError, "timeout must be non-negative");
         return NULL;
     }
-    return Timer_Start(func, (uint64_t)(timeout * 1000), 0, unref);
+    return timer_start(func, (uint64_t) (timeout * 1000), 0, unref);
 }
 
 /*[clinic input]
@@ -734,10 +705,10 @@ promisedio.set_interval
     unref: bool = False
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_set_interval_impl(PyObject *module, PyObject *func,
                              double interval, int unref)
-/*[clinic end generated code: output=61a00a347fe50e29 input=2774738377b73d06]*/
+/*[clinic end generated code: output=3d077e9a8457ac99 input=2774738377b73d06]*/
 {
     if (!PyCallable_Check(func)) {
         PyErr_SetString(PyExc_TypeError,
@@ -749,7 +720,7 @@ promisedio_set_interval_impl(PyObject *module, PyObject *func,
         return NULL;
     }
     uint64_t timeout = (uint64_t)(interval * 1000);
-    return Timer_Start(func, timeout, timeout, unref);
+    return timer_start(func, timeout, timeout, unref);
 }
 
 /*[clinic input]
@@ -757,11 +728,11 @@ promisedio.clear_timeout
     timer: object
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_clear_timeout_impl(PyObject *module, PyObject *timer)
-/*[clinic end generated code: output=0c237737c2271ecb input=8ed924841921741b]*/
+/*[clinic end generated code: output=74e3729a3f1233ad input=8ed924841921741b]*/
 {
-    if (Timer_Stop(timer)) {
+    if (timer_stop(timer)) {
         return NULL;
     }
     Py_RETURN_NONE;
@@ -772,11 +743,11 @@ promisedio.clear_interval
     timer: object
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_clear_interval_impl(PyObject *module, PyObject *timer)
-/*[clinic end generated code: output=61b5703294ec341e input=65a93076b09802c7]*/
+/*[clinic end generated code: output=29696f06cdf7ad77 input=65a93076b09802c7]*/
 {
-    if (Timer_Stop(timer)) {
+    if (timer_stop(timer)) {
         return NULL;
     }
     Py_RETURN_NONE;
@@ -786,22 +757,105 @@ promisedio_clear_interval_impl(PyObject *module, PyObject *timer)
 promisedio.time
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_time_impl(PyObject *module)
-/*[clinic end generated code: output=2e8841c557eac88e input=ef4702cbf9b07e0e]*/
+/*[clinic end generated code: output=f3baf8ebabe0f475 input=ef4702cbf9b07e0e]*/
 {
-    return PyLong_FromUint64_t(uv_now(Loop_Get()));
+    return PyLong_FromUint64_t(uv_now(loop_get()));
 }
 
 /*[clinic input]
 promisedio.hrtime
 [clinic start generated code]*/
 
-static PyObject *
+static inline PyObject *
 promisedio_hrtime_impl(PyObject *module)
-/*[clinic end generated code: output=fb5badbdb221edf9 input=50ec38aaab616da8]*/
+/*[clinic end generated code: output=414b25747aa7f3a3 input=50ec38aaab616da8]*/
 {
     return PyLong_FromUint64_t(uv_hrtime());
+}
+
+/*[clinic input]
+promisedio.getaddrinfo
+    node: cstring(accept={NoneType})
+    service: object
+    family: int = 0
+    type: int = 0
+    proto: int = 0
+    flags: int(c_default="AF_UNSPEC") = 0
+[clinic start generated code]*/
+
+static inline PyObject *
+promisedio_getaddrinfo_impl(PyObject *module, const char *node,
+                            PyObject *service, int family, int type,
+                            int proto, int flags)
+/*[clinic end generated code: output=41fab6a467055122 input=35b209c7ddf4262f]*/
+{
+    char buf[30];
+    const char *service_ptr;
+    if (PyLong_Check(service)) {
+        long value = PyLong_AsLong(service);
+        if (value == -1 && PyErr_Occurred())
+            return NULL;
+        PyOS_snprintf(buf, sizeof(buf), "%ld", value);
+        service_ptr = buf;
+    } else if (!cstring_optional_converter(service, &service_ptr)) {
+        return NULL;
+    }
+    return (PyObject *) ns_getaddrinfo(node, service_ptr, family, type, proto, flags);
+}
+
+/*[clinic input]
+promisedio.getnameinfo
+    sockaddr: object
+    flags: int
+[clinic start generated code]*/
+
+static inline PyObject *
+promisedio_getnameinfo_impl(PyObject *module, PyObject *sockaddr, int flags)
+/*[clinic end generated code: output=100155b57644db4b input=d2d58b701be7cfe5]*/
+{
+    const char *node;
+    if (!PyTuple_Check(sockaddr)) {
+        PyErr_SetString(PyExc_TypeError, "sockaddr must be a tuple");
+        return NULL;
+    }
+    Py_ssize_t sockaddr_size = PyTuple_GET_SIZE(sockaddr);
+    if (sockaddr_size < 2 || sockaddr_size > 4) {
+        PyErr_SetString(PyExc_TypeError, "illegal sockaddr argument");
+        return NULL;
+    }
+    if (!cstring_converter(PyTuple_GET_ITEM(sockaddr, 0), &node))
+        return NULL;
+
+    char buf[30];
+    const char *service;
+    if (PyLong_Check(PyTuple_GET_ITEM(sockaddr, 1))) {
+        long value = PyLong_AsLong(PyTuple_GET_ITEM(sockaddr, 1));
+        if (value == -1 && PyErr_Occurred())
+            return NULL;
+        PyOS_snprintf(buf, sizeof(buf), "%ld", value);
+        service = buf;
+    } else if (!cstring_converter(PyTuple_GET_ITEM(sockaddr, 1), &service))
+        return NULL;
+
+    unsigned int flowinfo, scope_id;
+    flowinfo = scope_id = 0;
+    if (sockaddr_size > 2) {
+        if (!_PyLong_UnsignedInt_Converter(PyTuple_GET_ITEM(sockaddr, 2), &flowinfo))
+            return NULL;
+        if (sockaddr_size > 3) {
+            if (!_PyLong_UnsignedInt_Converter(PyTuple_GET_ITEM(sockaddr, 3), &scope_id))
+                return NULL;
+        }
+    }
+    if (flowinfo > 0xfffff) {
+        PyErr_SetString(PyExc_OverflowError,
+                        "flowinfo must be 0-1048575.");
+        return NULL;
+    }
+
+    return (PyObject *) ns_getnameinfo(node, service, flowinfo, scope_id, flags);
 }
 
 static void
@@ -811,7 +865,7 @@ module_free(PyObject *module)
 
 static struct PyModuleDef promisediomodule = {
     PyModuleDef_HEAD_INIT,
-    "_io",
+    "promisedio",
     NULL,
     -1,
     module_methods,
@@ -828,16 +882,19 @@ PyInit__cext(void)
     if (m == NULL) {
         goto except;
     }
-    if (Promise_module_init()) {
+    if (promise_module_init()) {
         goto except;
     }
-    if (Fs_module_init(m)) {
+    if (fs_module_init(m)) {
         goto except;
     }
-    if (FileIO_module_init()) {
+    if (timer_module_init()) {
         goto except;
     }
-    if (Timer_module_init()) {
+    if (ns_module_init(m)) {
+        goto except;
+    }
+    if (error_module_init(m)) {
         goto except;
     }
     goto finally;
