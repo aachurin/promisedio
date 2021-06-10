@@ -382,136 +382,11 @@ fs_seek(uv_file fd, Py_off_t pos, int how)
     return promise;
 }
 
-static void
-open_stat_callback(uv_fs_t *req)
-{
-    BEGIN_FS_CALLBACK(req)
-    Promise *promise = Request_PROMISE(req);
-    if (req->result < 0) {
-        reject_fs_error(promise, (int) req->result);
-    } else {
-        #if defined(S_ISDIR)
-        if (S_ISDIR(req->statbuf.st_mode)) {
-            reject_fs_error(promise, UV_EISDIR);
-            goto finally;
-        }
-        #endif
-        PyObject *fd = PyLong_FromSsize_t(*Promise_DATA(promise, uv_file));
-        if (!fd) {
-            promise_reject_py_exc(promise);
-        } else {
-            promise_resolve(promise, fd);
-            Py_DECREF(fd);
-        }
-    }
-    finally:
-    END_FS_CALLBACK
-}
-
-static void
-open_callback(uv_fs_t *req)
-{
-    BEGIN_FS_CALLBACK(req)
-    Promise *promise = Request_PROMISE(req);
-    if (req->result < 0) {
-        reject_fs_error(promise, (int) req->result);
-        goto finally;
-    }
-
-    uv_fs_t *nreq = Request_NEW(promise, uv_fs_t);
-    if (!nreq) {
-        promise_reject_py_exc(promise);
-        goto finally;
-    }
-
-    uv_file fd = (uv_file) req->result;
-    *Promise_DATA(promise, uv_file) = fd;
-
-    BEGIN_UV_CALL(uv_fs_fstat, nreq, fd, open_stat_callback)
-        reject_fs_error(promise, error);
-    END_UV_CALL
-
-    finally:
-    END_FS_CALLBACK
-}
-
 Promise *
-fs_open(const char *path, const char *flags, int mode)
+fs_open(const char *path, int flags, int mode)
 {
-    int open_flags = 0, writable = 0, readable = 0;
-
-    for (unsigned long i = 0; i < strlen(flags); i++) {
-        char c = flags[i];
-        switch (c) {
-            case 'x':
-                if (writable || readable) {
-                    bad_mode:
-                    PyErr_SetString(PyExc_ValueError,
-                                    "must have exactly one of create/read/write/append mode");
-                    return NULL;
-                }
-                writable = 1;
-                open_flags |= UV_FS_O_EXCL | UV_FS_O_CREAT;
-                break;
-            case 'r':
-                if (writable || readable) {
-                    goto bad_mode;
-                }
-                readable = 1;
-                break;
-            case 'w':
-                if (writable || readable) {
-                    goto bad_mode;
-                }
-                writable = 1;
-                open_flags |= UV_FS_O_CREAT | UV_FS_O_TRUNC;
-                break;
-            case 'a':
-                if (writable || readable) {
-                    goto bad_mode;
-                }
-                writable = 1;
-                open_flags |= UV_FS_O_APPEND | UV_FS_O_CREAT;
-                break;
-            case '+':
-                writable = 1;
-                break;
-            case 'b':
-                break;
-            default:
-                goto invalid_mode;
-        }
-
-        /* c must not be duplicated */
-        if (strchr(flags + i + 1, c)) {
-            invalid_mode:
-            PyErr_Format(PyExc_ValueError, "invalid mode: '%s'", mode);
-            return NULL;
-        }
-    }
-
-    if (readable && writable) {
-        open_flags |= UV_FS_O_RDWR;
-    } else if (readable) {
-        open_flags |= UV_FS_O_RDONLY;
-    } else if (writable) {
-        open_flags |= UV_FS_O_WRONLY;
-    } else {
-        goto bad_mode;
-    }
-
-    #ifdef O_BINARY
-    open_flags |= O_BINARY;
-    #endif
-
-    #ifdef MS_WINDOWS
-    open_flags |= O_NOINHERIT;
-    #else
-    open_flags |= O_CLOEXEC;
-    #endif
-
     Promise *promise;
-    UV_FS_PROXY_CALL(promise, uv_fs_open, path, open_flags, mode, open_callback);
+    UV_FS_PROXY_CALL(promise, uv_fs_open, path, flags, mode, int_callback);
     return promise;
 }
 
@@ -1231,21 +1106,66 @@ fileio_new(int fd, int closefd)
     return fileobj;
 }
 
-static FileIO *
-fileio_open_callback(void *ctx, PyObject *value)
+static void
+open_stat_callback(uv_fs_t *req)
 {
-    FileIO *fileobj = fileio_new(_PyLong_AsInt(value), 1);
-    return fileobj;
+    BEGIN_FS_CALLBACK(req)
+    Promise *promise = Request_PROMISE(req);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
+        goto finally;
+    }
+#if defined(S_ISDIR)
+    if (S_ISDIR(req->statbuf.st_mode)) {
+        reject_fs_error(promise, UV_EISDIR);
+        goto finally;
+    }
+#endif
+    PyObject *fileobj = (PyObject *) fileio_new(*Promise_DATA(promise, uv_file), 1);
+    if (!fileobj) {
+        promise_reject_py_exc(promise);
+        goto finally;
+    }
+
+    promise_resolve(promise, fileobj);
+    Py_DECREF(fileobj);
+
+    finally:
+    END_FS_CALLBACK
+}
+
+static void
+open_callback(uv_fs_t *req)
+{
+    BEGIN_FS_CALLBACK(req)
+    Promise *promise = Request_PROMISE(req);
+    if (req->result < 0) {
+        reject_fs_error(promise, (int) req->result);
+        goto finally;
+    }
+
+    uv_fs_t *nreq = Request_NEW(promise, uv_fs_t);
+    if (!nreq) {
+        promise_reject_py_exc(promise);
+        goto finally;
+    }
+
+    uv_file fd = (uv_file) req->result;
+    *Promise_DATA(promise, uv_file) = fd;
+
+    BEGIN_UV_CALL(uv_fs_fstat, nreq, fd, open_stat_callback)
+        reject_fs_error(promise, error);
+    END_UV_CALL
+
+    finally:
+    END_FS_CALLBACK
 }
 
 Promise *
-fs_fileio_open(const char *path, const char *flags)
+fs_fileio_open(const char *path, int flags, int mode)
 {
-    Promise *promise = fs_open(path, flags, 0666);
-    if (!promise) {
-        return NULL;
-    }
-    Promise_CALLBACK(promise, fileio_open_callback, NULL, NULL);
+    Promise *promise;
+    UV_FS_PROXY_CALL(promise, uv_fs_open, path, flags, mode, open_callback);
     return promise;
 }
 
@@ -1285,6 +1205,50 @@ fs_module_init(PyObject *module)
     if (PyModule_AddIntConstant(module, "W_OK", W_OK))
         return -1;
     if (PyModule_AddIntConstant(module, "X_OK", X_OK))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_APPEND", UV_FS_O_APPEND))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_CREAT", UV_FS_O_CREAT))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_EXCL", UV_FS_O_EXCL))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_FILEMAP", UV_FS_O_FILEMAP))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_RANDOM", UV_FS_O_RANDOM))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_RDONLY", UV_FS_O_RDONLY))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_RDWR", UV_FS_O_RDWR))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_SEQUENTIAL", UV_FS_O_SEQUENTIAL))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_SHORT_LIVED", UV_FS_O_SHORT_LIVED))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_TEMPORARY", UV_FS_O_TEMPORARY))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_TRUNC", UV_FS_O_TRUNC))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_WRONLY", UV_FS_O_WRONLY))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_DIRECT", UV_FS_O_DIRECT))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_DIRECTORY", UV_FS_O_DIRECTORY))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_DSYNC", UV_FS_O_DSYNC))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_EXLOCK", UV_FS_O_EXLOCK))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_NOATIME", UV_FS_O_NOATIME))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_NOCTTY", UV_FS_O_NOCTTY))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_NOFOLLOW", UV_FS_O_NOFOLLOW))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_NONBLOCK", UV_FS_O_NONBLOCK))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_SYMLINK", UV_FS_O_SYMLINK))
+        return -1;
+    if (PyModule_AddIntConstant(module, "O_SYNC", UV_FS_O_SYNC))
         return -1;
     if (PyModule_AddIntConstant(module, "SYMLINK_DIR", UV_FS_SYMLINK_DIR))
         return -1;

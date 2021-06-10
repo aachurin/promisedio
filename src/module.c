@@ -297,15 +297,81 @@ promisedio_seek_impl(PyObject *module, int fd, Py_off_t pos, int how)
 /*[clinic input]
 promisedio.open
     path: object
-    flags: cstring = "r"
+    mode: cstring = "r"
     closefd: bool(accept={int}) = True
 [clinic start generated code]*/
 
 static inline PyObject *
-promisedio_open_impl(PyObject *module, PyObject *path, const char *flags,
+promisedio_open_impl(PyObject *module, PyObject *path, const char *mode,
                      int closefd)
-/*[clinic end generated code: output=be30497ea6c56495 input=991d28e6eccffe1c]*/
+/*[clinic end generated code: output=34f76cdf6bcb530f input=0fdc7e0229624ef2]*/
 {
+    int flags = 0, writable = 0, readable = 0;
+
+    for (unsigned long i = 0; i < strlen(mode); i++) {
+        char c = mode[i];
+        switch (c) {
+            case 'x':
+                if (writable || readable) {
+                    bad_mode:
+                    PyErr_SetString(PyExc_ValueError,
+                                    "must have exactly one of create/read/write/append mode");
+                    return NULL;
+                }
+                writable = 1;
+                flags |= UV_FS_O_EXCL | UV_FS_O_CREAT;
+                break;
+            case 'r':
+                if (writable || readable) {
+                    goto bad_mode;
+                }
+                readable = 1;
+                break;
+            case 'w':
+                if (writable || readable) {
+                    goto bad_mode;
+                }
+                writable = 1;
+                flags |= UV_FS_O_CREAT | UV_FS_O_TRUNC;
+                break;
+            case 'a':
+                if (writable || readable) {
+                    goto bad_mode;
+                }
+                writable = 1;
+                flags |= UV_FS_O_APPEND | UV_FS_O_CREAT;
+                break;
+            case '+':
+                writable = 1;
+                break;
+            case 'b':
+                break;
+            default:
+                goto invalid_mode;
+        }
+
+        /* c must not be duplicated */
+        if (strchr(mode + i + 1, c)) {
+            invalid_mode:
+            PyErr_Format(PyExc_ValueError, "invalid mode: '%s'", mode);
+            return NULL;
+        }
+    }
+
+    if (readable && writable) {
+        flags |= UV_FS_O_RDWR;
+    } else if (readable) {
+        flags |= UV_FS_O_RDONLY;
+    } else if (writable) {
+        flags |= UV_FS_O_WRONLY;
+    } else {
+        goto bad_mode;
+    }
+
+#ifdef O_NOINHERIT
+    flags |= O_NOINHERIT;
+#endif
+
     if (PyNumber_Check(path)) {
         int fd = _PyLong_AsInt(path);
         if (fd < 0) {
@@ -319,15 +385,18 @@ promisedio_open_impl(PyObject *module, PyObject *path, const char *flags,
             return NULL;
         return (PyObject *) promise_new_resolved((PyObject *) fileobj);
     }
+
     if (!closefd) {
         PyErr_SetString(PyExc_ValueError, "Cannot use closefd=False with file name");
         return NULL;
     }
+
     PyObject *fspath;
     if (!PyUnicode_FSConverter(path, &fspath)) {
         return NULL;
     }
-    PyObject *result = (PyObject *) fs_fileio_open(PyBytes_AS_STRING(fspath), flags);
+
+    PyObject *result = (PyObject *) fs_fileio_open(PyBytes_AS_STRING(fspath), flags, 0666);
     Py_DECREF(fspath);
 
     return result;
@@ -336,14 +405,13 @@ promisedio_open_impl(PyObject *module, PyObject *path, const char *flags,
 /*[clinic input]
 promisedio.openfd
     path: Path
-    flags: cstring = "r"
+    flags: int
     mode: int = 0o666
 [clinic start generated code]*/
 
 static inline PyObject *
-promisedio_openfd_impl(PyObject *module, PyObject *path, const char *flags,
-                       int mode)
-/*[clinic end generated code: output=062197276215e6d4 input=25bc023de82be48e]*/
+promisedio_openfd_impl(PyObject *module, PyObject *path, int flags, int mode)
+/*[clinic end generated code: output=71a126f06d138aa4 input=155006b5dc703ddd]*/
 {
     return (PyObject *) fs_open(PyBytes_AS_STRING(path), flags, mode);
 }

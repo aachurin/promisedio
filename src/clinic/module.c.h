@@ -355,7 +355,7 @@ PyDoc_STRVAR(promisedio_fstat__doc__,
 "fstat($module, /, fd)\n"
 "--\n"
 "\n"
-"Get the status of the file descriptor fd. Return a StatObj object.\n"
+"Get the status of the file descriptor fd. Returns a StatObj object.\n"
 "\n"
 "Equivalent to [fstat(2)](https://man7.org/linux/man-pages/man2/fstat.2.html).");
 
@@ -443,7 +443,7 @@ exit:
 }
 
 PyDoc_STRVAR(promisedio_open__doc__,
-"open($module, /, path, flags=\'r\', closefd=True)\n"
+"open($module, /, path, mode=\'r\', closefd=True)\n"
 "--\n"
 "\n"
 "Open file and return a corresponding file object. If the file cannot be opened, an OSError is raised. \n"
@@ -454,19 +454,19 @@ PyDoc_STRVAR(promisedio_open__doc__,
     {"open", (PyCFunction)(void(*)(void))promisedio_open, METH_FASTCALL|METH_KEYWORDS, promisedio_open__doc__},
 
 static inline PyObject *
-promisedio_open_impl(PyObject *module, PyObject *path, const char *flags,
+promisedio_open_impl(PyObject *module, PyObject *path, const char *mode,
                      int closefd);
 
 static PyObject *
 promisedio_open(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"path", "flags", "closefd", NULL};
+    static const char * const _keywords[] = {"path", "mode", "closefd", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "open", 0};
     PyObject *argsbuf[3];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     PyObject *path;
-    const char *flags = "r";
+    const char *mode = "r";
     int closefd = 1;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 3, 0, argsbuf);
@@ -478,7 +478,7 @@ promisedio_open(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
         goto skip_optional_pos;
     }
     if (args[1]) {
-        if (!cstring_converter(args[1], &flags)) {
+        if (!cstring_converter(args[1], &mode)) {
             goto exit;
         }
         if (!--noptargs) {
@@ -495,14 +495,14 @@ promisedio_open(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
         goto exit;
     }
 skip_optional_pos:
-    return_value = promisedio_open_impl(module, path, flags, closefd);
+    return_value = promisedio_open_impl(module, path, mode, closefd);
 
 exit:
     return return_value;
 }
 
 PyDoc_STRVAR(promisedio_openfd__doc__,
-"openfd($module, /, path, flags=\'r\', mode=438)\n"
+"openfd($module, /, path, flags, mode=438)\n"
 "--\n"
 "\n"
 "Open the file path and set various flags according to flags and possibly its mode according to mode. \n"
@@ -514,8 +514,7 @@ PyDoc_STRVAR(promisedio_openfd__doc__,
     {"openfd", (PyCFunction)(void(*)(void))promisedio_openfd, METH_FASTCALL|METH_KEYWORDS, promisedio_openfd__doc__},
 
 static inline PyObject *
-promisedio_openfd_impl(PyObject *module, PyObject *path, const char *flags,
-                       int mode);
+promisedio_openfd_impl(PyObject *module, PyObject *path, int flags, int mode);
 
 static PyObject *
 promisedio_openfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
@@ -524,28 +523,29 @@ promisedio_openfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     static const char * const _keywords[] = {"path", "flags", "mode", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "openfd", 0};
     PyObject *argsbuf[3];
-    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
     PyObject *path = NULL;
-    const char *flags = "r";
+    int flags;
     int mode = 438;
 
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 3, 0, argsbuf);
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 3, 0, argsbuf);
     if (!args) {
         goto exit;
     }
     if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
+    if (PyFloat_Check(args[1])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
+    flags = _PyLong_AsInt(args[1]);
+    if (flags == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
     if (!noptargs) {
         goto skip_optional_pos;
-    }
-    if (args[1]) {
-        if (!cstring_converter(args[1], &flags)) {
-            goto exit;
-        }
-        if (!--noptargs) {
-            goto skip_optional_pos;
-        }
     }
     if (PyFloat_Check(args[2])) {
         PyErr_SetString(PyExc_TypeError,
@@ -1814,7 +1814,7 @@ PyDoc_STRVAR(promisedio_time__doc__,
 "time($module, /)\n"
 "--\n"
 "\n"
-"Return the current timestamp in milliseconds. \n"
+"Returns the current timestamp in milliseconds. \n"
 "The timestamp is cached at the start of the event loop tick.");
 
 #define PROMISEDIO_TIME_METHODDEF    \
@@ -1995,4 +1995,4 @@ promisedio_getnameinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=6ea8af07d347b6b1 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=c47f88e0d75d905c input=a9049054013a1b77]*/

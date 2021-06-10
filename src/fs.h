@@ -11,23 +11,18 @@
 #include "loop.h"
 #include "memory.h"
 
-#ifndef MS_WINDOWS
-    #ifndef O_CLOEXEC
-        #error O_CLOEXEC not supported
-    #endif
-#endif
-
 typedef struct {
     PyObject_HEAD
     uv_stat_t st;
 } Stat;
 
 void fs_set_error(int error);
+int convert_open_flags(const char *flags, int* open_flags);
 
 Promise * fs_stat(const char *path);
 Promise * fs_lstat(const char *path);
 Promise * fs_fstat(int fd);
-Promise * fs_open(const char *path, const char *flags, int mode);
+Promise * fs_open(const char *path, int flags, int mode);
 Promise * fs_read(int fd, Py_ssize_t size, Py_off_t offset);
 Promise * fs_readall(int fd);
 Promise * fs_write(int fd, PyObject *data, Py_off_t offset);
@@ -68,7 +63,7 @@ typedef struct {
 } FileIO;
 
 FileIO * fileio_new(int fd, int closefd);
-Promise * fs_fileio_open(const char *path, const char *flags);
+Promise * fs_fileio_open(const char *path, int flags, int mode);
 
 int fs_module_init(PyObject *module);
 
