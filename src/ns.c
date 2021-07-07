@@ -5,6 +5,7 @@
 #include "memory.h"
 #include "loop.h"
 #include "utils.h"
+#include "chain.h"
 #include "python/socketmodule.h"
 
 typedef struct stream_s Stream;

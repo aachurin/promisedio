@@ -245,7 +245,7 @@ static int
 promise_traverse(Promise *self, visitproc visit, void *arg)
 {
     Py_VISIT(Chain_HEAD(self));
-    Py_VISIT(Chain_NODE_NEXT(self));
+    Py_VISIT(Chain_NEXT(self));
     Py_VISIT(self->value);
     // coro, context, fulfilled and rejected normally should be NULL
     Py_VISIT(self->coro);
@@ -261,7 +261,7 @@ static int
 promise_clear(Promise *self)
 {
     Py_CLEAR(Chain_HEAD(self));
-    Py_CLEAR(Chain_NODE_NEXT(self));
+    Py_CLEAR(Chain_NEXT(self));
     Py_CLEAR(self->value);
     // coro, context, fulfilled and rejected normally should be NULL
     Py_CLEAR(self->coro);

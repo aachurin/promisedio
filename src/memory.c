@@ -35,6 +35,6 @@ void
 handle__on_close(uv_handle_t *handle)
 {
     ACQUIRE_GIL
-    Mem_Free(handle);
+    Mem_Free(handle->data);
     RELEASE_GIL
 }

@@ -37,14 +37,14 @@ typedef struct {
 #define Chain_APPEND(c, n) Chain__ADD(c, n, n)
 #define Chain_EXTEND(c, cc) Chain__ADD(c, (cc)->Chain__HEAD_FIELD, (cc)->Chain__TAIL_FIELD)
 #define Chain_HEAD(c) ((c)->Chain__HEAD_FIELD)
-#define Chain_NODE_NEXT(n) ((n)->Chain__NEXT_FIELD)
+#define Chain_NEXT(n) ((n)->Chain__NEXT_FIELD)
 #define Chain_FOREACH(n, c)                                         \
-  for ((n) = Chain_HEAD(c); (n) != NULL; (n) = Chain_NODE_NEXT(n))
+  for ((n) = Chain_HEAD(c); (n) != NULL; (n) = Chain_NEXT(n))
 
 #define Chain_CLEAR(n, c)                                           \
   while ((n) = Chain_HEAD(c),                                       \
-         Chain_HEAD(c) = (n) ? Chain_NODE_NEXT(n): NULL,            \
-         (n) ? Chain_NODE_NEXT(n) = NULL : 0,                       \
+         Chain_HEAD(c) = (n) ? Chain_NEXT(n): NULL,            \
+         (n) ? Chain_NEXT(n) = NULL : 0,                       \
          (n))
 
 #endif /* CHAIN_H */

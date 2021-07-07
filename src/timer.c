@@ -15,7 +15,7 @@ static void
 timeout_callback(uv_timer_t *handle)
 {
     ACQUIRE_GIL
-    promise_resolve((Promise *) handle_container(timeout_handle_t, handle)->promise, Py_None);
+    promise_resolve(handle_container(timeout_handle_t, handle)->promise, Py_None);
     close_handle((uv_handle_t *) handle);
     RELEASE_GIL
 }
