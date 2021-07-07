@@ -4,20 +4,13 @@
 #ifndef FS_H
 #define FS_H
 
-#include <Python.h>
-#include <uv.h>
 #include "common.h"
 #include "promise.h"
-#include "loop.h"
-#include "memory.h"
 
 typedef struct {
     PyObject_HEAD
     uv_stat_t st;
 } Stat;
-
-void fs_set_error(int error);
-int convert_open_flags(const char *flags, int* open_flags);
 
 Promise * fs_stat(const char *path);
 Promise * fs_lstat(const char *path);
@@ -51,6 +44,7 @@ Promise * fs_symlink(const char *path, const char *new_path, int flags);
 Promise * fs_readlink(const char *path);
 
 #ifndef MS_WINDOWS
+// TODO:
 Promise * fs_chown(const char *path, uv_uid_t uid, uv_gid_t gid);
 Promise * fs_fchown(int fd, uv_uid_t uid, uv_gid_t gid);
 Promise * fs_lchown(const char *path, uv_uid_t uid, uv_gid_t gid);

@@ -5,6 +5,8 @@ find_package(PythonLibs 3.9 REQUIRED)
 
 set(CMAKE_C_STANDARD 11)
 
+message(STATUS "${PYTHON_INCLUDE_DIRS}")
+
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(/usr/local/Cellar/libuv/1.41.0/include)
 include_directories(src)

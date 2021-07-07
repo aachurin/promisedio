@@ -10,6 +10,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <uv.h>
 #include <errno.h>
 #include <Python.h>
 

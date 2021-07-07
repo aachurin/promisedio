@@ -4,6 +4,9 @@
 #ifndef PROMISE_H
 #define PROMISE_H
 
+#include "common.h"
+#include "chain.h"
+
 #define Promise_CALLBACK(promise, fulfilled, rejected, context) \
     promise_callback(promise, (promisecallback) fulfilled, (promisecallback) rejected, (PyObject *) context)
 
@@ -15,9 +18,8 @@ typedef struct promise_s Promise;
 
 struct promise_s {
     PyObject_HEAD
-    Promise *next;              // next promise in the chain
-    Promise *head;              // own promise chain head
-    Promise *tail;              // own promise chain tail
+    Chain_PROTOCOL(Promise)
+    Chain_NODE_PROTOCOL(Promise)
     PyObject *fulfilled;
     PyObject *rejected;
     PyObject *coro;
@@ -51,6 +53,7 @@ void promise_clear_chain();
 int promise_process_chain();
 int promise_exec_async(PyObject* coro);
 void promise_print_unhandled_exception();
+void promise_clear_freelists();
 int promise_module_init();
 
 #endif

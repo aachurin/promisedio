@@ -4,42 +4,28 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <Python.h>
-#include <uv.h>
 #include "common.h"
 #include "promise.h"
 
-#define INIT_PROMISE_AND_REQ(promise, req, req_type)    \
-    (req) = NULL;                                       \
-    (promise) = promise_new();                          \
-    if (promise) {                                      \
-        req = Request_NEW(promise, req_type);           \
-        if (!(req)) {                                   \
-            Py_DECREF(promise);                         \
-            promise = NULL;                             \
-        }                                               \
+#define INIT_DEFAULT_LOOP(loop)                             \
+    uv_loop_t *loop = loop_get();
+
+#define INIT_PROMISE_AND_REQUEST(req_type, req, promise)    \
+    Promise *promise = promise_new();                       \
+    if (!promise)                                           \
+        return NULL;                                        \
+    req_type *req = Request_New(req_type, promise);         \
+    if (!req) {                                             \
+        Py_DECREF(promise);                                 \
+        return NULL;                                        \
     }
 
-//#define UV_CALL_START(func, req, ...) {      \
-//    uv_loop_t *_loop = loop_get();           \
-//    int error;                               \
-//    Py_BEGIN_ALLOW_THREADS                   \
-//    error = func(_loop, req, __VA_ARGS__);   \
-//    Py_END_ALLOW_THREADS
-//
-//#define ON_ERROR if (error < 0)
-//#define UV_CALL_END }
-
-#define BEGIN_UV_CALL(func, req, ...) {      \
-    uv_loop_t *_loop = loop_get();           \
-    int error;                               \
-    Py_BEGIN_ALLOW_THREADS                   \
-    error = func(_loop, req, __VA_ARGS__);   \
-    Py_END_ALLOW_THREADS                     \
-    if (error < 0) {                         \
-        Request_CLOSE(req);
-
-#define END_UV_CALL }}
+#define UV_REQUEST(func, ...)                               \
+    int error;                                              \
+    Py_BEGIN_ALLOW_THREADS                                  \
+    error = func(__VA_ARGS__);                              \
+    Py_END_ALLOW_THREADS                                    \
+    if (error < 0)
 
 static inline void
 set_uv_error(PyObject *exc, int uverr)

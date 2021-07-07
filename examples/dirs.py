@@ -1,3 +1,4 @@
+from promisedio import _getallocatedobjectscount
 from promisedio import exec_async, run, fs
 
 
@@ -13,12 +14,14 @@ async def example2():
     await fs.rmdir(name)
 
 
+print("ALLOCS", _getallocatedobjectscount())
+
 exec_async(example1())
+
+print("ALLOCS", _getallocatedobjectscount())
+
 exec_async(example2())
 
 run()
 
-# uncomment to see debug info
-from promisedio import _getallocatedobjectscount, _printmeminfo
-print(_getallocatedobjectscount())
-_printmeminfo()
+print("ALLOCS", _getallocatedobjectscount())

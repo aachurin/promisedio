@@ -22,26 +22,6 @@ promisedio__getallocatedobjectscount(PyObject *module, PyObject *Py_UNUSED(ignor
     return promisedio__getallocatedobjectscount_impl(module);
 }
 
-PyDoc_STRVAR(promisedio__printmeminfo__doc__,
-"_printmeminfo($module, /)\n"
-"--\n"
-"\n"
-"Memory debug info\n"
-"\n"
-"");
-
-#define PROMISEDIO__PRINTMEMINFO_METHODDEF    \
-    {"_printmeminfo", (PyCFunction)promisedio__printmeminfo, METH_NOARGS, promisedio__printmeminfo__doc__},
-
-static inline PyObject *
-promisedio__printmeminfo_impl(PyObject *module);
-
-static PyObject *
-promisedio__printmeminfo(PyObject *module, PyObject *Py_UNUSED(ignored))
-{
-    return promisedio__printmeminfo_impl(module);
-}
-
 PyDoc_STRVAR(promisedio__clearfreelists__doc__,
 "_clearfreelists($module, /)\n"
 "--\n"
@@ -1876,10 +1856,10 @@ promisedio_getaddrinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
     const char *node = NULL;
     PyObject *service;
-    int family = 0;
+    int family = AF_UNSPEC;
     int type = 0;
     int proto = 0;
-    int flags = AF_UNSPEC;
+    int flags = 0;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 6, 0, argsbuf);
     if (!args) {
@@ -1964,7 +1944,8 @@ PyDoc_STRVAR(promisedio_getnameinfo__doc__,
     {"getnameinfo", (PyCFunction)(void(*)(void))promisedio_getnameinfo, METH_FASTCALL|METH_KEYWORDS, promisedio_getnameinfo__doc__},
 
 static inline PyObject *
-promisedio_getnameinfo_impl(PyObject *module, PyObject *sockaddr, int flags);
+promisedio_getnameinfo_impl(PyObject *module, sockaddr_any *sockaddr,
+                            int flags);
 
 static PyObject *
 promisedio_getnameinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
@@ -1973,14 +1954,16 @@ promisedio_getnameinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs
     static const char * const _keywords[] = {"sockaddr", "flags", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "getnameinfo", 0};
     PyObject *argsbuf[2];
-    PyObject *sockaddr;
+    sockaddr_any sockaddr;
     int flags;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
     if (!args) {
         goto exit;
     }
-    sockaddr = args[0];
+    if (!inet_addr_converter(args[0], &sockaddr)) {
+        goto exit;
+    }
     if (PyFloat_Check(args[1])) {
         PyErr_SetString(PyExc_TypeError,
                         "integer argument expected, got float" );
@@ -1990,9 +1973,9 @@ promisedio_getnameinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs
     if (flags == -1 && PyErr_Occurred()) {
         goto exit;
     }
-    return_value = promisedio_getnameinfo_impl(module, sockaddr, flags);
+    return_value = promisedio_getnameinfo_impl(module, &sockaddr, flags);
 
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=c47f88e0d75d905c input=a9049054013a1b77]*/
+/*[clinic end generated code: output=831eb35389a41ecf input=a9049054013a1b77]*/

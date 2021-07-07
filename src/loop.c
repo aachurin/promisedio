@@ -1,10 +1,9 @@
 // Copyright (c) 2021 Andrey Churin (aachurin@gmail.com).
 // This file is part of promisedio
 
-#include "common.h"
+#include "loop.h"
 #include "promise.h"
 #include "memory.h"
-#include "loop.h"
 
 static volatile int loop_running = 0;
 static volatile int loop_initialised = 0;
@@ -113,7 +112,11 @@ finalise_loop(uv_loop_t *loop)
 static void
 loop_close_handle(uv_handle_t* handle, void* arg)
 {
-    Handle_CLOSE(handle);
+    if (handle->data) {
+        close_handle(handle);
+    } else if (!uv_is_closing(handle)) {
+        uv_close(handle, NULL);
+    }
 }
 
 int
@@ -171,9 +174,12 @@ loop_run()
     }
     Py_END_ALLOW_THREADS
 
+    LOG("loop_stop() -> %p", loop);
+
     loop_running = 0;
     if (PyErr_Occurred()) {
         return -1;
     }
+
     return 0;
 }

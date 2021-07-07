@@ -1,7 +1,6 @@
 import os
 from . _cext import (
     _getallocatedobjectscount,
-    _printmeminfo,
     process_promise_chain,
     deferred,
     exec_async,

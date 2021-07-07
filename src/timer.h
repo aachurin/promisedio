@@ -6,7 +6,6 @@
 
 #include "common.h"
 #include "promise.h"
-#include <uv.h>
 
 Promise * timer_timeout(uint64_t timeout);
 PyObject * timer_start(PyObject *func, uint64_t timeout, uint64_t repeat, int unref);

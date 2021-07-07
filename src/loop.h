@@ -4,7 +4,7 @@
 #ifndef LOOP_H
 #define LOOP_H
 
-#include <uv.h>
+#include "common.h"
 
 typedef struct {
     int use_python_default_sigint;

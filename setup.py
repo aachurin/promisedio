@@ -3,17 +3,22 @@ from setuptools import setup
 from setuptools.extension import Extension
 
 
-if os.environ.get("BUILD_WITH_DEBUG"):
-    define_macros = [("DEBUG_OUTPUT", "stderr")]
-    undef_macros = ["NDEBUG"]
-else:
-    define_macros = []
-    undef_macros = []
+define_macros = {}
+undef_macros = []
+env = os.environ.get
+
+if env("BUILD_WITH_DEBUG"):
+    define_macros["DEBUG_OUTPUT"] = "stderr"
+    define_macros["DEBUG_MEM"] = "1"
+    undef_macros += ["NDEBUG"]
+
+if env("DISABLE_FREELISTS"):
+    define_macros["DISABLE_FREELISTS"] = "1"
 
 extensions = [
     Extension(
         "promisedio._cext",
-        define_macros=define_macros,
+        define_macros=list(define_macros.items()),
         undef_macros=undef_macros,
         sources=[
             "src/memory.c",

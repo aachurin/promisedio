@@ -117,5 +117,11 @@ class off_t_converter(CConverter):
     converter = "off_t_converter"
 
 
+class inet_addr_converter(CConverter):
+    type = "sockaddr_any"
+    converter = "inet_addr_converter"
+    impl_by_reference = True
+
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

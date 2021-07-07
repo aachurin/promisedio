@@ -24,6 +24,5 @@ exec_async(example1(5))
 run()
 
 # uncomment to see debug info
-from promisedio import _getallocatedobjectscount, _printmeminfo
+from promisedio import _getallocatedobjectscount
 print(_getallocatedobjectscount())
-_printmeminfo()

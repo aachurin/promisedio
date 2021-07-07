@@ -3,6 +3,7 @@
 
 #include <uv.h>
 #include "common.h"
+#include "memory.h"
 #include "promise.h"
 #include "timer.h"
 #include "fs.h"
@@ -14,7 +15,6 @@
 
 static PyMethodDef module_methods[] = {
     PROMISEDIO__GETALLOCATEDOBJECTSCOUNT_METHODDEF
-    PROMISEDIO__PRINTMEMINFO_METHODDEF
     PROMISEDIO__CLEARFREELISTS_METHODDEF
     PROMISEDIO_PROCESS_PROMISE_CHAIN_METHODDEF
     PROMISEDIO_DEFERRED_METHODDEF
@@ -79,21 +79,7 @@ static inline PyObject *
 promisedio__getallocatedobjectscount_impl(PyObject *module)
 /*[clinic end generated code: output=78ee3f549d41f1ec input=3653fe3582a0c7df]*/
 {
-    return PyLong_FromSize_t(mem_alloc_count());
-}
-
-/*[clinic input]
-promisedio._printmeminfo
-
-Memory debug info
-[clinic start generated code]*/
-
-static inline PyObject *
-promisedio__printmeminfo_impl(PyObject *module)
-/*[clinic end generated code: output=4672078ac623b846 input=8411c0de2085c335]*/
-{
-    mem_debug_info();
-    Py_RETURN_NONE;
+    return PyLong_FromSize_t(get_mem_allocs());
 }
 
 /*[clinic input]
@@ -106,7 +92,7 @@ static inline PyObject *
 promisedio__clearfreelists_impl(PyObject *module)
 /*[clinic end generated code: output=c018206e005ea267 input=5134b1016c9494a9]*/
 {
-    mem_clear_freelists();
+    promise_clear_freelists();
     Py_RETURN_NONE;
 }
 
@@ -847,17 +833,17 @@ promisedio_hrtime_impl(PyObject *module)
 promisedio.getaddrinfo
     node: cstring(accept={NoneType})
     service: object
-    family: int = 0
+    family: int(c_default="AF_UNSPEC") = 0
     type: int = 0
     proto: int = 0
-    flags: int(c_default="AF_UNSPEC") = 0
+    flags: int = 0
 [clinic start generated code]*/
 
 static inline PyObject *
 promisedio_getaddrinfo_impl(PyObject *module, const char *node,
                             PyObject *service, int family, int type,
                             int proto, int flags)
-/*[clinic end generated code: output=41fab6a467055122 input=35b209c7ddf4262f]*/
+/*[clinic end generated code: output=41fab6a467055122 input=f4f624ce2fceb6df]*/
 {
     char buf[30];
     const char *service_ptr;
@@ -875,55 +861,16 @@ promisedio_getaddrinfo_impl(PyObject *module, const char *node,
 
 /*[clinic input]
 promisedio.getnameinfo
-    sockaddr: object
+    sockaddr: inet_addr
     flags: int
 [clinic start generated code]*/
 
 static inline PyObject *
-promisedio_getnameinfo_impl(PyObject *module, PyObject *sockaddr, int flags)
-/*[clinic end generated code: output=100155b57644db4b input=d2d58b701be7cfe5]*/
+promisedio_getnameinfo_impl(PyObject *module, sockaddr_any *sockaddr,
+                            int flags)
+/*[clinic end generated code: output=fa239720f653fd6b input=22850bf8e8efd1c3]*/
 {
-    const char *node;
-    if (!PyTuple_Check(sockaddr)) {
-        PyErr_SetString(PyExc_TypeError, "sockaddr must be a tuple");
-        return NULL;
-    }
-    Py_ssize_t sockaddr_size = PyTuple_GET_SIZE(sockaddr);
-    if (sockaddr_size < 2 || sockaddr_size > 4) {
-        PyErr_SetString(PyExc_TypeError, "illegal sockaddr argument");
-        return NULL;
-    }
-    if (!cstring_converter(PyTuple_GET_ITEM(sockaddr, 0), &node))
-        return NULL;
-
-    char buf[30];
-    const char *service;
-    if (PyLong_Check(PyTuple_GET_ITEM(sockaddr, 1))) {
-        long value = PyLong_AsLong(PyTuple_GET_ITEM(sockaddr, 1));
-        if (value == -1 && PyErr_Occurred())
-            return NULL;
-        PyOS_snprintf(buf, sizeof(buf), "%ld", value);
-        service = buf;
-    } else if (!cstring_converter(PyTuple_GET_ITEM(sockaddr, 1), &service))
-        return NULL;
-
-    unsigned int flowinfo, scope_id;
-    flowinfo = scope_id = 0;
-    if (sockaddr_size > 2) {
-        if (!_PyLong_UnsignedInt_Converter(PyTuple_GET_ITEM(sockaddr, 2), &flowinfo))
-            return NULL;
-        if (sockaddr_size > 3) {
-            if (!_PyLong_UnsignedInt_Converter(PyTuple_GET_ITEM(sockaddr, 3), &scope_id))
-                return NULL;
-        }
-    }
-    if (flowinfo > 0xfffff) {
-        PyErr_SetString(PyExc_OverflowError,
-                        "flowinfo must be 0-1048575.");
-        return NULL;
-    }
-
-    return (PyObject *) ns_getnameinfo(node, service, flowinfo, scope_id, flags);
+    return (PyObject *) ns_getnameinfo((struct sockaddr *) sockaddr, flags);
 }
 
 static void
