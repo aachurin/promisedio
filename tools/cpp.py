@@ -1,3 +1,6 @@
+#ifndef TOOLS_CPP_PY
+#define TOOLS_CPP_PY
+
 import re
 import sys
 
@@ -184,3 +187,5 @@ if __name__ == '__main__':
             print(filename)
             for line_number, line in enumerate(f.read().split('\n'), 1):
                 cpp.writeline(line)
+
+#endif

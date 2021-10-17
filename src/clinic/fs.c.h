@@ -6,21 +6,19 @@ PyDoc_STRVAR(fs_FileIO_close__doc__,
 "close($self, /)\n"
 "--\n"
 "\n"
-"Close this stream.\n"
+"Close this handle.\n"
 "\n"
 "This method has no effect if the file is already closed. Once the file is closed,\n"
 "any operation on the file (e.g. reading or writing) will raise a ValueError.\n"
 "As a convenience, it is allowed to call this method more than once; only the first\n"
 "call, however, will have an effect.\n"
 "\n"
-"Close file descriptor fd.\n"
-"\n"
-"Equivalent to [close(2)](https://man7.org/linux/man-pages/man2/close.2.html).");
+"");
 
 #define FS_FILEIO_CLOSE_METHODDEF    \
     {"close", (PyCFunction)fs_FileIO_close, METH_NOARGS, fs_FileIO_close__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 fs_FileIO_close_impl(FileIO *self);
 
 static PyObject *
@@ -40,7 +38,7 @@ PyDoc_STRVAR(fs_FileIO_fileno__doc__,
 #define FS_FILEIO_FILENO_METHODDEF    \
     {"fileno", (PyCFunction)fs_FileIO_fileno, METH_NOARGS, fs_FileIO_fileno__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 fs_FileIO_fileno_impl(FileIO *self);
 
 static PyObject *
@@ -55,17 +53,12 @@ PyDoc_STRVAR(fs_FileIO_read__doc__,
 "\n"
 "Read at most size bytes, returned as bytes.\n"
 "\n"
-"Read from file descriptor fd until we have size characters or we hit EOF.\n"
-"If offset is present and is not negative, read at most size bytes from file descriptor fd at a position of offset,\n"
-"leaving the file offset unchanged.\n"
-"\n"
-"Equivalent to [read(2)](https://man7.org/linux/man-pages/man2/read.2.html)\n"
-"              [preadv(2)](https://man7.org/linux/man-pages/man2/preadv.2.html)");
+"");
 
 #define FS_FILEIO_READ_METHODDEF    \
     {"read", (PyCFunction)(void(*)(void))fs_FileIO_read, METH_FASTCALL|METH_KEYWORDS, fs_FileIO_read__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 fs_FileIO_read_impl(FileIO *self, Py_ssize_t size, Py_off_t offset);
 
 static PyObject *
@@ -108,23 +101,16 @@ PyDoc_STRVAR(fs_FileIO_write__doc__,
 "write($self, /, data, offset=-1)\n"
 "--\n"
 "\n"
-"Write the given bytes to the IO stream.\n"
+"Write the given bytes to the IO handle.\n"
 "\n"
 "Returns the number of bytes written, which is always the length of data in bytes.\n"
 "\n"
-"Write the data to file descriptor fd.\n"
-"If offset is present and is not negative, write the data to file descriptor fd at position of offset, \n"
-"leaving the file offset unchanged.\n"
-"\n"
-"Return the number of bytes actually written.\n"
-"\n"
-"Equivalent to [write(2)](https://man7.org/linux/man-pages/man2/write.2.html)\n"
-"              [pwritev(2)](https://man7.org/linux/man-pages/man2/pwritev.2.html)");
+"");
 
 #define FS_FILEIO_WRITE_METHODDEF    \
     {"write", (PyCFunction)(void(*)(void))fs_FileIO_write, METH_FASTCALL|METH_KEYWORDS, fs_FileIO_write__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 fs_FileIO_write_impl(FileIO *self, PyObject *data, Py_off_t offset);
 
 static PyObject *
@@ -162,19 +148,12 @@ PyDoc_STRVAR(fs_FileIO_seek__doc__,
 "\n"
 "Read at most size bytes, returned as bytes.\n"
 "\n"
-"Set the current position of file descriptor fd to position pos, modified by how:\n"
-"- SEEK_SET or 0 to set the position relative to the beginning of the file;\n"
-"- SEEK_CUR or 1 to set it relative to the current position;\n"
-"- SEEK_END or 2 to set it relative to the end of the file.\n"
-"\n"
-"Return the new cursor position in bytes, starting from the beginning.\n"
-"\n"
-"Equivalent to [lseek(2)](https://man7.org/linux/man-pages/man2/lseek.2.html).");
+"");
 
 #define FS_FILEIO_SEEK_METHODDEF    \
     {"seek", (PyCFunction)(void(*)(void))fs_FileIO_seek, METH_FASTCALL|METH_KEYWORDS, fs_FileIO_seek__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 fs_FileIO_seek_impl(FileIO *self, Py_off_t offset, int whence);
 
 static PyObject *
@@ -198,11 +177,6 @@ fs_FileIO_seek(FileIO *self, PyObject *const *args, Py_ssize_t nargs, PyObject *
     if (!noptargs) {
         goto skip_optional_pos;
     }
-    if (PyFloat_Check(args[1])) {
-        PyErr_SetString(PyExc_TypeError,
-                        "integer argument expected, got float" );
-        goto exit;
-    }
     whence = _PyLong_AsInt(args[1]);
     if (whence == -1 && PyErr_Occurred()) {
         goto exit;
@@ -213,4 +187,4 @@ skip_optional_pos:
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=0ad1828e4e32af8a input=a9049054013a1b77]*/
+/*[clinic end generated code: output=9a7c9ef9f370bd67 input=a9049054013a1b77]*/

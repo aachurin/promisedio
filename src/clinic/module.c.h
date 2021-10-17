@@ -13,7 +13,7 @@ PyDoc_STRVAR(promisedio__getallocatedobjectscount__doc__,
 #define PROMISEDIO__GETALLOCATEDOBJECTSCOUNT_METHODDEF    \
     {"_getallocatedobjectscount", (PyCFunction)promisedio__getallocatedobjectscount, METH_NOARGS, promisedio__getallocatedobjectscount__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio__getallocatedobjectscount_impl(PyObject *module);
 
 static PyObject *
@@ -33,7 +33,7 @@ PyDoc_STRVAR(promisedio__clearfreelists__doc__,
 #define PROMISEDIO__CLEARFREELISTS_METHODDEF    \
     {"_clearfreelists", (PyCFunction)promisedio__clearfreelists, METH_NOARGS, promisedio__clearfreelists__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio__clearfreelists_impl(PyObject *module);
 
 static PyObject *
@@ -53,7 +53,7 @@ PyDoc_STRVAR(promisedio_exec_async__doc__,
 #define PROMISEDIO_EXEC_ASYNC_METHODDEF    \
     {"exec_async", (PyCFunction)promisedio_exec_async, METH_O, promisedio_exec_async__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_exec_async_impl(PyObject *module, PyObject *coro);
 
 static PyObject *
@@ -84,7 +84,7 @@ PyDoc_STRVAR(promisedio_process_promise_chain__doc__,
 #define PROMISEDIO_PROCESS_PROMISE_CHAIN_METHODDEF    \
     {"process_promise_chain", (PyCFunction)promisedio_process_promise_chain, METH_NOARGS, promisedio_process_promise_chain__doc__},
 
-static inline int
+Py_LOCAL_INLINE(int)
 promisedio_process_promise_chain_impl(PyObject *module);
 
 static PyObject *
@@ -107,12 +107,12 @@ PyDoc_STRVAR(promisedio_deferred__doc__,
 "deferred($module, /)\n"
 "--\n"
 "\n"
-"Returns new Deferred object.");
+"Create new Deferred object.");
 
 #define PROMISEDIO_DEFERRED_METHODDEF    \
     {"deferred", (PyCFunction)promisedio_deferred, METH_NOARGS, promisedio_deferred__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_deferred_impl(PyObject *module);
 
 static PyObject *
@@ -132,7 +132,7 @@ PyDoc_STRVAR(promisedio_use_python_default_sigint__doc__,
 #define PROMISEDIO_USE_PYTHON_DEFAULT_SIGINT_METHODDEF    \
     {"use_python_default_sigint", (PyCFunction)(void(*)(void))promisedio_use_python_default_sigint, METH_FASTCALL|METH_KEYWORDS, promisedio_use_python_default_sigint__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_use_python_default_sigint_impl(PyObject *module, int flag);
 
 static PyObject *
@@ -169,7 +169,7 @@ PyDoc_STRVAR(promisedio_run_loop__doc__,
 #define PROMISEDIO_RUN_LOOP_METHODDEF    \
     {"run_loop", (PyCFunction)promisedio_run_loop, METH_NOARGS, promisedio_run_loop__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_run_loop_impl(PyObject *module);
 
 static PyObject *
@@ -189,7 +189,7 @@ PyDoc_STRVAR(promisedio_close_loop__doc__,
 #define PROMISEDIO_CLOSE_LOOP_METHODDEF    \
     {"close_loop", (PyCFunction)promisedio_close_loop, METH_NOARGS, promisedio_close_loop__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_close_loop_impl(PyObject *module);
 
 static PyObject *
@@ -207,7 +207,7 @@ PyDoc_STRVAR(promisedio_check_can_fork__doc__,
 #define PROMISEDIO_CHECK_CAN_FORK_METHODDEF    \
     {"check_can_fork", (PyCFunction)promisedio_check_can_fork, METH_NOARGS, promisedio_check_can_fork__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_check_can_fork_impl(PyObject *module);
 
 static PyObject *
@@ -229,7 +229,7 @@ PyDoc_STRVAR(promisedio__inspectloop__doc__,
 #define PROMISEDIO__INSPECTLOOP_METHODDEF    \
     {"_inspectloop", (PyCFunction)promisedio__inspectloop, METH_NOARGS, promisedio__inspectloop__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio__inspectloop_impl(PyObject *module);
 
 static PyObject *
@@ -247,7 +247,7 @@ PyDoc_STRVAR(promisedio_sleep__doc__,
 #define PROMISEDIO_SLEEP_METHODDEF    \
     {"sleep", (PyCFunction)(void(*)(void))promisedio_sleep, METH_FASTCALL|METH_KEYWORDS, promisedio_sleep__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_sleep_impl(PyObject *module, double seconds);
 
 static PyObject *
@@ -293,7 +293,7 @@ PyDoc_STRVAR(promisedio_stat__doc__,
 #define PROMISEDIO_STAT_METHODDEF    \
     {"stat", (PyCFunction)(void(*)(void))promisedio_stat, METH_FASTCALL|METH_KEYWORDS, promisedio_stat__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_stat_impl(PyObject *module, PyObject *path, int follow_symlinks);
 
 static PyObject *
@@ -335,14 +335,16 @@ PyDoc_STRVAR(promisedio_fstat__doc__,
 "fstat($module, /, fd)\n"
 "--\n"
 "\n"
-"Get the status of the file descriptor fd. Returns a StatObj object.\n"
+"Get the status of the file descriptor fd. \n"
+"\n"
+"Return StatObj object.\n"
 "\n"
 "Equivalent to [fstat(2)](https://man7.org/linux/man-pages/man2/fstat.2.html).");
 
 #define PROMISEDIO_FSTAT_METHODDEF    \
     {"fstat", (PyCFunction)(void(*)(void))promisedio_fstat, METH_FASTCALL|METH_KEYWORDS, promisedio_fstat__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_fstat_impl(PyObject *module, int fd);
 
 static PyObject *
@@ -383,7 +385,7 @@ PyDoc_STRVAR(promisedio_seek__doc__,
 #define PROMISEDIO_SEEK_METHODDEF    \
     {"seek", (PyCFunction)(void(*)(void))promisedio_seek, METH_FASTCALL|METH_KEYWORDS, promisedio_seek__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_seek_impl(PyObject *module, int fd, Py_off_t pos, int how);
 
 static PyObject *
@@ -433,7 +435,7 @@ PyDoc_STRVAR(promisedio_open__doc__,
 #define PROMISEDIO_OPEN_METHODDEF    \
     {"open", (PyCFunction)(void(*)(void))promisedio_open, METH_FASTCALL|METH_KEYWORDS, promisedio_open__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_open_impl(PyObject *module, PyObject *path, const char *mode,
                      int closefd);
 
@@ -485,7 +487,8 @@ PyDoc_STRVAR(promisedio_openfd__doc__,
 "openfd($module, /, path, flags, mode=438)\n"
 "--\n"
 "\n"
-"Open the file path and set various flags according to flags and possibly its mode according to mode. \n"
+"Open the file path and set various flags according to flags and possibly its mode according to mode.\n"
+"\n"
 "Return the file descriptor for the newly opened file. The new file descriptor is non-inheritable.\n"
 "\n"
 "Equivalent to [open(2)](https://man7.org/linux/man-pages/man2/open.2.html).");
@@ -493,7 +496,7 @@ PyDoc_STRVAR(promisedio_openfd__doc__,
 #define PROMISEDIO_OPENFD_METHODDEF    \
     {"openfd", (PyCFunction)(void(*)(void))promisedio_openfd, METH_FASTCALL|METH_KEYWORDS, promisedio_openfd__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_openfd_impl(PyObject *module, PyObject *path, int flags, int mode);
 
 static PyObject *
@@ -557,7 +560,7 @@ PyDoc_STRVAR(promisedio_close__doc__,
 #define PROMISEDIO_CLOSE_METHODDEF    \
     {"close", (PyCFunction)(void(*)(void))promisedio_close, METH_FASTCALL|METH_KEYWORDS, promisedio_close__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_close_impl(PyObject *module, int fd);
 
 static PyObject *
@@ -587,6 +590,7 @@ PyDoc_STRVAR(promisedio_read__doc__,
 "--\n"
 "\n"
 "Read from file descriptor fd until we have size characters or we hit EOF.\n"
+"\n"
 "If offset is present and is not negative, read at most size bytes from file descriptor fd at a position of offset,\n"
 "leaving the file offset unchanged.\n"
 "\n"
@@ -596,7 +600,7 @@ PyDoc_STRVAR(promisedio_read__doc__,
 #define PROMISEDIO_READ_METHODDEF    \
     {"read", (PyCFunction)(void(*)(void))promisedio_read, METH_FASTCALL|METH_KEYWORDS, promisedio_read__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_read_impl(PyObject *module, int fd, Py_ssize_t size,
                      Py_off_t offset);
 
@@ -645,6 +649,7 @@ PyDoc_STRVAR(promisedio_write__doc__,
 "--\n"
 "\n"
 "Write the data to file descriptor fd.\n"
+"\n"
 "If offset is present and is not negative, write the data to file descriptor fd at position of offset, \n"
 "leaving the file offset unchanged.\n"
 "\n"
@@ -656,7 +661,7 @@ PyDoc_STRVAR(promisedio_write__doc__,
 #define PROMISEDIO_WRITE_METHODDEF    \
     {"write", (PyCFunction)(void(*)(void))promisedio_write, METH_FASTCALL|METH_KEYWORDS, promisedio_write__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_write_impl(PyObject *module, int fd, PyObject *data,
                       Py_off_t offset);
 
@@ -704,7 +709,7 @@ PyDoc_STRVAR(promisedio_unlink__doc__,
 #define PROMISEDIO_UNLINK_METHODDEF    \
     {"unlink", (PyCFunction)(void(*)(void))promisedio_unlink, METH_FASTCALL|METH_KEYWORDS, promisedio_unlink__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_unlink_impl(PyObject *module, PyObject *path);
 
 static PyObject *
@@ -737,6 +742,7 @@ PyDoc_STRVAR(promisedio_mkdir__doc__,
 "--\n"
 "\n"
 "Create a directory named path with numeric mode mode.\n"
+"\n"
 "If the directory already exists, FileExistsError is raised.\n"
 "\n"
 "On some systems, mode is ignored.\n"
@@ -746,7 +752,7 @@ PyDoc_STRVAR(promisedio_mkdir__doc__,
 #define PROMISEDIO_MKDIR_METHODDEF    \
     {"mkdir", (PyCFunction)(void(*)(void))promisedio_mkdir, METH_FASTCALL|METH_KEYWORDS, promisedio_mkdir__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_mkdir_impl(PyObject *module, PyObject *path, int mode);
 
 static PyObject *
@@ -793,15 +799,16 @@ PyDoc_STRVAR(promisedio_rmdir__doc__,
 "rmdir($module, /, path)\n"
 "--\n"
 "\n"
-"Remove (delete) the directory path. If the directory does not exist or is not empty,\n"
-"an FileNotFoundError or an OSError is raised respectively.\n"
+"Remove (delete) the directory path. \n"
+"\n"
+"If the directory does not exist or is not empty, an FileNotFoundError or an OSError is raised respectively.\n"
 "\n"
 "Equivalent to [rmdir(2)](https://man7.org/linux/man-pages/man2/rmdir.2.html).");
 
 #define PROMISEDIO_RMDIR_METHODDEF    \
     {"rmdir", (PyCFunction)(void(*)(void))promisedio_rmdir, METH_FASTCALL|METH_KEYWORDS, promisedio_rmdir__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_rmdir_impl(PyObject *module, PyObject *path);
 
 static PyObject *
@@ -834,6 +841,7 @@ PyDoc_STRVAR(promisedio_mkdtemp__doc__,
 "--\n"
 "\n"
 "Generate a uniquely named temporary directory from template tpl.\n"
+"\n"
 "The last six characters of template must be XXXXXX and these are replaced with a string that makes\n"
 "the directory name unique.\n"
 "\n"
@@ -844,7 +852,7 @@ PyDoc_STRVAR(promisedio_mkdtemp__doc__,
 #define PROMISEDIO_MKDTEMP_METHODDEF    \
     {"mkdtemp", (PyCFunction)(void(*)(void))promisedio_mkdtemp, METH_FASTCALL|METH_KEYWORDS, promisedio_mkdtemp__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_mkdtemp_impl(PyObject *module, PyObject *tpl);
 
 static PyObject *
@@ -877,6 +885,7 @@ PyDoc_STRVAR(promisedio_mkstemp__doc__,
 "--\n"
 "\n"
 "Generate a unique temporary filename from template.\n"
+"\n"
 "This function creates and opens the file, and returns an open file descriptor for the file.\n"
 "The last six characters of template must be \"XXXXXX\" and these are replaced with a string that makes \n"
 "the filename unique.\n"
@@ -888,7 +897,7 @@ PyDoc_STRVAR(promisedio_mkstemp__doc__,
 #define PROMISEDIO_MKSTEMP_METHODDEF    \
     {"mkstemp", (PyCFunction)(void(*)(void))promisedio_mkstemp, METH_FASTCALL|METH_KEYWORDS, promisedio_mkstemp__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_mkstemp_impl(PyObject *module, PyObject *tpl);
 
 static PyObject *
@@ -921,6 +930,7 @@ PyDoc_STRVAR(promisedio_scandir__doc__,
 "--\n"
 "\n"
 "Return a sequence of the entries in the directory given by path (entry_type, entry_name).  \n"
+"\n"
 "Special entries \'.\' and \'..\' are not included.\n"
 "\n"
 "Equivalent to [scandir(3)](https://man7.org/linux/man-pages/man3/scandir.3.html).");
@@ -928,7 +938,7 @@ PyDoc_STRVAR(promisedio_scandir__doc__,
 #define PROMISEDIO_SCANDIR_METHODDEF    \
     {"scandir", (PyCFunction)(void(*)(void))promisedio_scandir, METH_FASTCALL|METH_KEYWORDS, promisedio_scandir__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_scandir_impl(PyObject *module, PyObject *path);
 
 static PyObject *
@@ -960,12 +970,14 @@ PyDoc_STRVAR(promisedio_rename__doc__,
 "rename($module, /, path, new_path)\n"
 "--\n"
 "\n"
-"");
+"Rename the file or directory path to new_path.\n"
+"\n"
+"Equivalent to [rename(2)](https://man7.org/linux/man-pages/man2/rename.2.html).");
 
 #define PROMISEDIO_RENAME_METHODDEF    \
     {"rename", (PyCFunction)(void(*)(void))promisedio_rename, METH_FASTCALL|METH_KEYWORDS, promisedio_rename__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_rename_impl(PyObject *module, PyObject *path, PyObject *new_path);
 
 static PyObject *
@@ -1003,12 +1015,14 @@ PyDoc_STRVAR(promisedio_fsync__doc__,
 "fsync($module, /, fd)\n"
 "--\n"
 "\n"
-"");
+"Force write of file with file descriptor fd to disk.\n"
+"\n"
+"Equivalent to [fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html).");
 
 #define PROMISEDIO_FSYNC_METHODDEF    \
     {"fsync", (PyCFunction)(void(*)(void))promisedio_fsync, METH_FASTCALL|METH_KEYWORDS, promisedio_fsync__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_fsync_impl(PyObject *module, int fd);
 
 static PyObject *
@@ -1037,12 +1051,14 @@ PyDoc_STRVAR(promisedio_ftruncate__doc__,
 "ftruncate($module, /, fd, length)\n"
 "--\n"
 "\n"
-"");
+"Truncate the file corresponding to file descriptor fd, so that it is at most length bytes in size.\n"
+"\n"
+"Equivalent to [ftruncate(2)](https://man7.org/linux/man-pages/man2/ftruncate.2.html).");
 
 #define PROMISEDIO_FTRUNCATE_METHODDEF    \
     {"ftruncate", (PyCFunction)(void(*)(void))promisedio_ftruncate, METH_FASTCALL|METH_KEYWORDS, promisedio_ftruncate__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_ftruncate_impl(PyObject *module, int fd, Py_ssize_t length);
 
 static PyObject *
@@ -1075,12 +1091,14 @@ PyDoc_STRVAR(promisedio_fdatasync__doc__,
 "fdatasync($module, /, fd)\n"
 "--\n"
 "\n"
-"");
+"Force write of file with file descriptor fd to disk. Does not force update of metadata.\n"
+"\n"
+"Equivalent to [fdatasync(2)](https://man7.org/linux/man-pages/man2/fdatasync.2.html).");
 
 #define PROMISEDIO_FDATASYNC_METHODDEF    \
     {"fdatasync", (PyCFunction)(void(*)(void))promisedio_fdatasync, METH_FASTCALL|METH_KEYWORDS, promisedio_fdatasync__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_fdatasync_impl(PyObject *module, int fd);
 
 static PyObject *
@@ -1109,12 +1127,19 @@ PyDoc_STRVAR(promisedio_copyfile__doc__,
 "copyfile($module, /, path, new_path, flags=0)\n"
 "--\n"
 "\n"
-"");
+"Copy a file from path to new_path. \n"
+"\n"
+"Supported flags are: \n"
+"- COPYFILE_EXCL\n"
+"- COPYFILE_FICLONE\n"
+"- COPYFILE_FICLONE_FORCE\n"
+"\n"
+"For more information, see [uvfs_copyfile](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fscopyfile).");
 
 #define PROMISEDIO_COPYFILE_METHODDEF    \
     {"copyfile", (PyCFunction)(void(*)(void))promisedio_copyfile, METH_FASTCALL|METH_KEYWORDS, promisedio_copyfile__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_copyfile_impl(PyObject *module, PyObject *path,
                          PyObject *new_path, int flags);
 
@@ -1168,12 +1193,16 @@ PyDoc_STRVAR(promisedio_sendfile__doc__,
 "sendfile($module, /, out_fd, in_fd, offset, count)\n"
 "--\n"
 "\n"
-"");
+"Copy count bytes from file descriptor in_fd to file descriptor out_fd starting at offset.\n"
+"\n"
+"Return the number of bytes sent.\n"
+"\n"
+"Equivalent to [sendfile(2)](https://man7.org/linux/man-pages/man2/sendfile.2.html).");
 
 #define PROMISEDIO_SENDFILE_METHODDEF    \
     {"sendfile", (PyCFunction)(void(*)(void))promisedio_sendfile, METH_FASTCALL|METH_KEYWORDS, promisedio_sendfile__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_sendfile_impl(PyObject *module, int out_fd, int in_fd,
                          Py_off_t offset, Py_ssize_t count);
 
@@ -1215,12 +1244,19 @@ PyDoc_STRVAR(promisedio_access__doc__,
 "access($module, /, path, mode)\n"
 "--\n"
 "\n"
-"");
+"Use the real uid/gid to test for access to path.\n"
+"\n"
+"Mode should be F_OK to test the existence of path, or it can be the inclusive OR of one or more of \n"
+"R_OK, W_OK, and X_OK to test permissions. \n"
+"\n"
+"Return True if access is allowed, False if not.\n"
+"\n"
+"Equivalent to [access(2)](https://man7.org/linux/man-pages/man2/access.2.html).");
 
 #define PROMISEDIO_ACCESS_METHODDEF    \
     {"access", (PyCFunction)(void(*)(void))promisedio_access, METH_FASTCALL|METH_KEYWORDS, promisedio_access__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_access_impl(PyObject *module, PyObject *path, int mode);
 
 static PyObject *
@@ -1262,12 +1298,16 @@ PyDoc_STRVAR(promisedio_chmod__doc__,
 "chmod($module, /, path, mode)\n"
 "--\n"
 "\n"
-"");
+"Change the mode of path to the numeric mode.\n"
+"\n"
+"See [stat module](https://docs.python.org/3/library/stat.html#stat.S_ISUID) for available mode.\n"
+"\n"
+"Equivalent to [chmod(2)](https://man7.org/linux/man-pages/man2/chmod.2.html).");
 
 #define PROMISEDIO_CHMOD_METHODDEF    \
     {"chmod", (PyCFunction)(void(*)(void))promisedio_chmod, METH_FASTCALL|METH_KEYWORDS, promisedio_chmod__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_chmod_impl(PyObject *module, PyObject *path, int mode);
 
 static PyObject *
@@ -1309,12 +1349,16 @@ PyDoc_STRVAR(promisedio_fchmod__doc__,
 "fchmod($module, /, fd, mode)\n"
 "--\n"
 "\n"
-"");
+"Change the mode of the file given by fd to the numeric mode.\n"
+"\n"
+"See [stat module](https://docs.python.org/3/library/stat.html#stat.S_ISUID) for available mode.\n"
+"\n"
+"Equivalent to [fchmod(2)](https://man7.org/linux/man-pages/man2/fchmod.2.html).");
 
 #define PROMISEDIO_FCHMOD_METHODDEF    \
     {"fchmod", (PyCFunction)(void(*)(void))promisedio_fchmod, METH_FASTCALL|METH_KEYWORDS, promisedio_fchmod__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_fchmod_impl(PyObject *module, int fd, int mode);
 
 static PyObject *
@@ -1353,12 +1397,17 @@ PyDoc_STRVAR(promisedio_utime__doc__,
 "utime($module, /, path, atime, mtime, *, follow_symlinks=True)\n"
 "--\n"
 "\n"
-"");
+"Set the access and modified times of the file specified by path.\n"
+"\n"
+"This function normally follows symlinks.\n"
+"\n"
+"Equivalent to [utime(2)](https://man7.org/linux/man-pages/man2/utime.2.html)\n"
+"              [lutimes(2)](https://man7.org/linux/man-pages/man3/lutimes.3.html).");
 
 #define PROMISEDIO_UTIME_METHODDEF    \
     {"utime", (PyCFunction)(void(*)(void))promisedio_utime, METH_FASTCALL|METH_KEYWORDS, promisedio_utime__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_utime_impl(PyObject *module, PyObject *path, double atime,
                       double mtime, int follow_symlinks);
 
@@ -1423,12 +1472,14 @@ PyDoc_STRVAR(promisedio_futime__doc__,
 "futime($module, /, fd, atime, mtime)\n"
 "--\n"
 "\n"
-"");
+"Set the access and modified times of the file given by fd.\n"
+"\n"
+"Equivalent to [futimes(3)](https://man7.org/linux/man-pages/man3/futimes.3.html)");
 
 #define PROMISEDIO_FUTIME_METHODDEF    \
     {"futime", (PyCFunction)(void(*)(void))promisedio_futime, METH_FASTCALL|METH_KEYWORDS, promisedio_futime__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_futime_impl(PyObject *module, int fd, double atime, double mtime);
 
 static PyObject *
@@ -1479,12 +1530,14 @@ PyDoc_STRVAR(promisedio_link__doc__,
 "link($module, /, path, new_path)\n"
 "--\n"
 "\n"
-"");
+"Create a hard link pointing to path named new_path.\n"
+"\n"
+"Equivalent to [link(2)](https://man7.org/linux/man-pages/man2/link.2.html)");
 
 #define PROMISEDIO_LINK_METHODDEF    \
     {"link", (PyCFunction)(void(*)(void))promisedio_link, METH_FASTCALL|METH_KEYWORDS, promisedio_link__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_link_impl(PyObject *module, PyObject *path, PyObject *new_path);
 
 static PyObject *
@@ -1522,12 +1575,18 @@ PyDoc_STRVAR(promisedio_symlink__doc__,
 "symlink($module, /, path, new_path, *, flags=0)\n"
 "--\n"
 "\n"
-"");
+"Create a symbolic link pointing to path named new_path.\n"
+"\n"
+"On Windows the flags parameter can be specified to control how the symlink will be created:\n"
+" - SYMLINK_DIR: indicates that path points to a directory.\n"
+" - SYMLINK_JUNCTION: request that the symlink is created using junction points.\n"
+"\n"
+"Equivalent to [symlink(2)](https://man7.org/linux/man-pages/man2/symlink.2.html)");
 
 #define PROMISEDIO_SYMLINK_METHODDEF    \
     {"symlink", (PyCFunction)(void(*)(void))promisedio_symlink, METH_FASTCALL|METH_KEYWORDS, promisedio_symlink__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_symlink_impl(PyObject *module, PyObject *path, PyObject *new_path,
                         int flags);
 
@@ -1581,12 +1640,14 @@ PyDoc_STRVAR(promisedio_readlink__doc__,
 "readlink($module, /, path)\n"
 "--\n"
 "\n"
-"");
+"Return a string representing the path to which the symbolic link points.\n"
+"\n"
+"Equivalent to [readlink(2)](https://man7.org/linux/man-pages/man2/readlink.2.html)");
 
 #define PROMISEDIO_READLINK_METHODDEF    \
     {"readlink", (PyCFunction)(void(*)(void))promisedio_readlink, METH_FASTCALL|METH_KEYWORDS, promisedio_readlink__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_readlink_impl(PyObject *module, PyObject *path);
 
 static PyObject *
@@ -1618,14 +1679,14 @@ PyDoc_STRVAR(promisedio_set_timeout__doc__,
 "set_timeout($module, /, func, timeout, *, unref=False)\n"
 "--\n"
 "\n"
-"Sets a timer which executes a function once the timer expires.\n"
+"Set timer which executes a function once the timer expires.\n"
 "\n"
-"Returns Timer object. This value can be passed to clear_timeout() to cancel the timeout.");
+"Return Timer object. This value can be passed to clear_timeout() to cancel the timeout.");
 
 #define PROMISEDIO_SET_TIMEOUT_METHODDEF    \
     {"set_timeout", (PyCFunction)(void(*)(void))promisedio_set_timeout, METH_FASTCALL|METH_KEYWORDS, promisedio_set_timeout__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_set_timeout_impl(PyObject *module, PyObject *func, double timeout,
                             int unref);
 
@@ -1674,14 +1735,14 @@ PyDoc_STRVAR(promisedio_set_interval__doc__,
 "set_interval($module, /, func, interval, *, unref=False)\n"
 "--\n"
 "\n"
-"Sets a timer which executes repeatedly a function, with a fixed time delay between each call.\n"
+"Set timer which executes repeatedly a function, with a fixed time delay between each call.\n"
 "\n"
-"Returns Timer object. This value can be passed to clear_interval() to cancel the interval.");
+"Return Timer object. This value can be passed to clear_interval() to cancel the interval.");
 
 #define PROMISEDIO_SET_INTERVAL_METHODDEF    \
     {"set_interval", (PyCFunction)(void(*)(void))promisedio_set_interval, METH_FASTCALL|METH_KEYWORDS, promisedio_set_interval__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_set_interval_impl(PyObject *module, PyObject *func,
                              double interval, int unref);
 
@@ -1730,12 +1791,12 @@ PyDoc_STRVAR(promisedio_clear_timeout__doc__,
 "clear_timeout($module, /, timer)\n"
 "--\n"
 "\n"
-"Cancels a timeout previously established by calling set_timeout().");
+"Cancel timeout previously established by calling set_timeout().");
 
 #define PROMISEDIO_CLEAR_TIMEOUT_METHODDEF    \
     {"clear_timeout", (PyCFunction)(void(*)(void))promisedio_clear_timeout, METH_FASTCALL|METH_KEYWORDS, promisedio_clear_timeout__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_clear_timeout_impl(PyObject *module, PyObject *timer);
 
 static PyObject *
@@ -1762,12 +1823,12 @@ PyDoc_STRVAR(promisedio_clear_interval__doc__,
 "clear_interval($module, /, timer)\n"
 "--\n"
 "\n"
-"Cancels an interval previously established by calling set_interval().");
+"Cancel interval previously established by calling set_interval().");
 
 #define PROMISEDIO_CLEAR_INTERVAL_METHODDEF    \
     {"clear_interval", (PyCFunction)(void(*)(void))promisedio_clear_interval, METH_FASTCALL|METH_KEYWORDS, promisedio_clear_interval__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_clear_interval_impl(PyObject *module, PyObject *timer);
 
 static PyObject *
@@ -1794,13 +1855,14 @@ PyDoc_STRVAR(promisedio_time__doc__,
 "time($module, /)\n"
 "--\n"
 "\n"
-"Returns the current timestamp in milliseconds. \n"
+"Get current timestamp in milliseconds.\n"
+"\n"
 "The timestamp is cached at the start of the event loop tick.");
 
 #define PROMISEDIO_TIME_METHODDEF    \
     {"time", (PyCFunction)promisedio_time, METH_NOARGS, promisedio_time__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_time_impl(PyObject *module);
 
 static PyObject *
@@ -1813,12 +1875,14 @@ PyDoc_STRVAR(promisedio_hrtime__doc__,
 "hrtime($module, /)\n"
 "--\n"
 "\n"
-"Returns the current high-resolution real time. This is expressed in nanoseconds.");
+"Return current high-resolution real time. \n"
+"\n"
+"This is expressed in nanoseconds.");
 
 #define PROMISEDIO_HRTIME_METHODDEF    \
     {"hrtime", (PyCFunction)promisedio_hrtime, METH_NOARGS, promisedio_hrtime__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_hrtime_impl(PyObject *module);
 
 static PyObject *
@@ -1841,7 +1905,7 @@ PyDoc_STRVAR(promisedio_getaddrinfo__doc__,
 #define PROMISEDIO_GETADDRINFO_METHODDEF    \
     {"getaddrinfo", (PyCFunction)(void(*)(void))promisedio_getaddrinfo, METH_FASTCALL|METH_KEYWORDS, promisedio_getaddrinfo__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_getaddrinfo_impl(PyObject *module, const char *node,
                             PyObject *service, int family, int type,
                             int proto, int flags);
@@ -1934,8 +1998,10 @@ PyDoc_STRVAR(promisedio_getnameinfo__doc__,
 "getnameinfo($module, /, sockaddr, flags)\n"
 "--\n"
 "\n"
-"Translate a socket address sockaddr into a 2-tuple (host, port). Depending on the settings of flags,\n"
-"the result can contain a fully-qualified domain name or numeric address representation in host.\n"
+"Translate a socket address sockaddr into a 2-tuple (host, port). \n"
+"\n"
+"Depending on the settings of flags, the result can contain a fully-qualified domain name or \n"
+"numeric address representation in host.\n"
 "Similarly, port can contain a string port name or a numeric port number.\n"
 "\n"
 "For more information about flags you can consult [getnameinfo(3)](https://man7.org/linux/man-pages/man3/getnameinfo.3.html)");
@@ -1943,7 +2009,7 @@ PyDoc_STRVAR(promisedio_getnameinfo__doc__,
 #define PROMISEDIO_GETNAMEINFO_METHODDEF    \
     {"getnameinfo", (PyCFunction)(void(*)(void))promisedio_getnameinfo, METH_FASTCALL|METH_KEYWORDS, promisedio_getnameinfo__doc__},
 
-static inline PyObject *
+Py_LOCAL_INLINE(PyObject *)
 promisedio_getnameinfo_impl(PyObject *module, sockaddr_any *sockaddr,
                             int flags);
 
@@ -1978,4 +2044,118 @@ promisedio_getnameinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=831eb35389a41ecf input=a9049054013a1b77]*/
+
+PyDoc_STRVAR(promisedio_tcp_connect__doc__,
+"tcp_connect($module, /, sockaddr, ssl=<unrepresentable>,\n"
+"            tcp_nodelay=-1, tcp_keepalive=-1, buffer_limit=0,\n"
+"            buffer_hard_limit=False, chunk_min_size=0)\n"
+"--\n"
+"\n"
+"Establish an IPv4 or IPv6 TCP connection.\n"
+"\n"
+"tcp_nodelay: Enable/disable TCP_NODELAY. Set 1 to disable Nagle\'s algorithm.\n"
+"tcp_keepalive: Enable/disable TCP keep-alive. The value is the initial delay in seconds. Set 0 to disable TCP keep-alive.\n"
+"buffer_limit: The internal buffer size limit used by the Stream instance. By default the limit is set to 64 KiB.\n"
+"buffer_hard_limit: If True, then the internal buffer size strictly cannot exceed the buffer_limit.\n"
+"min_chunk_size: The minimum size of one chunk of the internal buffer. By default is set to 496 bytes (on x64).");
+
+#define PROMISEDIO_TCP_CONNECT_METHODDEF    \
+    {"tcp_connect", (PyCFunction)(void(*)(void))promisedio_tcp_connect, METH_FASTCALL|METH_KEYWORDS, promisedio_tcp_connect__doc__},
+
+Py_LOCAL_INLINE(PyObject *)
+promisedio_tcp_connect_impl(PyObject *module, sockaddr_any *sockaddr,
+                            PySSLContext *ssl, int tcp_nodelay,
+                            int tcp_keepalive, Py_ssize_t buffer_limit,
+                            int buffer_hard_limit, Py_ssize_t chunk_min_size);
+
+static PyObject *
+promisedio_tcp_connect(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"sockaddr", "ssl", "tcp_nodelay", "tcp_keepalive", "buffer_limit", "buffer_hard_limit", "chunk_min_size", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "tcp_connect", 0};
+    PyObject *argsbuf[7];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
+    sockaddr_any sockaddr;
+    PySSLContext *ssl = NULL;
+    int tcp_nodelay = -1;
+    int tcp_keepalive = -1;
+    Py_ssize_t buffer_limit = 0;
+    int buffer_hard_limit = 0;
+    Py_ssize_t chunk_min_size = 0;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 7, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!inet_addr_converter(args[0], &sockaddr)) {
+        goto exit;
+    }
+    if (!noptargs) {
+        goto skip_optional_pos;
+    }
+    if (args[1]) {
+        if (!PyObject_TypeCheck(args[1], PySSLContext_Type)) {
+            _PyArg_BadArgument("tcp_connect", "argument 'ssl'", (PySSLContext_Type)->tp_name, args[1]);
+            goto exit;
+        }
+        ssl = (PySSLContext *)args[1];
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
+    }
+    if (args[2]) {
+        if (PyFloat_Check(args[2])) {
+            PyErr_SetString(PyExc_TypeError,
+                            "integer argument expected, got float" );
+            goto exit;
+        }
+        tcp_nodelay = _PyLong_AsInt(args[2]);
+        if (tcp_nodelay == -1 && PyErr_Occurred()) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
+    }
+    if (args[3]) {
+        if (PyFloat_Check(args[3])) {
+            PyErr_SetString(PyExc_TypeError,
+                            "integer argument expected, got float" );
+            goto exit;
+        }
+        tcp_keepalive = _PyLong_AsInt(args[3]);
+        if (tcp_keepalive == -1 && PyErr_Occurred()) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
+    }
+    if (args[4]) {
+        if (!ssize_t_converter(args[4], &buffer_limit)) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
+    }
+    if (args[5]) {
+        buffer_hard_limit = PyObject_IsTrue(args[5]);
+        if (buffer_hard_limit < 0) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
+    }
+    if (!ssize_t_converter(args[6], &chunk_min_size)) {
+        goto exit;
+    }
+skip_optional_pos:
+    return_value = promisedio_tcp_connect_impl(module, &sockaddr, ssl, tcp_nodelay, tcp_keepalive, buffer_limit, buffer_hard_limit, chunk_min_size);
+
+exit:
+    return return_value;
+}
+/*[clinic end generated code: output=65c0222aeac18f05 input=a9049054013a1b77]*/

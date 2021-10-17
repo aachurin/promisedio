@@ -17,12 +17,19 @@ def get_readme_description(func):
     result = []
     for num, text in enumerate(readme):
         if text.startswith(func + "("):
-            for line in readme[num + 2:]:
+            start_found = False
+            for line in readme[num + 1:]:
+                if not start_found:
+                    if line.startswith("```"):
+                        start_found = True
+                    continue
                 if line.startswith("`") or line.startswith("#"):
                     break
                 line = re.sub(r"_[^\s]+_", lambda x: x.group()[1:-1], line)
                 result.append(line)
             break
+    if not result:
+        print("No docstring for %s" % func)
     return "\n".join(result)
 
 
@@ -39,7 +46,8 @@ def docstring_for_c_string_from_readme(self, f):
     if match:
         df.docstring = f.docstring.replace(match.group(), "\n" + get_readme_description(match.group()[5:-1]).strip())
     else:
-        df.docstring = f.docstring.rstrip("\n") + "\n\n" + get_readme_description(f.name).strip()
+        name = f"{f.cls.name}.{f.name}" if f.cls else f.name
+        df.docstring = f.docstring.rstrip("\n") + "\n\n" + get_readme_description(name).strip()
     return docstring_for_c_string(self, df)
 
 
@@ -73,7 +81,7 @@ def hack_clanguage_output_templates():
     consts = []
     for v in CLanguage.output_templates.__code__.co_consts:
         if isinstance(v, str) and "static {impl_return_type}" in v:
-            v = "static inline {impl_return_type}\n{c_basename}_impl({impl_parameters})\n"
+            v = "Py_LOCAL_INLINE({impl_return_type})\n{c_basename}_impl({impl_parameters})\n"
         consts.append(v)
     CLanguage.output_templates = rebuild_func(CLanguage.output_templates, tuple(consts))
 
@@ -107,7 +115,7 @@ class ssize_t_converter(CConverter):
     converter = "ssize_t_converter"
 
 
-class FD_converter(CConverter):
+class fd_converter(CConverter):
     type = "int"
     converter = "fd_converter"
 
@@ -121,6 +129,16 @@ class inet_addr_converter(CConverter):
     type = "sockaddr_any"
     converter = "inet_addr_converter"
     impl_by_reference = True
+
+
+class uid_t_converter(CConverter):
+    type = "uid_t"
+    converter = "uid_converter"
+
+
+class gid_t_converter(CConverter):
+    type = "gid_t"
+    converter = "gid_converter"
 
 
 if __name__ == "__main__":
