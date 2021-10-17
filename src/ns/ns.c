@@ -1059,6 +1059,7 @@ stream_feed(StreamHandle *handle)
 {
     _STATE_set(handle);
     Promise *it;
+    // broken state
     while ((it = Chain_HEAD(&handle->read_backlog))) {
         PyObject *promise = (PyObject *) it;
         Promise *next = Chain_NEXT(it);
