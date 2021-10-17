@@ -47,7 +47,7 @@ typedef struct {
         UV_CALL(func, S(loop), _req, __VA_ARGS__)       \
         {                                               \
             Request_CloseFs(_req);                      \
-            PyErr_SetUvErr(S(FSError), error);          \
+            PyErr_SetUVError(S(FSError), error);          \
             Py_DECREF(promise);                         \
             promise = NULL;                             \
         }                                               \
