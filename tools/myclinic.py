@@ -1,5 +1,8 @@
 import re
 from clinic import *
+from clinic import main as clinic_main
+from capluse import main as capsule_main
+
 
 _readme_content = []
 
@@ -142,4 +145,5 @@ class gid_t_converter(CConverter):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    capsule_main(sys.argv[1:])
+    clinic_main(["--make", "--srcdir"] + sys.argv[1:])

@@ -1,10 +1,9 @@
-from promisedio import _getallocatedobjectscount
-from promisedio import exec_async, run, fs
+from promisedio import loop, fs, promise
 
 
 async def example1():
     await fs.mkdir("demo1")
-    print (await fs.scandir("."))
+    print(await fs.scandir("."))
     await fs.rmdir("demo1")
 
 
@@ -14,14 +13,6 @@ async def example2():
     await fs.rmdir(name)
 
 
-print("ALLOCS", _getallocatedobjectscount())
-
-exec_async(example1())
-
-print("ALLOCS", _getallocatedobjectscount())
-
-exec_async(example2())
-
-run()
-
-print("ALLOCS", _getallocatedobjectscount())
+promise.exec_async(example1())
+promise.exec_async(example2())
+loop.run_until_complete()

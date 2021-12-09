@@ -2,7 +2,7 @@
 preserve
 [clinic start generated code]*/
 
-PyDoc_STRVAR(fsmodule_stat__doc__,
+PyDoc_STRVAR(fs_stat__doc__,
 "stat($module, /, path, *, follow_symlinks=True)\n"
 "--\n"
 "\n"
@@ -13,14 +13,14 @@ PyDoc_STRVAR(fsmodule_stat__doc__,
 "Equivalent to [stat(2)](https://man7.org/linux/man-pages/man2/stat.2.html) \n"
 "              [lstat(2)](https://man7.org/linux/man-pages/man2/lstat.2.html).");
 
-#define FSMODULE_STAT_METHODDEF    \
-    {"stat", (PyCFunction)(void(*)(void))fsmodule_stat, METH_FASTCALL|METH_KEYWORDS, fsmodule_stat__doc__},
+#define FS_STAT_METHODDEF    \
+    {"stat", (PyCFunction)(void(*)(void))fs_stat, METH_FASTCALL|METH_KEYWORDS, fs_stat__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_stat_impl(PyObject *module, PyObject *path, int follow_symlinks);
+fs_stat_impl(PyObject *module, PyObject *path, int follow_symlinks);
 
 static PyObject *
-fsmodule_stat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_stat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "follow_symlinks", NULL};
@@ -45,7 +45,7 @@ fsmodule_stat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObjec
         goto exit;
     }
 skip_optional_kwonly:
-    return_value = fsmodule_stat_impl(module, path, follow_symlinks);
+    return_value = fs_stat_impl(module, path, follow_symlinks);
 
 exit:
     /* Cleanup for path */
@@ -54,7 +54,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_fstat__doc__,
+PyDoc_STRVAR(fs_fstat__doc__,
 "fstat($module, /, fd)\n"
 "--\n"
 "\n"
@@ -64,14 +64,14 @@ PyDoc_STRVAR(fsmodule_fstat__doc__,
 "\n"
 "Equivalent to [fstat(2)](https://man7.org/linux/man-pages/man2/fstat.2.html).");
 
-#define FSMODULE_FSTAT_METHODDEF    \
-    {"fstat", (PyCFunction)(void(*)(void))fsmodule_fstat, METH_FASTCALL|METH_KEYWORDS, fsmodule_fstat__doc__},
+#define FS_FSTAT_METHODDEF    \
+    {"fstat", (PyCFunction)(void(*)(void))fs_fstat, METH_FASTCALL|METH_KEYWORDS, fs_fstat__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_fstat_impl(PyObject *module, int fd);
+fs_fstat_impl(PyObject *module, int fd);
 
 static PyObject *
-fsmodule_fstat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_fstat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", NULL};
@@ -86,13 +86,13 @@ fsmodule_fstat(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObje
     if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
-    return_value = fsmodule_fstat_impl(module, fd);
+    return_value = fs_fstat_impl(module, fd);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_seek__doc__,
+PyDoc_STRVAR(fs_seek__doc__,
 "seek($module, /, fd, pos, how)\n"
 "--\n"
 "\n"
@@ -105,14 +105,14 @@ PyDoc_STRVAR(fsmodule_seek__doc__,
 "\n"
 "Equivalent to [lseek(2)](https://man7.org/linux/man-pages/man2/lseek.2.html).");
 
-#define FSMODULE_SEEK_METHODDEF    \
-    {"seek", (PyCFunction)(void(*)(void))fsmodule_seek, METH_FASTCALL|METH_KEYWORDS, fsmodule_seek__doc__},
+#define FS_SEEK_METHODDEF    \
+    {"seek", (PyCFunction)(void(*)(void))fs_seek, METH_FASTCALL|METH_KEYWORDS, fs_seek__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_seek_impl(PyObject *module, int fd, Py_off_t pos, int how);
+fs_seek_impl(PyObject *module, int fd, Py_off_t pos, int how);
 
 static PyObject *
-fsmodule_seek(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_seek(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", "pos", "how", NULL};
@@ -136,13 +136,13 @@ fsmodule_seek(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObjec
     if (how == -1 && PyErr_Occurred()) {
         goto exit;
     }
-    return_value = fsmodule_seek_impl(module, fd, pos, how);
+    return_value = fs_seek_impl(module, fd, pos, how);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_openfd__doc__,
+PyDoc_STRVAR(fs_openfd__doc__,
 "openfd($module, /, path, flags, mode=438)\n"
 "--\n"
 "\n"
@@ -152,14 +152,14 @@ PyDoc_STRVAR(fsmodule_openfd__doc__,
 "\n"
 "Equivalent to [open(2)](https://man7.org/linux/man-pages/man2/open.2.html).");
 
-#define FSMODULE_OPENFD_METHODDEF    \
-    {"openfd", (PyCFunction)(void(*)(void))fsmodule_openfd, METH_FASTCALL|METH_KEYWORDS, fsmodule_openfd__doc__},
+#define FS_OPENFD_METHODDEF    \
+    {"openfd", (PyCFunction)(void(*)(void))fs_openfd, METH_FASTCALL|METH_KEYWORDS, fs_openfd__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_openfd_impl(PyObject *module, PyObject *path, int flags, int mode);
+fs_openfd_impl(PyObject *module, PyObject *path, int flags, int mode);
 
 static PyObject *
-fsmodule_openfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_openfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "flags", "mode", NULL};
@@ -189,7 +189,7 @@ fsmodule_openfd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
         goto exit;
     }
 skip_optional_pos:
-    return_value = fsmodule_openfd_impl(module, path, flags, mode);
+    return_value = fs_openfd_impl(module, path, flags, mode);
 
 exit:
     /* Cleanup for path */
@@ -198,7 +198,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_open__doc__,
+PyDoc_STRVAR(fs_open__doc__,
 "open($module, /, path, mode=\'r\', closefd=True)\n"
 "--\n"
 "\n"
@@ -206,15 +206,14 @@ PyDoc_STRVAR(fsmodule_open__doc__,
 "\n"
 "Equivalent to python [open](https://docs.python.org/3/library/functions.html#open) (binary mode only).");
 
-#define FSMODULE_OPEN_METHODDEF    \
-    {"open", (PyCFunction)(void(*)(void))fsmodule_open, METH_FASTCALL|METH_KEYWORDS, fsmodule_open__doc__},
+#define FS_OPEN_METHODDEF    \
+    {"open", (PyCFunction)(void(*)(void))fs_open, METH_FASTCALL|METH_KEYWORDS, fs_open__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_open_impl(PyObject *module, PyObject *path, const char *mode,
-                   int closefd);
+fs_open_impl(PyObject *module, PyObject *path, const char *mode, int closefd);
 
 static PyObject *
-fsmodule_open(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_open(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "mode", "closefd", NULL};
@@ -246,13 +245,13 @@ fsmodule_open(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObjec
         goto exit;
     }
 skip_optional_pos:
-    return_value = fsmodule_open_impl(module, path, mode, closefd);
+    return_value = fs_open_impl(module, path, mode, closefd);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_read__doc__,
+PyDoc_STRVAR(fs_read__doc__,
 "read($module, /, fd, size=-1, offset=-1)\n"
 "--\n"
 "\n"
@@ -264,15 +263,14 @@ PyDoc_STRVAR(fsmodule_read__doc__,
 "Equivalent to [read(2)](https://man7.org/linux/man-pages/man2/read.2.html)\n"
 "              [preadv(2)](https://man7.org/linux/man-pages/man2/preadv.2.html)");
 
-#define FSMODULE_READ_METHODDEF    \
-    {"read", (PyCFunction)(void(*)(void))fsmodule_read, METH_FASTCALL|METH_KEYWORDS, fsmodule_read__doc__},
+#define FS_READ_METHODDEF    \
+    {"read", (PyCFunction)(void(*)(void))fs_read, METH_FASTCALL|METH_KEYWORDS, fs_read__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_read_impl(PyObject *module, int fd, Py_ssize_t size,
-                   Py_off_t offset);
+fs_read_impl(PyObject *module, int fd, Py_ssize_t size, Py_off_t offset);
 
 static PyObject *
-fsmodule_read(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_read(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", "size", "offset", NULL};
@@ -305,13 +303,13 @@ fsmodule_read(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObjec
         goto exit;
     }
 skip_optional_pos:
-    return_value = fsmodule_read_impl(module, fd, size, offset);
+    return_value = fs_read_impl(module, fd, size, offset);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_write__doc__,
+PyDoc_STRVAR(fs_write__doc__,
 "write($module, /, fd, data, offset=-1)\n"
 "--\n"
 "\n"
@@ -325,15 +323,14 @@ PyDoc_STRVAR(fsmodule_write__doc__,
 "Equivalent to [write(2)](https://man7.org/linux/man-pages/man2/write.2.html)\n"
 "              [pwritev(2)](https://man7.org/linux/man-pages/man2/pwritev.2.html)");
 
-#define FSMODULE_WRITE_METHODDEF    \
-    {"write", (PyCFunction)(void(*)(void))fsmodule_write, METH_FASTCALL|METH_KEYWORDS, fsmodule_write__doc__},
+#define FS_WRITE_METHODDEF    \
+    {"write", (PyCFunction)(void(*)(void))fs_write, METH_FASTCALL|METH_KEYWORDS, fs_write__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_write_impl(PyObject *module, int fd, PyObject *data,
-                    Py_off_t offset);
+fs_write_impl(PyObject *module, int fd, PyObject *data, Py_off_t offset);
 
 static PyObject *
-fsmodule_write(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_write(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", "data", "offset", NULL};
@@ -359,13 +356,13 @@ fsmodule_write(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObje
         goto exit;
     }
 skip_optional_pos:
-    return_value = fsmodule_write_impl(module, fd, data, offset);
+    return_value = fs_write_impl(module, fd, data, offset);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_close__doc__,
+PyDoc_STRVAR(fs_close__doc__,
 "close($module, /, fd)\n"
 "--\n"
 "\n"
@@ -373,14 +370,14 @@ PyDoc_STRVAR(fsmodule_close__doc__,
 "\n"
 "Equivalent to [close(2)](https://man7.org/linux/man-pages/man2/close.2.html).");
 
-#define FSMODULE_CLOSE_METHODDEF    \
-    {"close", (PyCFunction)(void(*)(void))fsmodule_close, METH_FASTCALL|METH_KEYWORDS, fsmodule_close__doc__},
+#define FS_CLOSE_METHODDEF    \
+    {"close", (PyCFunction)(void(*)(void))fs_close, METH_FASTCALL|METH_KEYWORDS, fs_close__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_close_impl(PyObject *module, int fd);
+fs_close_impl(PyObject *module, int fd);
 
 static PyObject *
-fsmodule_close(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_close(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", NULL};
@@ -395,26 +392,26 @@ fsmodule_close(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObje
     if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
-    return_value = fsmodule_close_impl(module, fd);
+    return_value = fs_close_impl(module, fd);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_closefd__doc__,
+PyDoc_STRVAR(fs_closefd__doc__,
 "closefd($module, /, fd)\n"
 "--\n"
 "\n"
 "");
 
-#define FSMODULE_CLOSEFD_METHODDEF    \
-    {"closefd", (PyCFunction)(void(*)(void))fsmodule_closefd, METH_FASTCALL|METH_KEYWORDS, fsmodule_closefd__doc__},
+#define FS_CLOSEFD_METHODDEF    \
+    {"closefd", (PyCFunction)(void(*)(void))fs_closefd, METH_FASTCALL|METH_KEYWORDS, fs_closefd__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_closefd_impl(PyObject *module, int fd);
+fs_closefd_impl(PyObject *module, int fd);
 
 static PyObject *
-fsmodule_closefd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_closefd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", NULL};
@@ -429,13 +426,13 @@ fsmodule_closefd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
-    return_value = fsmodule_closefd_impl(module, fd);
+    return_value = fs_closefd_impl(module, fd);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_unlink__doc__,
+PyDoc_STRVAR(fs_unlink__doc__,
 "unlink($module, /, path)\n"
 "--\n"
 "\n"
@@ -443,14 +440,14 @@ PyDoc_STRVAR(fsmodule_unlink__doc__,
 "\n"
 "Equivalent to [unlink(2)](https://man7.org/linux/man-pages/man2/unlink.2.html).");
 
-#define FSMODULE_UNLINK_METHODDEF    \
-    {"unlink", (PyCFunction)(void(*)(void))fsmodule_unlink, METH_FASTCALL|METH_KEYWORDS, fsmodule_unlink__doc__},
+#define FS_UNLINK_METHODDEF    \
+    {"unlink", (PyCFunction)(void(*)(void))fs_unlink, METH_FASTCALL|METH_KEYWORDS, fs_unlink__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_unlink_impl(PyObject *module, PyObject *path);
+fs_unlink_impl(PyObject *module, PyObject *path);
 
 static PyObject *
-fsmodule_unlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_unlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", NULL};
@@ -465,7 +462,7 @@ fsmodule_unlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
     if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
-    return_value = fsmodule_unlink_impl(module, path);
+    return_value = fs_unlink_impl(module, path);
 
 exit:
     /* Cleanup for path */
@@ -474,7 +471,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_mkdir__doc__,
+PyDoc_STRVAR(fs_mkdir__doc__,
 "mkdir($module, /, path, mode=511)\n"
 "--\n"
 "\n"
@@ -486,14 +483,14 @@ PyDoc_STRVAR(fsmodule_mkdir__doc__,
 "\n"
 "Equivalent to [mkdir(2)](https://man7.org/linux/man-pages/man2/mkdir.2.html).");
 
-#define FSMODULE_MKDIR_METHODDEF    \
-    {"mkdir", (PyCFunction)(void(*)(void))fsmodule_mkdir, METH_FASTCALL|METH_KEYWORDS, fsmodule_mkdir__doc__},
+#define FS_MKDIR_METHODDEF    \
+    {"mkdir", (PyCFunction)(void(*)(void))fs_mkdir, METH_FASTCALL|METH_KEYWORDS, fs_mkdir__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_mkdir_impl(PyObject *module, PyObject *path, int mode);
+fs_mkdir_impl(PyObject *module, PyObject *path, int mode);
 
 static PyObject *
-fsmodule_mkdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_mkdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "mode", NULL};
@@ -518,7 +515,7 @@ fsmodule_mkdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObje
         goto exit;
     }
 skip_optional_pos:
-    return_value = fsmodule_mkdir_impl(module, path, mode);
+    return_value = fs_mkdir_impl(module, path, mode);
 
 exit:
     /* Cleanup for path */
@@ -527,7 +524,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_rmdir__doc__,
+PyDoc_STRVAR(fs_rmdir__doc__,
 "rmdir($module, /, path)\n"
 "--\n"
 "\n"
@@ -537,14 +534,14 @@ PyDoc_STRVAR(fsmodule_rmdir__doc__,
 "\n"
 "Equivalent to [rmdir(2)](https://man7.org/linux/man-pages/man2/rmdir.2.html).");
 
-#define FSMODULE_RMDIR_METHODDEF    \
-    {"rmdir", (PyCFunction)(void(*)(void))fsmodule_rmdir, METH_FASTCALL|METH_KEYWORDS, fsmodule_rmdir__doc__},
+#define FS_RMDIR_METHODDEF    \
+    {"rmdir", (PyCFunction)(void(*)(void))fs_rmdir, METH_FASTCALL|METH_KEYWORDS, fs_rmdir__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_rmdir_impl(PyObject *module, PyObject *path);
+fs_rmdir_impl(PyObject *module, PyObject *path);
 
 static PyObject *
-fsmodule_rmdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_rmdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", NULL};
@@ -559,7 +556,7 @@ fsmodule_rmdir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObje
     if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
-    return_value = fsmodule_rmdir_impl(module, path);
+    return_value = fs_rmdir_impl(module, path);
 
 exit:
     /* Cleanup for path */
@@ -568,7 +565,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_mkdtemp__doc__,
+PyDoc_STRVAR(fs_mkdtemp__doc__,
 "mkdtemp($module, /, tpl)\n"
 "--\n"
 "\n"
@@ -581,14 +578,14 @@ PyDoc_STRVAR(fsmodule_mkdtemp__doc__,
 "\n"
 "Equivalent to [mkdtemp(3)](https://man7.org/linux/man-pages/man3/mkdtemp.3.html).");
 
-#define FSMODULE_MKDTEMP_METHODDEF    \
-    {"mkdtemp", (PyCFunction)(void(*)(void))fsmodule_mkdtemp, METH_FASTCALL|METH_KEYWORDS, fsmodule_mkdtemp__doc__},
+#define FS_MKDTEMP_METHODDEF    \
+    {"mkdtemp", (PyCFunction)(void(*)(void))fs_mkdtemp, METH_FASTCALL|METH_KEYWORDS, fs_mkdtemp__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_mkdtemp_impl(PyObject *module, PyObject *tpl);
+fs_mkdtemp_impl(PyObject *module, PyObject *tpl);
 
 static PyObject *
-fsmodule_mkdtemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_mkdtemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"tpl", NULL};
@@ -603,7 +600,7 @@ fsmodule_mkdtemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!PyUnicode_FSConverter(args[0], &tpl)) {
         goto exit;
     }
-    return_value = fsmodule_mkdtemp_impl(module, tpl);
+    return_value = fs_mkdtemp_impl(module, tpl);
 
 exit:
     /* Cleanup for tpl */
@@ -612,7 +609,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_mkstemp__doc__,
+PyDoc_STRVAR(fs_mkstemp__doc__,
 "mkstemp($module, /, tpl)\n"
 "--\n"
 "\n"
@@ -626,14 +623,14 @@ PyDoc_STRVAR(fsmodule_mkstemp__doc__,
 "\n"
 "Equivalent to [mkstemp(3)](https://man7.org/linux/man-pages/man3/mkstemp.3.html).");
 
-#define FSMODULE_MKSTEMP_METHODDEF    \
-    {"mkstemp", (PyCFunction)(void(*)(void))fsmodule_mkstemp, METH_FASTCALL|METH_KEYWORDS, fsmodule_mkstemp__doc__},
+#define FS_MKSTEMP_METHODDEF    \
+    {"mkstemp", (PyCFunction)(void(*)(void))fs_mkstemp, METH_FASTCALL|METH_KEYWORDS, fs_mkstemp__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_mkstemp_impl(PyObject *module, PyObject *tpl);
+fs_mkstemp_impl(PyObject *module, PyObject *tpl);
 
 static PyObject *
-fsmodule_mkstemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_mkstemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"tpl", NULL};
@@ -648,7 +645,7 @@ fsmodule_mkstemp(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!PyUnicode_FSConverter(args[0], &tpl)) {
         goto exit;
     }
-    return_value = fsmodule_mkstemp_impl(module, tpl);
+    return_value = fs_mkstemp_impl(module, tpl);
 
 exit:
     /* Cleanup for tpl */
@@ -657,7 +654,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_scandir__doc__,
+PyDoc_STRVAR(fs_scandir__doc__,
 "scandir($module, /, path)\n"
 "--\n"
 "\n"
@@ -667,14 +664,14 @@ PyDoc_STRVAR(fsmodule_scandir__doc__,
 "\n"
 "Equivalent to [scandir(3)](https://man7.org/linux/man-pages/man3/scandir.3.html).");
 
-#define FSMODULE_SCANDIR_METHODDEF    \
-    {"scandir", (PyCFunction)(void(*)(void))fsmodule_scandir, METH_FASTCALL|METH_KEYWORDS, fsmodule_scandir__doc__},
+#define FS_SCANDIR_METHODDEF    \
+    {"scandir", (PyCFunction)(void(*)(void))fs_scandir, METH_FASTCALL|METH_KEYWORDS, fs_scandir__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_scandir_impl(PyObject *module, PyObject *path);
+fs_scandir_impl(PyObject *module, PyObject *path);
 
 static PyObject *
-fsmodule_scandir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_scandir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", NULL};
@@ -689,7 +686,7 @@ fsmodule_scandir(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
-    return_value = fsmodule_scandir_impl(module, path);
+    return_value = fs_scandir_impl(module, path);
 
 exit:
     /* Cleanup for path */
@@ -698,7 +695,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_rename__doc__,
+PyDoc_STRVAR(fs_rename__doc__,
 "rename($module, /, path, new_path)\n"
 "--\n"
 "\n"
@@ -706,14 +703,14 @@ PyDoc_STRVAR(fsmodule_rename__doc__,
 "\n"
 "Equivalent to [rename(2)](https://man7.org/linux/man-pages/man2/rename.2.html).");
 
-#define FSMODULE_RENAME_METHODDEF    \
-    {"rename", (PyCFunction)(void(*)(void))fsmodule_rename, METH_FASTCALL|METH_KEYWORDS, fsmodule_rename__doc__},
+#define FS_RENAME_METHODDEF    \
+    {"rename", (PyCFunction)(void(*)(void))fs_rename, METH_FASTCALL|METH_KEYWORDS, fs_rename__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_rename_impl(PyObject *module, PyObject *path, PyObject *new_path);
+fs_rename_impl(PyObject *module, PyObject *path, PyObject *new_path);
 
 static PyObject *
-fsmodule_rename(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_rename(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "new_path", NULL};
@@ -732,7 +729,7 @@ fsmodule_rename(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
     if (!PyUnicode_FSConverter(args[1], &new_path)) {
         goto exit;
     }
-    return_value = fsmodule_rename_impl(module, path, new_path);
+    return_value = fs_rename_impl(module, path, new_path);
 
 exit:
     /* Cleanup for path */
@@ -743,7 +740,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_fsync__doc__,
+PyDoc_STRVAR(fs_fsync__doc__,
 "fsync($module, /, fd)\n"
 "--\n"
 "\n"
@@ -751,14 +748,14 @@ PyDoc_STRVAR(fsmodule_fsync__doc__,
 "\n"
 "Equivalent to [fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html).");
 
-#define FSMODULE_FSYNC_METHODDEF    \
-    {"fsync", (PyCFunction)(void(*)(void))fsmodule_fsync, METH_FASTCALL|METH_KEYWORDS, fsmodule_fsync__doc__},
+#define FS_FSYNC_METHODDEF    \
+    {"fsync", (PyCFunction)(void(*)(void))fs_fsync, METH_FASTCALL|METH_KEYWORDS, fs_fsync__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_fsync_impl(PyObject *module, int fd);
+fs_fsync_impl(PyObject *module, int fd);
 
 static PyObject *
-fsmodule_fsync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_fsync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", NULL};
@@ -773,13 +770,13 @@ fsmodule_fsync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObje
     if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
-    return_value = fsmodule_fsync_impl(module, fd);
+    return_value = fs_fsync_impl(module, fd);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_ftruncate__doc__,
+PyDoc_STRVAR(fs_ftruncate__doc__,
 "ftruncate($module, /, fd, length)\n"
 "--\n"
 "\n"
@@ -787,14 +784,14 @@ PyDoc_STRVAR(fsmodule_ftruncate__doc__,
 "\n"
 "Equivalent to [ftruncate(2)](https://man7.org/linux/man-pages/man2/ftruncate.2.html).");
 
-#define FSMODULE_FTRUNCATE_METHODDEF    \
-    {"ftruncate", (PyCFunction)(void(*)(void))fsmodule_ftruncate, METH_FASTCALL|METH_KEYWORDS, fsmodule_ftruncate__doc__},
+#define FS_FTRUNCATE_METHODDEF    \
+    {"ftruncate", (PyCFunction)(void(*)(void))fs_ftruncate, METH_FASTCALL|METH_KEYWORDS, fs_ftruncate__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_ftruncate_impl(PyObject *module, int fd, Py_ssize_t length);
+fs_ftruncate_impl(PyObject *module, int fd, Py_ssize_t length);
 
 static PyObject *
-fsmodule_ftruncate(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_ftruncate(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", "length", NULL};
@@ -813,13 +810,13 @@ fsmodule_ftruncate(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (!ssize_t_converter(args[1], &length)) {
         goto exit;
     }
-    return_value = fsmodule_ftruncate_impl(module, fd, length);
+    return_value = fs_ftruncate_impl(module, fd, length);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_fdatasync__doc__,
+PyDoc_STRVAR(fs_fdatasync__doc__,
 "fdatasync($module, /, fd)\n"
 "--\n"
 "\n"
@@ -827,14 +824,14 @@ PyDoc_STRVAR(fsmodule_fdatasync__doc__,
 "\n"
 "Equivalent to [fdatasync(2)](https://man7.org/linux/man-pages/man2/fdatasync.2.html).");
 
-#define FSMODULE_FDATASYNC_METHODDEF    \
-    {"fdatasync", (PyCFunction)(void(*)(void))fsmodule_fdatasync, METH_FASTCALL|METH_KEYWORDS, fsmodule_fdatasync__doc__},
+#define FS_FDATASYNC_METHODDEF    \
+    {"fdatasync", (PyCFunction)(void(*)(void))fs_fdatasync, METH_FASTCALL|METH_KEYWORDS, fs_fdatasync__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_fdatasync_impl(PyObject *module, int fd);
+fs_fdatasync_impl(PyObject *module, int fd);
 
 static PyObject *
-fsmodule_fdatasync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_fdatasync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", NULL};
@@ -849,13 +846,13 @@ fsmodule_fdatasync(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     if (!fd_converter(args[0], &fd)) {
         goto exit;
     }
-    return_value = fsmodule_fdatasync_impl(module, fd);
+    return_value = fs_fdatasync_impl(module, fd);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_copyfile__doc__,
+PyDoc_STRVAR(fs_copyfile__doc__,
 "copyfile($module, /, path, new_path, flags=0)\n"
 "--\n"
 "\n"
@@ -868,15 +865,15 @@ PyDoc_STRVAR(fsmodule_copyfile__doc__,
 "\n"
 "For more information, see [uvfs_copyfile](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fscopyfile).");
 
-#define FSMODULE_COPYFILE_METHODDEF    \
-    {"copyfile", (PyCFunction)(void(*)(void))fsmodule_copyfile, METH_FASTCALL|METH_KEYWORDS, fsmodule_copyfile__doc__},
+#define FS_COPYFILE_METHODDEF    \
+    {"copyfile", (PyCFunction)(void(*)(void))fs_copyfile, METH_FASTCALL|METH_KEYWORDS, fs_copyfile__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_copyfile_impl(PyObject *module, PyObject *path, PyObject *new_path,
-                       int flags);
+fs_copyfile_impl(PyObject *module, PyObject *path, PyObject *new_path,
+                 int flags);
 
 static PyObject *
-fsmodule_copyfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_copyfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "new_path", "flags", NULL};
@@ -905,7 +902,7 @@ fsmodule_copyfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
         goto exit;
     }
 skip_optional_pos:
-    return_value = fsmodule_copyfile_impl(module, path, new_path, flags);
+    return_value = fs_copyfile_impl(module, path, new_path, flags);
 
 exit:
     /* Cleanup for path */
@@ -916,7 +913,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_sendfile__doc__,
+PyDoc_STRVAR(fs_sendfile__doc__,
 "sendfile($module, /, out_fd, in_fd, offset, count)\n"
 "--\n"
 "\n"
@@ -926,15 +923,15 @@ PyDoc_STRVAR(fsmodule_sendfile__doc__,
 "\n"
 "Equivalent to [sendfile(2)](https://man7.org/linux/man-pages/man2/sendfile.2.html).");
 
-#define FSMODULE_SENDFILE_METHODDEF    \
-    {"sendfile", (PyCFunction)(void(*)(void))fsmodule_sendfile, METH_FASTCALL|METH_KEYWORDS, fsmodule_sendfile__doc__},
+#define FS_SENDFILE_METHODDEF    \
+    {"sendfile", (PyCFunction)(void(*)(void))fs_sendfile, METH_FASTCALL|METH_KEYWORDS, fs_sendfile__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_sendfile_impl(PyObject *module, int out_fd, int in_fd,
-                       Py_off_t offset, Py_ssize_t count);
+fs_sendfile_impl(PyObject *module, int out_fd, int in_fd, Py_off_t offset,
+                 Py_ssize_t count);
 
 static PyObject *
-fsmodule_sendfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_sendfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"out_fd", "in_fd", "offset", "count", NULL};
@@ -961,13 +958,13 @@ fsmodule_sendfile(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!ssize_t_converter(args[3], &count)) {
         goto exit;
     }
-    return_value = fsmodule_sendfile_impl(module, out_fd, in_fd, offset, count);
+    return_value = fs_sendfile_impl(module, out_fd, in_fd, offset, count);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_access__doc__,
+PyDoc_STRVAR(fs_access__doc__,
 "access($module, /, path, mode)\n"
 "--\n"
 "\n"
@@ -980,14 +977,14 @@ PyDoc_STRVAR(fsmodule_access__doc__,
 "\n"
 "Equivalent to [access(2)](https://man7.org/linux/man-pages/man2/access.2.html).");
 
-#define FSMODULE_ACCESS_METHODDEF    \
-    {"access", (PyCFunction)(void(*)(void))fsmodule_access, METH_FASTCALL|METH_KEYWORDS, fsmodule_access__doc__},
+#define FS_ACCESS_METHODDEF    \
+    {"access", (PyCFunction)(void(*)(void))fs_access, METH_FASTCALL|METH_KEYWORDS, fs_access__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_access_impl(PyObject *module, PyObject *path, int mode);
+fs_access_impl(PyObject *module, PyObject *path, int mode);
 
 static PyObject *
-fsmodule_access(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_access(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "mode", NULL};
@@ -1007,7 +1004,7 @@ fsmodule_access(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
     if (mode == -1 && PyErr_Occurred()) {
         goto exit;
     }
-    return_value = fsmodule_access_impl(module, path, mode);
+    return_value = fs_access_impl(module, path, mode);
 
 exit:
     /* Cleanup for path */
@@ -1016,7 +1013,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_chmod__doc__,
+PyDoc_STRVAR(fs_chmod__doc__,
 "chmod($module, /, path, mode)\n"
 "--\n"
 "\n"
@@ -1026,14 +1023,14 @@ PyDoc_STRVAR(fsmodule_chmod__doc__,
 "\n"
 "Equivalent to [chmod(2)](https://man7.org/linux/man-pages/man2/chmod.2.html).");
 
-#define FSMODULE_CHMOD_METHODDEF    \
-    {"chmod", (PyCFunction)(void(*)(void))fsmodule_chmod, METH_FASTCALL|METH_KEYWORDS, fsmodule_chmod__doc__},
+#define FS_CHMOD_METHODDEF    \
+    {"chmod", (PyCFunction)(void(*)(void))fs_chmod, METH_FASTCALL|METH_KEYWORDS, fs_chmod__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_chmod_impl(PyObject *module, PyObject *path, int mode);
+fs_chmod_impl(PyObject *module, PyObject *path, int mode);
 
 static PyObject *
-fsmodule_chmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_chmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "mode", NULL};
@@ -1053,7 +1050,7 @@ fsmodule_chmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObje
     if (mode == -1 && PyErr_Occurred()) {
         goto exit;
     }
-    return_value = fsmodule_chmod_impl(module, path, mode);
+    return_value = fs_chmod_impl(module, path, mode);
 
 exit:
     /* Cleanup for path */
@@ -1062,7 +1059,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_fchmod__doc__,
+PyDoc_STRVAR(fs_fchmod__doc__,
 "fchmod($module, /, fd, mode)\n"
 "--\n"
 "\n"
@@ -1072,14 +1069,14 @@ PyDoc_STRVAR(fsmodule_fchmod__doc__,
 "\n"
 "Equivalent to [fchmod(2)](https://man7.org/linux/man-pages/man2/fchmod.2.html).");
 
-#define FSMODULE_FCHMOD_METHODDEF    \
-    {"fchmod", (PyCFunction)(void(*)(void))fsmodule_fchmod, METH_FASTCALL|METH_KEYWORDS, fsmodule_fchmod__doc__},
+#define FS_FCHMOD_METHODDEF    \
+    {"fchmod", (PyCFunction)(void(*)(void))fs_fchmod, METH_FASTCALL|METH_KEYWORDS, fs_fchmod__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_fchmod_impl(PyObject *module, int fd, int mode);
+fs_fchmod_impl(PyObject *module, int fd, int mode);
 
 static PyObject *
-fsmodule_fchmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_fchmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", "mode", NULL};
@@ -1099,13 +1096,13 @@ fsmodule_fchmod(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
     if (mode == -1 && PyErr_Occurred()) {
         goto exit;
     }
-    return_value = fsmodule_fchmod_impl(module, fd, mode);
+    return_value = fs_fchmod_impl(module, fd, mode);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_utime__doc__,
+PyDoc_STRVAR(fs_utime__doc__,
 "utime($module, /, path, atime, mtime, *, follow_symlinks=True)\n"
 "--\n"
 "\n"
@@ -1116,15 +1113,15 @@ PyDoc_STRVAR(fsmodule_utime__doc__,
 "Equivalent to [utime(2)](https://man7.org/linux/man-pages/man2/utime.2.html)\n"
 "              [lutimes(2)](https://man7.org/linux/man-pages/man3/lutimes.3.html).");
 
-#define FSMODULE_UTIME_METHODDEF    \
-    {"utime", (PyCFunction)(void(*)(void))fsmodule_utime, METH_FASTCALL|METH_KEYWORDS, fsmodule_utime__doc__},
+#define FS_UTIME_METHODDEF    \
+    {"utime", (PyCFunction)(void(*)(void))fs_utime, METH_FASTCALL|METH_KEYWORDS, fs_utime__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_utime_impl(PyObject *module, PyObject *path, double atime,
-                    double mtime, int follow_symlinks);
+fs_utime_impl(PyObject *module, PyObject *path, double atime, double mtime,
+              int follow_symlinks);
 
 static PyObject *
-fsmodule_utime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_utime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "atime", "mtime", "follow_symlinks", NULL};
@@ -1171,7 +1168,7 @@ fsmodule_utime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObje
         goto exit;
     }
 skip_optional_kwonly:
-    return_value = fsmodule_utime_impl(module, path, atime, mtime, follow_symlinks);
+    return_value = fs_utime_impl(module, path, atime, mtime, follow_symlinks);
 
 exit:
     /* Cleanup for path */
@@ -1180,7 +1177,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_futime__doc__,
+PyDoc_STRVAR(fs_futime__doc__,
 "futime($module, /, fd, atime, mtime)\n"
 "--\n"
 "\n"
@@ -1188,14 +1185,14 @@ PyDoc_STRVAR(fsmodule_futime__doc__,
 "\n"
 "Equivalent to [futimes(3)](https://man7.org/linux/man-pages/man3/futimes.3.html)");
 
-#define FSMODULE_FUTIME_METHODDEF    \
-    {"futime", (PyCFunction)(void(*)(void))fsmodule_futime, METH_FASTCALL|METH_KEYWORDS, fsmodule_futime__doc__},
+#define FS_FUTIME_METHODDEF    \
+    {"futime", (PyCFunction)(void(*)(void))fs_futime, METH_FASTCALL|METH_KEYWORDS, fs_futime__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_futime_impl(PyObject *module, int fd, double atime, double mtime);
+fs_futime_impl(PyObject *module, int fd, double atime, double mtime);
 
 static PyObject *
-fsmodule_futime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_futime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", "atime", "mtime", NULL};
@@ -1232,13 +1229,13 @@ fsmodule_futime(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
             goto exit;
         }
     }
-    return_value = fsmodule_futime_impl(module, fd, atime, mtime);
+    return_value = fs_futime_impl(module, fd, atime, mtime);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_link__doc__,
+PyDoc_STRVAR(fs_link__doc__,
 "link($module, /, path, new_path)\n"
 "--\n"
 "\n"
@@ -1246,14 +1243,14 @@ PyDoc_STRVAR(fsmodule_link__doc__,
 "\n"
 "Equivalent to [link(2)](https://man7.org/linux/man-pages/man2/link.2.html)");
 
-#define FSMODULE_LINK_METHODDEF    \
-    {"link", (PyCFunction)(void(*)(void))fsmodule_link, METH_FASTCALL|METH_KEYWORDS, fsmodule_link__doc__},
+#define FS_LINK_METHODDEF    \
+    {"link", (PyCFunction)(void(*)(void))fs_link, METH_FASTCALL|METH_KEYWORDS, fs_link__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_link_impl(PyObject *module, PyObject *path, PyObject *new_path);
+fs_link_impl(PyObject *module, PyObject *path, PyObject *new_path);
 
 static PyObject *
-fsmodule_link(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_link(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "new_path", NULL};
@@ -1272,7 +1269,7 @@ fsmodule_link(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObjec
     if (!PyUnicode_FSConverter(args[1], &new_path)) {
         goto exit;
     }
-    return_value = fsmodule_link_impl(module, path, new_path);
+    return_value = fs_link_impl(module, path, new_path);
 
 exit:
     /* Cleanup for path */
@@ -1283,7 +1280,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_symlink__doc__,
+PyDoc_STRVAR(fs_symlink__doc__,
 "symlink($module, /, path, new_path, *, flags=0)\n"
 "--\n"
 "\n"
@@ -1295,15 +1292,15 @@ PyDoc_STRVAR(fsmodule_symlink__doc__,
 "\n"
 "Equivalent to [symlink(2)](https://man7.org/linux/man-pages/man2/symlink.2.html)");
 
-#define FSMODULE_SYMLINK_METHODDEF    \
-    {"symlink", (PyCFunction)(void(*)(void))fsmodule_symlink, METH_FASTCALL|METH_KEYWORDS, fsmodule_symlink__doc__},
+#define FS_SYMLINK_METHODDEF    \
+    {"symlink", (PyCFunction)(void(*)(void))fs_symlink, METH_FASTCALL|METH_KEYWORDS, fs_symlink__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_symlink_impl(PyObject *module, PyObject *path, PyObject *new_path,
-                      int flags);
+fs_symlink_impl(PyObject *module, PyObject *path, PyObject *new_path,
+                int flags);
 
 static PyObject *
-fsmodule_symlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_symlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "new_path", "flags", NULL};
@@ -1332,7 +1329,7 @@ fsmodule_symlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
         goto exit;
     }
 skip_optional_kwonly:
-    return_value = fsmodule_symlink_impl(module, path, new_path, flags);
+    return_value = fs_symlink_impl(module, path, new_path, flags);
 
 exit:
     /* Cleanup for path */
@@ -1343,7 +1340,7 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_readlink__doc__,
+PyDoc_STRVAR(fs_readlink__doc__,
 "readlink($module, /, path)\n"
 "--\n"
 "\n"
@@ -1351,14 +1348,14 @@ PyDoc_STRVAR(fsmodule_readlink__doc__,
 "\n"
 "Equivalent to [readlink(2)](https://man7.org/linux/man-pages/man2/readlink.2.html)");
 
-#define FSMODULE_READLINK_METHODDEF    \
-    {"readlink", (PyCFunction)(void(*)(void))fsmodule_readlink, METH_FASTCALL|METH_KEYWORDS, fsmodule_readlink__doc__},
+#define FS_READLINK_METHODDEF    \
+    {"readlink", (PyCFunction)(void(*)(void))fs_readlink, METH_FASTCALL|METH_KEYWORDS, fs_readlink__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_readlink_impl(PyObject *module, PyObject *path);
+fs_readlink_impl(PyObject *module, PyObject *path);
 
 static PyObject *
-fsmodule_readlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_readlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", NULL};
@@ -1373,7 +1370,7 @@ fsmodule_readlink(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     if (!PyUnicode_FSConverter(args[0], &path)) {
         goto exit;
     }
-    return_value = fsmodule_readlink_impl(module, path);
+    return_value = fs_readlink_impl(module, path);
 
 exit:
     /* Cleanup for path */
@@ -1382,23 +1379,21 @@ exit:
     return return_value;
 }
 
-#if !defined(MS_WINDOWS)
-
-PyDoc_STRVAR(fsmodule_chown__doc__,
+PyDoc_STRVAR(fs_chown__doc__,
 "chown($module, /, path, uid, gid, *, follow_symlinks=True)\n"
 "--\n"
 "\n"
 "");
 
-#define FSMODULE_CHOWN_METHODDEF    \
-    {"chown", (PyCFunction)(void(*)(void))fsmodule_chown, METH_FASTCALL|METH_KEYWORDS, fsmodule_chown__doc__},
+#define FS_CHOWN_METHODDEF    \
+    {"chown", (PyCFunction)(void(*)(void))fs_chown, METH_FASTCALL|METH_KEYWORDS, fs_chown__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_chown_impl(PyObject *module, PyObject *path, uid_t uid, gid_t gid,
-                    int follow_symlinks);
+fs_chown_impl(PyObject *module, PyObject *path, uid_t uid, gid_t gid,
+              int follow_symlinks);
 
 static PyObject *
-fsmodule_chown(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_chown(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"path", "uid", "gid", "follow_symlinks", NULL};
@@ -1431,7 +1426,7 @@ fsmodule_chown(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObje
         goto exit;
     }
 skip_optional_kwonly:
-    return_value = fsmodule_chown_impl(module, path, uid, gid, follow_symlinks);
+    return_value = fs_chown_impl(module, path, uid, gid, follow_symlinks);
 
 exit:
     /* Cleanup for path */
@@ -1440,24 +1435,20 @@ exit:
     return return_value;
 }
 
-#endif /* !defined(MS_WINDOWS) */
-
-#if !defined(MS_WINDOWS)
-
-PyDoc_STRVAR(fsmodule_fchown__doc__,
+PyDoc_STRVAR(fs_fchown__doc__,
 "fchown($module, /, fd, uid, gid)\n"
 "--\n"
 "\n"
 "");
 
-#define FSMODULE_FCHOWN_METHODDEF    \
-    {"fchown", (PyCFunction)(void(*)(void))fsmodule_fchown, METH_FASTCALL|METH_KEYWORDS, fsmodule_fchown__doc__},
+#define FS_FCHOWN_METHODDEF    \
+    {"fchown", (PyCFunction)(void(*)(void))fs_fchown, METH_FASTCALL|METH_KEYWORDS, fs_fchown__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_fchown_impl(PyObject *module, int fd, uid_t uid, gid_t gid);
+fs_fchown_impl(PyObject *module, int fd, uid_t uid, gid_t gid);
 
 static PyObject *
-fsmodule_fchown(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_fchown(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"fd", "uid", "gid", NULL};
@@ -1480,15 +1471,13 @@ fsmodule_fchown(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
     if (!gid_converter(args[2], &gid)) {
         goto exit;
     }
-    return_value = fsmodule_fchown_impl(module, fd, uid, gid);
+    return_value = fs_fchown_impl(module, fd, uid, gid);
 
 exit:
     return return_value;
 }
 
-#endif /* !defined(MS_WINDOWS) */
-
-PyDoc_STRVAR(fsmodule_FileIO_close__doc__,
+PyDoc_STRVAR(fs_FileIO_close__doc__,
 "close($self, /)\n"
 "--\n"
 "\n"
@@ -1501,19 +1490,19 @@ PyDoc_STRVAR(fsmodule_FileIO_close__doc__,
 "\n"
 "");
 
-#define FSMODULE_FILEIO_CLOSE_METHODDEF    \
-    {"close", (PyCFunction)fsmodule_FileIO_close, METH_NOARGS, fsmodule_FileIO_close__doc__},
+#define FS_FILEIO_CLOSE_METHODDEF    \
+    {"close", (PyCFunction)fs_FileIO_close, METH_NOARGS, fs_FileIO_close__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_FileIO_close_impl(FileIO *self);
+fs_FileIO_close_impl(FileIO *self);
 
 static PyObject *
-fsmodule_FileIO_close(FileIO *self, PyObject *Py_UNUSED(ignored))
+fs_FileIO_close(FileIO *self, PyObject *Py_UNUSED(ignored))
 {
-    return fsmodule_FileIO_close_impl(self);
+    return fs_FileIO_close_impl(self);
 }
 
-PyDoc_STRVAR(fsmodule_FileIO_fileno__doc__,
+PyDoc_STRVAR(fs_FileIO_fileno__doc__,
 "fileno($self, /)\n"
 "--\n"
 "\n"
@@ -1521,19 +1510,19 @@ PyDoc_STRVAR(fsmodule_FileIO_fileno__doc__,
 "\n"
 "");
 
-#define FSMODULE_FILEIO_FILENO_METHODDEF    \
-    {"fileno", (PyCFunction)fsmodule_FileIO_fileno, METH_NOARGS, fsmodule_FileIO_fileno__doc__},
+#define FS_FILEIO_FILENO_METHODDEF    \
+    {"fileno", (PyCFunction)fs_FileIO_fileno, METH_NOARGS, fs_FileIO_fileno__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_FileIO_fileno_impl(FileIO *self);
+fs_FileIO_fileno_impl(FileIO *self);
 
 static PyObject *
-fsmodule_FileIO_fileno(FileIO *self, PyObject *Py_UNUSED(ignored))
+fs_FileIO_fileno(FileIO *self, PyObject *Py_UNUSED(ignored))
 {
-    return fsmodule_FileIO_fileno_impl(self);
+    return fs_FileIO_fileno_impl(self);
 }
 
-PyDoc_STRVAR(fsmodule_FileIO_read__doc__,
+PyDoc_STRVAR(fs_FileIO_read__doc__,
 "read($self, /, size=-1, offset=-1)\n"
 "--\n"
 "\n"
@@ -1541,14 +1530,14 @@ PyDoc_STRVAR(fsmodule_FileIO_read__doc__,
 "\n"
 "");
 
-#define FSMODULE_FILEIO_READ_METHODDEF    \
-    {"read", (PyCFunction)(void(*)(void))fsmodule_FileIO_read, METH_FASTCALL|METH_KEYWORDS, fsmodule_FileIO_read__doc__},
+#define FS_FILEIO_READ_METHODDEF    \
+    {"read", (PyCFunction)(void(*)(void))fs_FileIO_read, METH_FASTCALL|METH_KEYWORDS, fs_FileIO_read__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_FileIO_read_impl(FileIO *self, Py_ssize_t size, Py_off_t offset);
+fs_FileIO_read_impl(FileIO *self, Py_ssize_t size, Py_off_t offset);
 
 static PyObject *
-fsmodule_FileIO_read(FileIO *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_FileIO_read(FileIO *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"size", "offset", NULL};
@@ -1577,13 +1566,13 @@ fsmodule_FileIO_read(FileIO *self, PyObject *const *args, Py_ssize_t nargs, PyOb
         goto exit;
     }
 skip_optional_pos:
-    return_value = fsmodule_FileIO_read_impl(self, size, offset);
+    return_value = fs_FileIO_read_impl(self, size, offset);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_FileIO_write__doc__,
+PyDoc_STRVAR(fs_FileIO_write__doc__,
 "write($self, /, data, offset=-1)\n"
 "--\n"
 "\n"
@@ -1593,14 +1582,14 @@ PyDoc_STRVAR(fsmodule_FileIO_write__doc__,
 "\n"
 "");
 
-#define FSMODULE_FILEIO_WRITE_METHODDEF    \
-    {"write", (PyCFunction)(void(*)(void))fsmodule_FileIO_write, METH_FASTCALL|METH_KEYWORDS, fsmodule_FileIO_write__doc__},
+#define FS_FILEIO_WRITE_METHODDEF    \
+    {"write", (PyCFunction)(void(*)(void))fs_FileIO_write, METH_FASTCALL|METH_KEYWORDS, fs_FileIO_write__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_FileIO_write_impl(FileIO *self, PyObject *data, Py_off_t offset);
+fs_FileIO_write_impl(FileIO *self, PyObject *data, Py_off_t offset);
 
 static PyObject *
-fsmodule_FileIO_write(FileIO *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_FileIO_write(FileIO *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"data", "offset", NULL};
@@ -1622,13 +1611,13 @@ fsmodule_FileIO_write(FileIO *self, PyObject *const *args, Py_ssize_t nargs, PyO
         goto exit;
     }
 skip_optional_pos:
-    return_value = fsmodule_FileIO_write_impl(self, data, offset);
+    return_value = fs_FileIO_write_impl(self, data, offset);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fsmodule_FileIO_seek__doc__,
+PyDoc_STRVAR(fs_FileIO_seek__doc__,
 "seek($self, /, offset, whence=0)\n"
 "--\n"
 "\n"
@@ -1636,14 +1625,14 @@ PyDoc_STRVAR(fsmodule_FileIO_seek__doc__,
 "\n"
 "");
 
-#define FSMODULE_FILEIO_SEEK_METHODDEF    \
-    {"seek", (PyCFunction)(void(*)(void))fsmodule_FileIO_seek, METH_FASTCALL|METH_KEYWORDS, fsmodule_FileIO_seek__doc__},
+#define FS_FILEIO_SEEK_METHODDEF    \
+    {"seek", (PyCFunction)(void(*)(void))fs_FileIO_seek, METH_FASTCALL|METH_KEYWORDS, fs_FileIO_seek__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_FileIO_seek_impl(FileIO *self, Py_off_t offset, int whence);
+fs_FileIO_seek_impl(FileIO *self, Py_off_t offset, int whence);
 
 static PyObject *
-fsmodule_FileIO_seek(FileIO *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+fs_FileIO_seek(FileIO *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"offset", "whence", NULL};
@@ -1668,17 +1657,9 @@ fsmodule_FileIO_seek(FileIO *self, PyObject *const *args, Py_ssize_t nargs, PyOb
         goto exit;
     }
 skip_optional_pos:
-    return_value = fsmodule_FileIO_seek_impl(self, offset, whence);
+    return_value = fs_FileIO_seek_impl(self, offset, whence);
 
 exit:
     return return_value;
 }
-
-#ifndef FSMODULE_CHOWN_METHODDEF
-    #define FSMODULE_CHOWN_METHODDEF
-#endif /* !defined(FSMODULE_CHOWN_METHODDEF) */
-
-#ifndef FSMODULE_FCHOWN_METHODDEF
-    #define FSMODULE_FCHOWN_METHODDEF
-#endif /* !defined(FSMODULE_FCHOWN_METHODDEF) */
-/*[clinic end generated code: output=568ea0d33a70c90c input=a9049054013a1b77]*/
+/*[clinic end generated code: output=b091c40a7a9bfb23 input=a9049054013a1b77]*/

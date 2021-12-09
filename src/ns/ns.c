@@ -12,32 +12,31 @@
 #include "core/converters/numeric.h"
 #include "core/converters/string.h"
 #include "core/converters/inet.h"
-#include "loop/loop_api.h"
-#include "promise/promise_api.h"
-#include "ns.h"
-#include "clinic/ns.c.h"
+#include "capsule/loop.h"
+#include "capsule/promise.h"
 
 /*[clinic input]
-module nsmodule
+module ns
 [clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=b40868e825e69d87]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=486bb829615864d0]*/
 
 #define READ_BUFFER_SIZE 65536
 
 typedef char ReadBuffer[READ_BUFFER_SIZE];
 
 typedef struct {
-    uv_loop_t *loop;
     PyObject *GAIError;
     PyObject *LimitOverrunError;
     PyObject *IncompleteReadError;
-    PyObject *StreamType;
     PyObject *MemoryBIO;
     PyObject *SSLWantReadError;
     PyObject *SSLWantWriteError;
-    Freelist_TYPE_HEAD(ReadBuffer)
-    Capsule_MOUNT_POINT(PROMISE_API_ID)
-    Capsule_MOUNT_POINT(LOOP_API_ID)
+    PyObject *read_buffer_size;
+    PyTypeObject *SSLContextType;
+    PyTypeObject *TcpStream;
+    Freelist_MEM_HEAD(ReadBuffer)
+    Capsule_MOUNT(PROMISE_API)
+    Capsule_MOUNT(LOOP_API)
 } _modulestate;
 
 static PyObject *
@@ -46,7 +45,7 @@ make_ipv4_addr(const struct sockaddr_in *addr)
     char buf[INET_ADDRSTRLEN];
     int err = uv_ip4_name(addr, buf, sizeof(buf));
     if (err) {
-        PyErr_SetUVError(PyExc_OSError, err);
+        Py_SetUVError(PyExc_OSError, err);
         return NULL;
     }
     return PyUnicode_FromString(buf);
@@ -59,7 +58,7 @@ make_ipv6_addr(const struct sockaddr_in6 *addr)
     char buf[INET6_ADDRSTRLEN];
     int err = uv_ip6_name(addr, buf, sizeof(buf));
     if (err) {
-        PyErr_SetUVError(PyExc_OSError, err);
+        Py_SetUVError(PyExc_OSError, err);
         return NULL;
     }
     return PyUnicode_FromString(buf);
@@ -73,14 +72,15 @@ static void
 getaddrinfo_callback(uv_getaddrinfo_t *req, int status, struct addrinfo *res)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
         if (status < 0) {
-            Request_RejectUVError(req, S(GAIError), status);
+            Promise_RejectUVError(p, S(GAIError), status);
             goto finally;
         }
         PyObject *result = PyList_New(0);
         if (!result) {
-            Request_RejectPyExc(req);
+            Promise_Reject(p, NULL);
             goto finally;
         }
         struct addrinfo *next;
@@ -89,7 +89,7 @@ getaddrinfo_callback(uv_getaddrinfo_t *req, int status, struct addrinfo *res)
             PyObject *addr = makesockaddr(-1, next->ai_addr, next->ai_addrlen, next->ai_protocol);
             if (!addr) {
             error:
-                Request_RejectPyExc(req);
+                Promise_Reject(p, NULL);
                 Py_DECREF(result);
                 goto finally;
             }
@@ -103,19 +103,19 @@ getaddrinfo_callback(uv_getaddrinfo_t *req, int status, struct addrinfo *res)
             if (err)
                 goto error;
         }
-        Request_Resolve(req, result);
+        Promise_Resolve(p, result);
         Py_DECREF(result);
-
     finally:
         uv_freeaddrinfo(res);
         Request_Close(req);
     RELEASE_GIL
 }
 
-PyObject *
-Ns_GetAddrInfo(_STATE_var, const char *node, const char *service, int family, int type, int proto, int flags)
+CAPSULE_API(NS_API, Promise *)
+Ns_GetAddrInfo(_ctx_var, const char *node, const char *service, int family, int type, int proto, int flags)
 {
-    Request_SETUP(uv_getaddrinfo_t, req, promise);
+    Loop_SETUP(loop)
+    Request_SETUP(uv_getaddrinfo_t, req, promise)
     if (req) {
         struct addrinfo hints = {
             .ai_family = family,
@@ -123,9 +123,9 @@ Ns_GetAddrInfo(_STATE_var, const char *node, const char *service, int family, in
             .ai_protocol = proto,
             .ai_flags = flags,
         };
-        UV_CALL(uv_getaddrinfo, S(loop), req, getaddrinfo_callback, node, service, &hints) {
+        UV_CALL(uv_getaddrinfo, loop, req, getaddrinfo_callback, node, service, &hints) {
             Request_Close(req);
-            PyErr_SetUVError(S(GAIError), error);
+            Py_SetUVError(S(GAIError), uv_errno);
             Py_DECREF(promise);
             return NULL;
         }
@@ -134,7 +134,7 @@ Ns_GetAddrInfo(_STATE_var, const char *node, const char *service, int family, in
 }
 
 /*[clinic input]
-nsmodule.getaddrinfo
+ns.getaddrinfo
     node: cstring(accept={NoneType})
     service: object
     family: int(c_default="AF_UNSPEC") = 0
@@ -144,14 +144,13 @@ nsmodule.getaddrinfo
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-nsmodule_getaddrinfo_impl(PyObject *module, const char *node,
-                          PyObject *service, int family, int type, int proto,
-                          int flags)
-/*[clinic end generated code: output=04ae94cf3eae47ed input=220dadae351baefb]*/
+ns_getaddrinfo_impl(PyObject *module, const char *node, PyObject *service,
+                    int family, int type, int proto, int flags)
+/*[clinic end generated code: output=59e489da5c432ea4 input=cf8b3eb1ce553acf]*/
 {
     char buf[30];
     const char *service_ptr;
-    _STATE_setmodule(module)
+    _CTX_setmodule(module);
     if (PyLong_Check(service)) {
         long value = PyLong_AsLong(service);
         if (value == -1 && PyErr_Occurred())
@@ -161,50 +160,46 @@ nsmodule_getaddrinfo_impl(PyObject *module, const char *node,
     } else if (!cstring_optional_converter(service, &service_ptr)) {
         return NULL;
     }
-    return (PyObject *) Ns_GetAddrInfo(_state, node, service_ptr, family, type, proto, flags);
+    return (PyObject *) Ns_GetAddrInfo(_ctx, node, service_ptr, family, type, proto, flags);
 }
 
 static void
 getnameinfo_callback(uv_getnameinfo_t *req, int status, const char *hostname, const char *service)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
         if (status < 0) {
-            Request_RejectUVError(req, S(GAIError), status);
+            Promise_RejectUVError(p, S(GAIError), status);
             goto finally;
         }
-
         PyObject *name = sock_decode_hostname(hostname);
         if (!name) {
-            Request_RejectPyExc(req);
+            Promise_Reject(p, NULL);
             goto finally;
         }
-
         PyObject *ret = Py_BuildValue("Os", name, service);
         Py_DECREF(name);
         if (!ret) {
-            Request_RejectPyExc(req);
+            Promise_Reject(p, NULL);
             goto finally;
         }
-
-        Request_Resolve(req, ret);
+        Promise_Resolve(p, ret);
         Py_DECREF(ret);
-
     finally:
         Request_Close(req);
-
     RELEASE_GIL
 }
 
-PyObject *
-Ns_GetNameInfo(_STATE_var, const struct sockaddr *addr, int flags)
+CAPSULE_API(NS_API, Promise *)
+Ns_GetNameInfo(_ctx_var, const struct sockaddr *addr, int flags)
 {
-    Request_SETUP(uv_getnameinfo_t, req, promise);
+    Loop_SETUP(loop)
+    Request_SETUP(uv_getnameinfo_t, req, promise)
     if (req) {
-        UV_CALL(uv_getnameinfo, S(loop), req, getnameinfo_callback, addr, flags) {
+        UV_CALL(uv_getnameinfo, loop, req, getnameinfo_callback, addr, flags) {
             Request_Close(req);
-            PyErr_SetUVError(S(GAIError), error);
+            Py_SetUVError(S(GAIError), uv_errno);
             Py_DECREF(promise);
             return NULL;
         }
@@ -213,19 +208,31 @@ Ns_GetNameInfo(_STATE_var, const struct sockaddr *addr, int flags)
 }
 
 /*[clinic input]
-nsmodule.getnameinfo
+ns.getnameinfo
     sockaddr: inet_addr
     flags: int
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-nsmodule_getnameinfo_impl(PyObject *module, sockaddr_any *sockaddr,
-                          int flags)
-/*[clinic end generated code: output=875ade476ac42633 input=90fb8c8fbccfbb46]*/
+ns_getnameinfo_impl(PyObject *module, sockaddr_any *sockaddr, int flags)
+/*[clinic end generated code: output=f557f5d59f428a37 input=e2ca53f088a02de6]*/
 {
-    _STATE_setmodule(module)
-    return (PyObject *) Ns_GetNameInfo(_state, (struct sockaddr *) sockaddr, flags);
+    _CTX_setmodule(module);
+    return (PyObject *) Ns_GetNameInfo(_ctx, (struct sockaddr *) sockaddr, flags);
 }
+
+#define ERROR (-1)
+#define OK 0
+#define INCOMPLETE 1
+
+#ifdef BUILD_DEBUG_LOG
+static char* result_codes[] = {
+    "ERROR",
+    "OK",
+    "INCOMPLETE"
+};
+#define RESULT_CODE(n) result_codes[n + 1]
+#endif
 
 typedef struct streambufferchunk_s streambufferchunk;
 
@@ -240,22 +247,26 @@ typedef struct {
     Py_ssize_t chunk_min_size;
     Py_ssize_t nbytes;
     Py_ssize_t offset;
+    Py_ssize_t scan_size;
+    Py_ssize_t scan_offset;
+    streambufferchunk *scan_it;
 } streambuffer;
 
 typedef struct {
     Chain_ROOT(Promise)
 } backlog;
 
-static void
+Py_LOCAL_INLINE(void)
 streambuffer_init(streambuffer *buffer, Py_ssize_t chunk_min_size)
 {
     Chain_INIT(buffer);
     buffer->chunk_min_size = (chunk_min_size > 0) ? chunk_min_size : (Py_ssize_t) (512 - sizeof(streambufferchunk));
     buffer->nbytes = 0;
     buffer->offset = 0;
+    buffer->scan_it = NULL;
 }
 
-static int
+Py_LOCAL_INLINE(int)
 streambuffer_push(streambuffer *buffer, char *data, Py_ssize_t n)
 {
     Py_ssize_t offset = 0;
@@ -271,23 +282,25 @@ streambuffer_push(streambuffer *buffer, char *data, Py_ssize_t n)
         n -= bytes_to_copy;
         offset = bytes_to_copy;
     }
-
     if (n <= 0)
-        return 0;
-
+        goto finally;
     Py_ssize_t chunk_size = n < buffer->chunk_min_size ? buffer->chunk_min_size : n;
-    chunk = Mem_Malloc(sizeof(streambufferchunk) + chunk_size);
+    chunk = Py_Malloc(sizeof(streambufferchunk) + chunk_size);
     if (!chunk) {
-        return -1;
+        PyErr_NoMemory();
+        return ERROR;
     } else {
         chunk->size = n;
         memcpy(chunk->data, data + offset, n);
         Chain_APPEND(buffer, chunk);
     }
-    return 0;
+    LOG("(%p): new chunk %p, size %zd bytes", buffer, chunk, chunk_size);
+finally:
+    LOG("(%p): new size %zd bytes", buffer, buffer->nbytes);
+    return OK;
 }
 
-static PyObject *
+Py_LOCAL_INLINE(PyObject *)
 streambuffer_pull(streambuffer *buffer, Py_ssize_t n)
 {
     if (n <= 0 || n > buffer->nbytes) {
@@ -295,10 +308,10 @@ streambuffer_pull(streambuffer *buffer, Py_ssize_t n)
     }
 
     PyObject *result = PyBytes_FromStringAndSize(NULL, n);
-    if (result == NULL) {
+    if (!result)
         return NULL;
-    }
 
+    buffer->scan_it = NULL;
     buffer->nbytes -= n;
 
     streambufferchunk *it;
@@ -314,7 +327,7 @@ streambuffer_pull(streambuffer *buffer, Py_ssize_t n)
         } else {
             memcpy(target, it->data + offset, chunk_size);
             Chain_HEAD(buffer) = Chain_NEXT(it);
-            Mem_Free(it);
+            Py_Free(it);
             target += chunk_size;
             n -= chunk_size;
             offset = 0;
@@ -322,39 +335,122 @@ streambuffer_pull(streambuffer *buffer, Py_ssize_t n)
     }
 
     buffer->offset = offset;
+    LOG("(%p): new size %zd bytes", buffer, buffer->nbytes);
+
     return result;
+}
+
+Py_LOCAL_INLINE(Py_ssize_t)
+streambuffer_scan(streambuffer *buffer, char c)
+{
+    Py_ssize_t scan_size, scan_offset;
+    streambufferchunk *it;
+    if (buffer->scan_it) {
+        // continue scan
+        it = buffer->scan_it;
+        scan_size = buffer->scan_size;
+        scan_offset = buffer->scan_offset;
+    } else {
+        // new scan
+        it = Chain_HEAD(buffer);
+        scan_size = 0;
+        scan_offset = 0;
+    }
+    if (it) {
+        while (1) {
+            Py_ssize_t chunk_size = it->size - scan_offset;
+            if (chunk_size > 0) {
+                char *ptr = memchr(it->data + scan_offset, c, chunk_size);
+                if (ptr) {
+                    buffer->scan_it = NULL;
+                    return scan_size + (ptr - it->data) + 1;
+                }
+                scan_size += chunk_size;
+            }
+            scan_offset = 0;
+            if (!Chain_NEXT(it)) {
+                buffer->scan_it = it;
+                buffer->scan_size = scan_size;
+                buffer->scan_offset = it->size;
+                return -scan_size;
+            }
+            it = Chain_NEXT(it);
+        }
+    }
+    return 0;
 }
 
 static void
 streambuffer_clear(streambuffer *buffer)
 {
     streambufferchunk *it;
-    while ((it = Chain_HEAD(buffer))) {
-        Chain_HEAD(buffer) = Chain_NEXT(it);
-        Mem_Free(it);
+    Chain_PULLALL(it, buffer) {
+        Py_Free(it);
     }
     buffer->nbytes = 0;
     buffer->offset = 0;
+    buffer->scan_it = NULL;
+    LOG("(%p): clear");
 }
 
-enum sslproto_state {
-    SSL_DO_HANDSHAKE = 0,
-    SSL_WRAPPED = 1,
-    SSL_SHUTDOWN = 2
+/*
+ * STATE_INIT:
+ * Разрешен только метод connect() и close().
+ * Остальные методы будут возвращать ошибку UV_ENOTCONN.
+ * Метод connect() переводит в состояение STATE_CONNECT.
+ * Метод close() закрывает сокет.
+ *
+ * STATE_CONNECT:
+ * Метод close() закрывает сокет, даже если хендшейк не завершен (при этом может вернуть ошибку).
+ * Метод connect() возвращает ошибку UV_EALREADY.
+ * Остальные методы возвращают ошибку UV_ENOTCONN.
+ *
+ * STATE_READY:
+ * Метод connect() возвращает ошибку UV_EISCONN.
+ * Метод close() закрывает сокет, при этом может вернуть ошибку.
+ * Можно использовать Методы write() и read().
+ *
+ * STATE_SHUTDOWN:
+ * Метод
+ *
+ */
+
+#define STATE_INIT      0x0
+#define STATE_CONNECT   0x1
+#define STATE_READY     0x2
+#define STATE_SHUTDOWN  0x3
+#define STATE_ERROR     0x4
+#define STATE_CLOSE     0x5
+
+#ifdef BUILD_DEBUG_LOG
+static char* state_codes[] = {
+    "INIT",
+    "CONNECT",
+    "READY",
+    "SHUTDOWN",
+    "ERROR",
+    "CLOSE"
 };
+#define STATE_CODE(n) state_codes[n]
+#endif
+
+typedef struct {
+    unsigned int state: 3;
+    unsigned int reading: 2;            // reading, not reading, end of stream
+    unsigned int writing: 1;            // 1 if data is written otherwise 0
+    unsigned int sslwriting: 1;         // 1 if ssl data is written otherwise 0
+    unsigned int sslreading: 1;         // 1 if ssl data expected otherwise 0
+} streamstate;
 
 #define STREAM_HANDLE_FIELDS(base)  \
-    int status;                     \
     Stream *wrapper;                \
-    streambuffer buffer;            \
-    PyObject *connect_promise;      \
+    streamstate state;              \
+    PyObject *error;                \
+    Promise *close_promise;         \
     backlog write_backlog;          \
     backlog read_backlog;           \
+    streambuffer incomingbuffer;    \
     Py_ssize_t read_limit;          \
-    Py_ssize_t read_trigger;        \
-    PyObject *error;                \
-    int sslproto;                   \
-    enum sslproto_state ssl_state;  \
     PyObject *sslobj;               \
     PyObject *inbio;                \
     PyObject *outbio;               \
@@ -368,114 +464,185 @@ typedef struct {
 
 typedef struct {
     STREAM_HANDLE_FIELDS(uv_tcp_t)
-} TCPHandle;
-
-typedef struct {
-    STREAM_HANDLE_FIELDS(uv_udp_t)
-} UDPHandle;
+} TcpHandle;
 
 typedef struct {
     STREAM_HANDLE_FIELDS(uv_pipe_t)
 } PipeHandle;
 
-typedef struct stream_s {
+struct stream_s {
     PyObject_HEAD
     StreamHandle *handle;
-} Stream;
+};
 
-Py_LOCAL_INLINE(void) stream_set_exception(StreamHandle *handle, PyObject *exc);
+#include "clinic/ns.c.h"
 
-/*[clinic input]
-class nsmodule.Stream "Stream *" "&StreamType"
-[clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=7cb05718284e0c51]*/
+#define UVBUF_FROM_PYBYTES(op) {.base=PyBytes_AS_STRING(op), .len=PyBytes_GET_SIZE(op)}
 
-Py_LOCAL_INLINE(int)
-ns_stream_closed(Stream *stream)
+static void
+stream_dealloc(Stream *self)
 {
-    return stream->handle ? 0 : 1;
+    StreamHandle *handle = self->handle;
+    PyTrack_MarkDeleted(self);
+    Py_Delete(self);
+    if (handle) {
+        handle->wrapper = NULL;
+        Handle_Close(handle);
+    }
+}
+
+static PyObject *
+stream_repr(Stream *self)
+{
+    const char *stream_type = "Closed";
+    if (self->handle) {
+        stream_type = uv_handle_type_name(self->handle->base.type);
+    }
+    return PyUnicode_FromFormat("<%sStream object at %p>", self, stream_type);
+}
+
+static void stream_read_callback(uv_stream_t *stream, Py_ssize_t nread, const uv_buf_t *buf);
+
+static void
+stream_alloc_callback(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
+{
+    ACQUIRE_GIL
+        StreamHandle *stream_handle = Handle_Get(handle, StreamHandle);
+        _CTX_setstored(stream_handle);
+        buf->len = READ_BUFFER_SIZE;
+        buf->base = (char *) Freelist_Malloc(ReadBuffer);
+    RELEASE_GIL
+}
+
+Py_LOCAL_INLINE(void)
+stream_start_reading(StreamHandle *handle)
+{
+    if (handle->state.reading == 0) {
+        LOG("(%p)", handle);
+        handle->state.reading = 1;
+        BEGIN_ALLOW_THREADS
+        uv_read_start(&handle->base, stream_alloc_callback, stream_read_callback);
+        END_ALLOW_THREADS
+    }
+}
+
+Py_LOCAL_INLINE(void)
+stream_stop_reading(StreamHandle *handle)
+{
+    if (handle->state.reading == 1) {
+        LOG("(%p)", handle);
+        handle->state.reading = 0;
+        BEGIN_ALLOW_THREADS
+        uv_read_stop(&handle->base);
+        END_ALLOW_THREADS
+    }
 }
 
 Py_LOCAL_INLINE(int)
-check_stream_alive(Stream *stream)
+stream_set_eof(StreamHandle *handle)
 {
-    if (ns_stream_closed(stream)) {
-        PyErr_SetUVError(PyExc_OSError, UV_EBADF);
-        return -1;
-    }
-    return 0;
+    LOG("(%p): EOF", handle);
+    return handle->state.reading = 2;
 }
 
-Py_LOCAL_INLINE(PyObject *)
-ns_stream_getsockname(Stream *stream)
+Py_LOCAL_INLINE(int)
+stream_is_eof(StreamHandle *handle)
 {
-    if (check_stream_alive(stream))
-        return NULL;
-
-    struct sockaddr_storage sa;
-    int sa_len = sizeof(sa);
-    if (stream->handle->base.type != UV_TCP) {
-        PyErr_SetString(PyExc_TypeError, "Can be used with TCP handle only");
-        return NULL;
-    }
-    int ret;
-    Py_BEGIN_ALLOW_THREADS
-        ret = uv_tcp_getsockname((uv_tcp_t *) &stream->handle->base, (struct sockaddr *) &sa, &sa_len);
-    Py_END_ALLOW_THREADS
-    if (ret < 0) {
-        PyErr_SetUVError(PyExc_OSError, ret);
-        return NULL;
-    }
-    return makesockaddr(-1, ((struct sockaddr *) &sa), sa_len, 0);
+    return handle->state.reading == 2;
 }
 
-/*[clinic input]
-nsmodule.Stream.getsockname
-
-@doc[Stream.getsockname]
-[clinic start generated code]*/
-
-Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_getsockname_impl(Stream *self)
-/*[clinic end generated code: output=f22759caf219b4c7 input=1b7602faf59fa15f]*/
+Py_LOCAL_INLINE(void)
+stream_set_writing(StreamHandle *handle)
 {
-    return ns_stream_getsockname(self);
+    handle->state.writing = 1;
 }
 
-Py_LOCAL_INLINE(PyObject *)
-ns_stream_getpeername(Stream *stream)
+Py_LOCAL_INLINE(void)
+stream_clear_writing(StreamHandle *handle)
 {
-    if (check_stream_alive(stream))
-        return NULL;
-
-    struct sockaddr_storage sa;
-    int sa_len = sizeof(sa);
-    if (stream->handle->base.type != UV_TCP) {
-        PyErr_SetString(PyExc_TypeError, "Can be used with TCP handle only");
-        return NULL;
-    }
-    int ret;
-    Py_BEGIN_ALLOW_THREADS
-        ret = uv_tcp_getpeername((uv_tcp_t *) &stream->handle->base, (struct sockaddr *) &sa, &sa_len);
-    Py_END_ALLOW_THREADS
-    if (ret < 0) {
-        PyErr_SetUVError(PyExc_OSError, ret);
-        return NULL;
-    }
-    return makesockaddr(-1, ((struct sockaddr *) &sa), sa_len, 0);
+    handle->state.writing = 0;
 }
 
-/*[clinic input]
-nsmodule.Stream.getpeername
-
-@doc[Stream.getpeername]
-[clinic start generated code]*/
-
-Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_getpeername_impl(Stream *self)
-/*[clinic end generated code: output=0f4fe2701a0fe59b input=aea9bb36f3f44b9c]*/
+Py_LOCAL_INLINE(void)
+stream_set_sslwriting(StreamHandle *handle)
 {
-    return ns_stream_getpeername(self);
+    handle->state.sslwriting = 1;
+}
+
+Py_LOCAL_INLINE(void)
+stream_clear_sslwriting(StreamHandle *handle)
+{
+    handle->state.sslwriting = 0;
+}
+
+Py_LOCAL_INLINE(void)
+stream_set_sslreading(StreamHandle *handle, int sslonly)
+{
+    handle->state.sslreading = sslonly;
+    stream_start_reading(handle);
+}
+
+Py_LOCAL_INLINE(int)
+stream_is_write_locked(StreamHandle *handle)
+{
+    return (
+        handle->state.writing ||
+        handle->state.sslwriting ||
+        handle->state.sslreading
+    );
+}
+
+Py_LOCAL_INLINE(void)
+stream_set_state(StreamHandle *handle, int state)
+{
+    handle->state.state = state;
+    LOG("(%p): %s", handle, STATE_CODE(state));
+}
+
+Py_LOCAL_INLINE(int)
+stream_get_state(StreamHandle *handle)
+{
+    return handle->state.state;
+}
+
+Py_LOCAL_INLINE(void)
+stream_acquire(StreamHandle *handle)
+{
+    Py_XINCREF(handle->wrapper);
+}
+
+Py_LOCAL_INLINE(void)
+stream_release(StreamHandle *handle)
+{
+    Py_XDECREF(handle->wrapper);
+}
+
+Py_LOCAL_INLINE(void) stream_write_backlog(StreamHandle *handle);
+
+Py_LOCAL_INLINE(void)
+stream__set_error(StreamHandle *handle, PyObject *error)
+{
+    if (!error) {
+        error = Py_FetchError();
+    }
+    assert(error != NULL);
+    LOG("(%p, %S)", handle, error);
+    stream_stop_reading(handle);
+    stream_set_state(handle, STATE_ERROR);
+    PyException_SetContext(error, handle->error);
+    handle->error = error;
+}
+
+Py_LOCAL_INLINE(void)
+stream_set_error(StreamHandle *handle)
+{
+    stream__set_error(handle, NULL);
+}
+
+Py_LOCAL_INLINE(void)
+stream_set_uv_error(StreamHandle *handle, int err)
+{
+    stream__set_error(handle, Py_NewUVError(PyExc_OSError, err));
 }
 
 static void
@@ -483,807 +650,624 @@ stream_write_callback(uv_write_t *req, int status)
 {
     ACQUIRE_GIL
         StreamHandle *handle = Handle_Get(req->handle, StreamHandle);
-        _STATE_set(handle)
+        _CTX_setstored(handle);
         if (status < 0) {
-            Request_RejectUVError(req, PyExc_OSError, status);
+            Promise_RejectUVError(Request_PROMISE(req), PyExc_OSError, status);
+            stream_stop_reading(handle);
+            stream_set_state(handle, STATE_ERROR);
         } else {
-            Request_Resolve(req, Py_None);
+            Promise_Resolve(Request_PROMISE(req), Py_None);
         }
-        Py_XDECREF(handle->wrapper);
+        stream_clear_writing(handle);
+        stream_write_backlog(handle);
+        stream_release(handle);
         Request_Close(req);
     RELEASE_GIL
 }
 
 Py_LOCAL_INLINE(int)
-stream_write(StreamHandle *handle, PyObject *promise)
+stream_write(StreamHandle *handle, Promise *promise)
 {
-    _STATE_set(handle)
+    _CTX_setstored(handle);
+
     uv_write_t *req = Request_New(uv_write_t, promise);
-    if (!req) {
-        return -1;
-    }
+    if (!req)
+        return ERROR;
+
     PyObject *data = Promise_GetCtx(promise);
-    uv_buf_t buf = {
-        .base = PyBytes_AS_STRING(data),
-        .len = PyBytes_GET_SIZE(data)
-    };
+    uv_buf_t buf = UVBUF_FROM_PYBYTES(data);
     UV_CALL(uv_write, req, &handle->base, &buf, 1, stream_write_callback) {
-        PyErr_SetUVError(PyExc_OSError, error);
         Request_Close(req);
-        return -1;
+        Py_SetUVError(PyExc_OSError, uv_errno);
+        return ERROR;
     }
-    Py_XINCREF(handle->wrapper);
-    return 0;
+    stream_set_writing(handle);
+    return OK;
 }
-
-Py_LOCAL_INLINE(int)
-sslproto_is_transient_error(_STATE_var)
-{
-    return PyErr_ExceptionMatches(S(SSLWantReadError)) || PyErr_ExceptionMatches(S(SSLWantWriteError));
-}
-
-Py_LOCAL_INLINE(int)
-sslproto_write(StreamHandle *handle, PyObject *promise)
-{
-    _STATE_set(handle)
-    PyObject *appdata = Promise_GetCtx(promise);
-    PyObject *buffer = PyMemoryView_FromObject(appdata);
-    if (!buffer)
-        return -1;
-    _Py_IDENTIFIER(write);
-    PyObject *write_ret = _PyObject_CallMethodIdOneArg(handle->sslobj, &PyId_write, buffer);
-    Py_DECREF(buffer);
-    if (!write_ret) {
-        if (sslproto_is_transient_error(_state)) {
-            PyErr_Clear();
-            return 1;
-        } else {
-            return -1;
-        }
-    }
-    Py_DECREF(write_ret);
-    _Py_IDENTIFIER(read);
-    PyObject *ssldata = _PyObject_CallMethodIdNoArgs(handle->outbio, &PyId_read);
-    if (!ssldata) {
-        return -1;
-    }
-    if (PyBytes_GET_SIZE(ssldata) > 0) {
-        Py_DECREF(appdata);
-        Promise_SetCtx(promise, ssldata);
-        return stream_write(handle, promise);
-    } else {
-        Py_DECREF(ssldata);
-    }
-    return 0;
-}
-
-Py_LOCAL_INLINE(int)
-sslproto_write_backlog(StreamHandle *handle, PyObject *promise)
-{
-    _STATE_set(handle)
-    PyObject *err = NULL;
-    PyObject *it = (PyObject *) Chain_HEAD(&handle->write_backlog);
-    while (it) {
-        PyObject *next = (PyObject *) Chain_NEXT((Promise *) it);
-        if (err) {
-        error:
-            Promise_Reject(it, err);
-        } else {
-            int ret = sslproto_write(handle, (PyObject *) it);
-            if (ret < 0) {
-                err = fetch_current_exception();
-                goto error;
-            } else if (ret > 0) {
-                break;
-            }
-            // To make sure GC won't fail
-            Chain_NEXT((Promise *) it) = NULL;
-        }
-        Py_DECREF(it);
-        it = next;
-        Chain_HEAD(&handle->write_backlog) = (Promise *) it;
-    }
-    if (err) {
-        PyErr_SetObject((PyObject *) Py_TYPE(err), err);
-        Py_DECREF(err);
-        return -1;
-    }
-    int ret = sslproto_write(handle, promise);
-    if (ret < 0) {
-        return -1;
-    } else if (ret > 0) {
-        Chain_APPEND(&handle->write_backlog, (Promise *) Py_NewRef(promise));
-        return 0;
-    }
-    return 0;
-}
-
-Py_LOCAL_INLINE(PyObject *)
-ns_stream_write(Stream *stream, PyObject *data)
-{
-    if (check_stream_alive(stream))
-        return NULL;
-
-    StreamHandle *handle = stream->handle;
-
-    _STATE_set(handle)
-
-    PyObject *promise = Promise_New();
-    if (!promise)
-        return NULL;
-
-    Promise_SetCtx(promise, Py_NewRef(data));
-
-    if (handle->sslproto) {
-        if (sslproto_write_backlog(handle, promise)) {
-            Py_DECREF(promise);
-            return NULL;
-        }
-    } else if (stream_write(handle, promise)) {
-        Py_DECREF(promise);
-        return NULL;
-    }
-
-    return promise;
-}
-
-/*[clinic input]
-nsmodule.Stream.write
-    data: object
-
-@doc[Stream.write]
-[clinic start generated code]*/
-
-Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_write_impl(Stream *self, PyObject *data)
-/*[clinic end generated code: output=164f7482511025e5 input=e8870d467dd04b04]*/
-{
-    if (!PyBytes_Check(data)) {
-        PyErr_SetString(PyExc_TypeError, "bytes expected");
-        return NULL;
-    }
-    return (PyObject *) ns_stream_write(self, data);
-}
-
-
-Py_LOCAL_INLINE(void) stream_complete_connection(StreamHandle *handle);
 
 static void
-sslproto_feed_ssl_callback(uv_write_t *req, int status)
+sslproto_write_ssldata_callback(uv_write_t *req, int status)
 {
     ACQUIRE_GIL
         StreamHandle *handle = Handle_Get(req->handle, StreamHandle);
-        _STATE_set(handle)
         if (status < 0) {
-            stream_set_exception(handle, PyErr_UVError(PyExc_OSError, status));
+            stream_set_uv_error(handle, status);
         }
-        Py_XDECREF(handle->wrapper);
+        stream_clear_sslwriting(handle);
+        stream_write_backlog(handle);
         Request_Close(req);
     RELEASE_GIL
 }
 
-Py_LOCAL_INLINE(void)
-sslproto_feed_ssl(StreamHandle *handle, char *buffer, Py_ssize_t size)
+Py_LOCAL_INLINE(int)
+sslproto_write_ssldata(StreamHandle *handle)
 {
-    _Py_IDENTIFIER(write);
-    _Py_IDENTIFIER(do_handshake);
+    // this function is used to write only ssl layer data
+    _CTX_setstored(handle);
+    _Py_IDENTIFIER(read);
 
-    _STATE_set(handle)
-    int err = 0;
-    if (buffer) {
-        PyObject *pybuffer = PyMemoryView_FromMemory(buffer, size, PyBUF_READ);
-        if (!pybuffer) {
-            return stream_set_exception(handle, NULL);
+    PyObject *data = _PyObject_CallMethodIdNoArgs(handle->outbio, &PyId_read);
+    if (!data)
+        return ERROR;
+
+    if (!PyBytes_GET_SIZE(data)) {
+        Py_DECREF(data);
+        return OK;
+    }
+
+    LOG("(%p): send %zd bytes", handle, PyBytes_GET_SIZE(data));
+
+    uv_write_t *req = Request_New(uv_write_t, data);
+    if (!req)
+        return ERROR;
+
+    uv_buf_t buf = UVBUF_FROM_PYBYTES(data);
+    UV_CALL(uv_write, req, &handle->base, &buf, 1, sslproto_write_ssldata_callback) {
+        Request_Close(req);
+        Py_SetUVError(PyExc_OSError, uv_errno);
+        return ERROR;
+    }
+    stream_set_sslwriting(handle);
+
+    return OK;
+}
+
+Py_LOCAL_INLINE(int)
+sslproto_write_appdata(StreamHandle *handle, Promise *promise)
+{
+    _Py_IDENTIFIER(read);
+    PyObject *data = _PyObject_CallMethodIdNoArgs(handle->outbio, &PyId_read);
+    if (!data)
+        return ERROR;
+    if (PyBytes_GET_SIZE(data) > 0) {
+        PyTrack_MarkAllocated(data);
+        PyTrack_DECREF(Promise_SetCtx(promise, data));
+        return stream_write(handle, promise);
+    }
+    Py_DECREF(data);
+    return OK;
+}
+
+Py_LOCAL_INLINE(int)
+sslproto_check_error(StreamHandle *handle, int sslonly)
+{
+    _CTX_setstored(handle);
+    if (PyErr_ExceptionMatches(S(SSLWantReadError))) {
+        LOG("(%p): SSLWantReadError", handle);
+        stream_set_sslreading(handle, sslonly);
+//    } else if (PyErr_ExceptionMatches(S(SSLWantWriteError))) {
+//        // Should not happen with mem_bio?
+//        LOG("(%p): SSLWantWriteError ", handle);
+    } else {
+        LOG("(%p): ERROR", handle);
+        return ERROR;
+    }
+    PyErr_Clear();
+    return OK;
+}
+
+Py_LOCAL_INLINE(int)
+sslproto_write(StreamHandle *handle, Promise *promise)
+{
+    int err;
+    _Py_IDENTIFIER(write);
+
+    LOG("(%p): start", handle);
+
+    PyObject *appdata = Promise_GetCtx(promise);
+    PyObject *buffer = PyMemoryView_FromObject(appdata);
+
+    if (!buffer) {
+        err = ERROR;
+        goto finally;
+    }
+
+    PyObject *ret = _PyObject_CallMethodIdOneArg(handle->sslobj, &PyId_write, buffer);
+    Py_DECREF(buffer);
+
+    if (ret) {
+        Py_DECREF(ret);
+        err = sslproto_write_appdata(handle, promise);
+    } else {
+        if (sslproto_check_error(handle, 1)) {
+            err = ERROR;
+        } else if (sslproto_write_ssldata(handle)) {
+            err = ERROR;
         } else {
-            // should always success
-            PyObject *ret = _PyObject_CallMethodIdOneArg(handle->inbio, &PyId_write, pybuffer);
-            Py_DECREF(pybuffer);
-            if (!ret) {
-                return stream_set_exception(handle, NULL);
-            } else {
-                Py_DECREF(ret);
-            }
+            err = INCOMPLETE;
         }
     }
-    switch (handle->ssl_state) {
-        case SSL_DO_HANDSHAKE: {
-            PyObject *ret = _PyObject_CallMethodIdNoArgs(handle->sslobj, &PyId_do_handshake);
-            if (!ret) {
-                err = -1;
-                goto finally;
-            }
-            stream_complete_connection(handle);
-            handle->ssl_state = SSL_WRAPPED;
-            Py_DECREF(ret);
-            break;
+finally:
+    LOG("(%p): finish %s", handle, RESULT_CODE(err));
+    return err;
+}
+
+Py_LOCAL_INLINE(int)
+stream_connected(StreamHandle *handle, Promise *promise)
+{
+    _CTX_setstored(handle);
+    Promise_Resolve(promise, Py_None);
+    stream_set_state(handle, STATE_READY);
+    stream_release(handle);
+    return OK;
+}
+
+Py_LOCAL_INLINE(int)
+sslproto_do_handshake(StreamHandle *handle, Promise *promise)
+{
+    int err;
+    _Py_IDENTIFIER(do_handshake);
+
+    LOG("(%p): start", handle);
+
+    PyObject *ret = _PyObject_CallMethodIdNoArgs(handle->sslobj, &PyId_do_handshake);
+
+    if (ret) {
+        Py_DECREF(ret);
+        err = OK;
+    } else {
+        if (sslproto_check_error(handle, 1)) {
+            err = ERROR;
+            goto finally;
         }
-        case SSL_WRAPPED: {
-            break;
-        }
-        case SSL_SHUTDOWN: {
-            break;
-        }
+        err = INCOMPLETE;
+    }
+
+    if (sslproto_write_ssldata(handle)) {
+        err = ERROR;
+        goto finally;
+    }
+
+    if (err == OK) {
+        stream_connected(handle, promise);
     }
 
 finally:
-    if (err && !sslproto_is_transient_error(_state)) {
-        return stream_set_exception(handle, NULL);
-    }
-    _Py_IDENTIFIER(read);
-    PyObject *ssldata = _PyObject_CallMethodIdNoArgs(handle->outbio, &PyId_read);
-    if (!ssldata) {
-        return stream_set_exception(handle, NULL);
-    }
-    if (PyBytes_GET_SIZE(ssldata)) {
-        uv_write_t *req = Request_New(uv_write_t, ssldata);
-        if (!req) {
-            stream_set_exception(handle, NULL);
-        } else {
-            uv_buf_t buf = {.base = PyBytes_AS_STRING(ssldata), .len = PyBytes_GET_SIZE(ssldata)};
-            UV_CALL(uv_write, req, &handle->base, &buf, 1, sslproto_feed_ssl_callback) {
-                Request_Close(req);
-                stream_set_exception(handle, PyErr_UVError(PyExc_OSError, error));
-            } else {
-                Py_XINCREF(handle->wrapper);
-            }
-        }
-    }
-    Py_DECREF(ssldata);
+    LOG("(%p): finish %s", handle, RESULT_CODE(err));
+    return err;
 }
 
 static void
-stream_alloc_callback(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
+stream_shutdown_callback(uv_shutdown_t *req, int status)
 {
-    StreamHandle *stream_handle = Handle_Get(handle, StreamHandle);
-    _STATE_set(stream_handle)
-    buf->base = (char *) Freelist_Malloc(ReadBuffer);
-    buf->len = sizeof(ReadBuffer);
+    ACQUIRE_GIL
+        StreamHandle *handle = Handle_Get(req->handle, StreamHandle);
+        _CTX_setstored(handle);
+        if (status < 0) {
+            Promise_RejectUVError(Request_PROMISE(req), PyExc_OSError, status);
+            stream_stop_reading(handle);
+            stream_set_state(handle, STATE_ERROR);
+        } else {
+            Promise_Resolve(Request_PROMISE(req), Py_None);
+        }
+        stream_clear_writing(handle);
+        stream_write_backlog(handle);
+        stream_release(handle);
+        Request_Close(req);
+    RELEASE_GIL
+}
+
+Py_LOCAL_INLINE(int)
+stream_shutdown(StreamHandle *handle, Promise *promise)
+{
+    _CTX_setstored(handle);
+    uv_shutdown_t *req = Request_New(uv_shutdown_t, promise);
+    if (!req)
+        return ERROR;
+
+    UV_CALL(uv_shutdown, req, &handle->base, stream_shutdown_callback) {
+        Request_Close(req);
+        Py_SetUVError(PyExc_OSError, uv_errno);
+        return ERROR;
+    }
+    stream_set_writing(handle);
+
+    return OK;
+}
+
+Py_LOCAL_INLINE(int)
+sslproto_shutdown(StreamHandle *handle, Promise *promise)
+{
+    int err;
+    _Py_IDENTIFIER(shutdown);
+
+    LOG("(%p): start", handle);
+
+    PyObject *ret = _PyObject_CallMethodIdNoArgs(handle->sslobj, &PyId_shutdown);
+
+    if (ret) {
+        Py_DECREF(ret);
+        err = stream_shutdown(handle, promise);
+    } else {
+        if (sslproto_check_error(handle, 1)) {
+            err = ERROR;
+        } else if (sslproto_write_ssldata(handle)) {
+            err = ERROR;
+        } else {
+            err = INCOMPLETE;
+        }
+    }
+
+    LOG("(%p): finish %s", handle, RESULT_CODE(err));
+    return err;
+}
+
+#define STREAM_WRITE 0
+#define STREAM_CONNECT 1
+#define STREAM_SHUTDOWN 2
+
+Py_LOCAL_INLINE(void)
+stream_reject_backlog_item(StreamHandle *handle, Promise *it)
+{
+    _CTX_setstored(handle);
+    if (handle->error) {
+        Promise_Reject(it, handle->error);
+        Py_CLEAR(handle->error);
+    } else if (stream_get_state(handle) == STATE_ERROR) {
+        Promise_RejectUVError(it, PyExc_OSError, UV_EPIPE);
+    } else {
+        Promise_RejectUVError(it, PyExc_OSError, UV_ECANCELED);
+    }
+    Py_DECREF(it);
+    stream_release(handle);
 }
 
 Py_LOCAL_INLINE(void)
-stream_feed_data(StreamHandle *handle, char *buffer, Py_ssize_t nread)
+stream_write_backlog(StreamHandle *handle)
 {
-    if (nread) {
-        if (streambuffer_push(&handle->buffer, buffer, nread)) {
-            handle->status = UV_ENOMEM;
-            uv_read_stop(&handle->base);
-            stream_set_exception(handle, PyObject_CallNoArgs(PyExc_MemoryError));
+    Promise *it;
+    int err;
+
+    if (stream_is_write_locked(handle))
+        return;
+
+    Chain_PULLALL(it, &handle->write_backlog) {
+        if (stream_get_state(handle) >= STATE_ERROR) {
+        on_error:
+            stream_reject_backlog_item(handle, it);
+            continue;
+        }
+        switch (*Promise_DATA(it, int)) {
+            case STREAM_WRITE: {
+                if (handle->sslobj) {
+                    err = sslproto_write(handle, it);
+                } else {
+                    err = stream_write(handle, it);
+                }
+                break;
+            }
+            case STREAM_CONNECT: {
+                if (handle->sslobj) {
+                    err = sslproto_do_handshake(handle, it);
+                } else {
+                    err = stream_connected(handle, it);
+                }
+                break;
+            }
+            case STREAM_SHUTDOWN: {
+                if (handle->sslobj) {
+                    err = sslproto_shutdown(handle, it);
+                } else {
+                    err = stream_shutdown(handle, it);
+                }
+                break;
+            }
+        }
+        if (err == ERROR) {
+            stream_set_error(handle);
+            goto on_error;
+        }
+        if (err == INCOMPLETE) {
+            // could not complete write operation, try it later
+            Chain_APPENDLEFT(&handle->write_backlog, it);
+            break;
+        }
+        Py_DECREF(it);
+        return;
+    }
+}
+
+Py_LOCAL_INLINE(void) stream_read_backlog(StreamHandle *handle);
+
+Py_LOCAL_INLINE(int)
+stream_feed(StreamHandle *handle, char *buffer, Py_ssize_t nread)
+{
+    if (buffer)
+        return streambuffer_push(&handle->incomingbuffer, buffer, nread);
+    return OK;
+}
+
+Py_LOCAL_INLINE(int)
+sslproto_feed(StreamHandle *handle, char *buffer, Py_ssize_t size)
+{
+    _CTX_setstored(handle);
+    if (buffer) {
+        PyObject *pybuffer = PyMemoryView_FromMemory(buffer, size, PyBUF_READ);
+        if (!pybuffer)
+            return ERROR;
+        _Py_IDENTIFIER(write);
+        PyObject *ret = _PyObject_CallMethodIdOneArg(handle->inbio, &PyId_write, pybuffer);
+        Py_DECREF(pybuffer);
+        if (!ret)
+            return ERROR;
+        Py_DECREF(ret);
+    }
+
+    if (handle->state.sslreading) {
+        handle->state.sslreading = 0;
+        return OK;
+    }
+
+    LOG("(%p)", handle);
+    int err = OK;
+    _Py_IDENTIFIER(read);
+    while (1) {
+        PyObject *data = _PyObject_CallMethodIdOneArg(handle->sslobj, &PyId_read, S(read_buffer_size));
+        if (!data) {
+            err = ERROR;
+            break;
+        }
+        if (PyBytes_GET_SIZE(data)) {
+            err = stream_feed(handle, PyBytes_AS_STRING(data), PyBytes_GET_SIZE(data));
+            Py_DECREF(data);
+            if (err) {
+                break;
+            }
+        } else {
+            Py_DECREF(data);
+            break;
         }
     }
-//    LOG("stream_feed_default(%p): buffer=%p, nread=%ld", handle, buffer, nread);
-//    STATE_set(handle);
-//    PyObject *buffer_keeper = NULL;
-//    if (handle->ssl) {
-//        stream_feed_ssl(handle, &buffer, &nread, &buffer_keeper);
-//        // read/write ssl
-//        // set new buffer and nbytes readed
-//    }
-//    handle->in.nbytes += nread;
-//    PyObject *promise = handle->promise;
-//    if (promise) {
-//        if (stream_feed_eof(handle)) {
-//            stream_release(handle);
-//        } else {
-//            StreamReadArgs *args = Promise_DATA(handle->promise, StreamReadArgs);
-//            args->feed_cb(handle, buffer, nread);
-//            if (Promise_IsResolved(promise)) {
-//                stream_release(handle);
-//            }
-//        }
-//    } else {
-//        stream_add_new_chunk(handle, buffer, nread, 0);
-//        if (handle->in.nbytes >= handle->read_limit) {
-//            stream_stop_reading(handle);
-//        }
-//    }
-//    Py_XDECREF(buffer_keeper);
+
+    if (err == ERROR) {
+        if (sslproto_check_error(handle, 0)) {
+            err = ERROR;
+            goto finally;
+        }
+        err = OK;
+    }
+
+    if (sslproto_write_ssldata(handle)) {
+        err = ERROR;
+    }
+
+finally:
+    LOG("(%p): finish %s", handle, RESULT_CODE(err));
+    return err;
+}
+
+Py_LOCAL_INLINE(void)
+sslproto_set_eof(StreamHandle *handle)
+{
+    _Py_IDENTIFIER(write_eof);
+    Py_XDECREF(_PyObject_CallMethodIdNoArgs(handle->inbio, &PyId_write_eof));
 }
 
 static void
 stream_read_callback(uv_stream_t *stream, Py_ssize_t nread, const uv_buf_t *buf)
 {
     ACQUIRE_GIL
+        int err;
         StreamHandle *handle = Handle_Get(stream, StreamHandle);
-        _STATE_set(handle)
-        char *buffer = buf->base;
-        if (nread < 0) {
-            LOG("stream_read_callback(%p, %ld): error", handle, nread);
-            handle->status = (int) nread;
-            buffer = NULL;
-            nread = 0;
-        }
-        if (handle->sslproto) {
-            sslproto_feed_ssl(handle, buffer, nread);
-        } else {
-            stream_feed_data(handle, buffer, nread);
-        }
-        if (!err) {
-            stream_run_readop(handle);
+        _CTX_setstored(handle);
+        if (nread != 0) {
+            char *buffer = buf->base;
+            if (nread < 0) {
+                LOG("(%p): %ld, %s", handle, nread, uv_strerror(nread));
+                stream_stop_reading(handle);
+                stream_set_eof(handle);
+                if (handle->sslobj) {
+                    sslproto_set_eof(handle);
+                }
+                if (nread != UV_EOF) {
+                    stream_set_uv_error(handle, nread);
+                }
+            } else {
+                LOG("(%p): received %zd byte(s)", handle, nread);
+                if (handle->sslobj) {
+                    err = sslproto_feed(handle, buffer, nread);
+                } else {
+                    err = stream_feed(handle, buffer, nread);
+                }
+                if (err == ERROR) {
+                    stream_set_error(handle);
+                }
+            }
+            stream_read_backlog(handle);
+            stream_write_backlog(handle);
         }
         Freelist_Free(ReadBuffer, buf->base);
     RELEASE_GIL
 }
 
-Py_LOCAL_INLINE(void)
-stream_stop_reading(StreamHandle *handle)
+Py_LOCAL_INLINE(int)
+stream_read_n(StreamHandle *handle, Promise *promise, Py_ssize_t n)
 {
-    if (handle->status == 1) {
-        LOG("stream_stop_reading(%p): stop reading", handle);
-        handle->status = 0;
-        uv_read_stop(&handle->base);
+    _CTX_setstored(handle);
+    if (handle->incomingbuffer.nbytes > 0) {
+        PyObject *data = streambuffer_pull(&handle->incomingbuffer, n);
+        if (!data)
+            return ERROR;
+        Promise_Resolve(promise, data);
+        Py_DECREF(data);
+        return OK;
     }
-}
-
-Py_LOCAL_INLINE(void)
-stream_start_reading(StreamHandle *handle)
-{
-    if (handle->status == 0) {
-        LOG("stream_start_reading(%p): start reading", handle);
-        handle->status = 1;
-        uv_read_start(&handle->base, stream_alloc_callback, stream_read_callback);
+    if (stream_is_eof(handle)) {
+        PyObject *data = PyBytes_FromStringAndSize(NULL, 0);
+        if (!data)
+            return ERROR;
+        Promise_Resolve(promise, data);
+        Py_DECREF(data);
+        return OK;
     }
+    return INCOMPLETE;
 }
 
-Py_LOCAL_INLINE(void)
-sslproto_do_handshake(StreamHandle *handle)
+Py_LOCAL_INLINE(int)
+stream_read_exactly(StreamHandle *handle, Promise *promise, Py_ssize_t n)
 {
-    handle->ssl_state = SSL_DO_HANDSHAKE;
-    sslproto_feed_ssl(handle, NULL, 0);
-}
-
-Py_LOCAL_INLINE(void)
-stream_complete_connection(StreamHandle *handle)
-{
-    _STATE_set(handle)
-    Stream *wrapper = (Stream *) Object_New((PyTypeObject *) S(StreamType));
-    if (!wrapper) {
-        Promise_RejectPyExc(handle->connect_promise);
-    } else {
-        wrapper->handle = handle;
-        handle->wrapper = wrapper;
-        Promise_Resolve(handle->connect_promise, (PyObject *) wrapper);
-        Py_DECREF(wrapper);
+    _CTX_setstored(handle);
+    if (handle->incomingbuffer.nbytes >= n) {
+        PyObject *data = streambuffer_pull(&handle->incomingbuffer, n);
+        if (!data)
+            return ERROR;
+        Promise_Resolve(promise, data);
+        Py_DECREF(data);
+        return OK;
     }
-    Py_CLEAR(handle->connect_promise);
+    return INCOMPLETE;
 }
 
-static void
-stream_connect_callback(uv_connect_t *req, int status)
+Py_LOCAL_INLINE(int)
+stream_read_until(StreamHandle *handle, Promise *promise, char c)
 {
-    ACQUIRE_GIL
-        StreamHandle *handle = Handle_Get(req->handle, StreamHandle);
-        _STATE_set(handle)
-        if (status < 0) {
-            Request_RejectUVError(req, PyExc_OSError, status);
-            Handle_Close(handle);
-            goto finally;
-        }
-        handle->connect_promise = Py_NewRef(Request_PROMISE(req));
-        stream_start_reading(handle);
-        if (handle->sslproto) {
-            sslproto_do_handshake(handle);
-        } else {
-            stream_complete_connection(handle);
-        }
-    finally:
-        Request_Close(req);
-    RELEASE_GIL
-}
-
-Py_LOCAL_INLINE(Py_ssize_t)
-stream_scan_block(char *data, Py_ssize_t data_size, char c)
-{
-    char *ptr = memchr(data, c, data_size);
-    if (ptr) {
-        LOG("stream_scan_block(%p): result size %ld", data, ptr - data + 1);
-        return ptr - data + 1;
+    _CTX_setstored(handle);
+    Py_ssize_t nbytes = streambuffer_scan(&handle->incomingbuffer, c);
+    if (nbytes > 0) {
+        PyObject *data = streambuffer_pull(&handle->incomingbuffer, nbytes);
+        if (!data)
+            return ERROR;
+        Promise_Resolve(promise, data);
+        Py_DECREF(data);
+        return OK;
+    } else if (-nbytes >= handle->read_limit) {
+        PyObject *exc = Py_NewError(S(LimitOverrunError),
+                                    "Separator is not found, and buffer exceed the limit");
+        if (!exc)
+            return ERROR;
+        Promise_Reject(promise, exc);
+        Py_DECREF(exc);
+        return OK;
     }
-    return 0;
+    return INCOMPLETE;
 }
 
-//static Py_ssize_t
-//stream_scan_buffer(StreamHandle *handle, char c, char *data, Py_ssize_t data_size)
-//{
-//    Py_ssize_t offset = handle->in.offset;
-//    Py_ssize_t scan_size = 0;
-//    InputChunk *it;
-//    CHAIN_FOREACH(it, &handle->in) {
-//        Py_ssize_t chunk_size = it->size - offset;
-//        Py_ssize_t block_size = stream_scan_block(it->data + offset, chunk_size, c);
-//        if (block_size) {
-//            return scan_size + block_size;
-//        }
-//        scan_size += chunk_size;
-//        offset = 0;
-//    }
-//    if (data_size) {
-//        Py_ssize_t block_size = stream_scan_block(data, data_size, c);
-//        if (block_size) {
-//            return scan_size + block_size;
-//        }
-//    }
-//    return 0;
-//}
-
-//Py_LOCAL_INLINE(void)
-//stream_reject_exception(StreamHandle *handle)
-//{
-//    _STATE_set(handle)
-//    if (handle->read_promise) {
-//        Promise_Reject(handle->read_promise, handle->error);
-//        Py_CLEAR(handle->read_promise);
-//    }
-//    if (handle->write_promise) {
-//        Promise_Reject(handle->write_promise, handle->error);
-//        Py_CLEAR(handle->write_promise);
-//    }
-//    if (!handle->wrapper) {
-//        Handle_Close(handle);
-//    }
-//}
-
-Py_LOCAL_INLINE(void)
-stream_set_exception(StreamHandle *handle, PyObject *exc)
+Py_LOCAL_INLINE(int)
+stream_incomplete_read(StreamHandle *handle, Promise *promise)
 {
-    _STATE_set(handle);
+    _CTX_setstored(handle);
+    PyObject *data = streambuffer_pull(&handle->incomingbuffer, -1);
+    if (!data)
+        return ERROR;
+    PyObject *exc = Py_NewError(S(IncompleteReadError), "end of stream");
     if (!exc) {
-        exc = fetch_current_exception();
+        Py_DECREF(data);
+        return ERROR;
     }
-    Py_XSETREF(handle->error, exc);
-    if (handle->connect_promise) {
-        Promise_Reject(handle->connect_promise, exc);
-    } else {
-        // TODO:
-    }
+    PyObject_SetAttrString(exc, "partial", data);
+    Promise_Reject(promise, exc);
+    Py_DECREF(exc);
+    Py_DECREF(data);
+    return OK;
 }
 
-typedef int (*streamfeed_cb)(StreamHandle *handle, PyObject *promise);
+#define STREAM_READ_N       0x0
+#define STREAM_READ_EXACTLY 0x1
+#define STREAM_READ_UNTIL   0x2
 
 typedef struct {
-    streamfeed_cb cb;
+    int op;
     Py_ssize_t n;
     char c;
 } streamreadargs;
 
-//Py_LOCAL_INLINE(int)
-//stream_feed_eof(StreamHandle *handle)
-//{
-//    STATE_set(handle);
-//    if (!handle->in.nbytes && handle->status < 0) {
-//        if (handle->status == UV_EOF) {
-//            LOG("stream_feed_eof(%p): EOF", handle);
-//            PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
-//            Promise_Resolve(handle->promise, result);
-//            Py_DECREF(result);
-//        } else {
-//            LOG("stream_feed_eof(%p): error %d", handle, handle->s.status);
-//            Promise_RejectUvErr(handle->promise, PyExc_OSError, handle->status);
-//        }
-//        return 1;
-//    }
-//    return 0;
-//}
-
-
-static void
-stream_feed_n(StreamHandle *handle, PyObject *promise)
-{
-    _STATE_set(handle);
-    if (handle->buffer.nbytes) {
-        streamreadargs *args = Promise_DATA(promise, streamreadargs);
-        stream_feed_buffer(handle, args->n);
-        return 1;
-    } else {
-        stream_start_reading(handle);
-        return 0;
-    }
-}
-
-//static void
-//stream_feed_exactly(StreamHandle *handle, char *data, Py_ssize_t data_size)
-//{
-//    LOG("stream_feed_exactly(%p): data=%p, data_size=%ld, buffer_size=%ld", handle, data, data_size, handle->s.nbytes);
-//
-//    STATE_set(handle);
-//    StreamReadArgs *args = Promise_DATA(handle->promise, StreamReadArgs);
-//
-//    if (handle->status < 0 && handle->in.nbytes < args->n) {
-//        PyObject *result = stream_feed_buffer_and_pull_data(handle, args->n, data, data_size);
-//        if (!result) {
-//            Promise_RejectPyExc(handle->promise);
-//        } else {
-//            PyObject *exc = new_exception(_state->IncompleteReadError, "end of stream");
-//            PyObject_SetAttrString(exc, "partial", result);
-//            Promise_Reject(handle->promise, exc);
-//            Py_DECREF(exc);
-//            Py_DECREF(result);
-//        }
-//        return;
-//    }
-//
-//    if (handle->in.nbytes >= args->n) {
-//        stream_feed_buffer_and_resolve_promise(handle, args->n, data, data_size);
-//    } else {
-//        stream_add_new_chunk(handle, data, data_size, 0);
-//        stream_start_reading(handle);
-//    }
-//}
-
-//static void
-//stream_feed_until(StreamHandle *handle, char *data, Py_ssize_t data_size)
-//{
-//    LOG("stream_feed_until(%p): data=%p, data_size=%ld, buffer_size=%ld", handle, data, data_size, handle->s.nbytes);
-//
-//    STATE_set(handle);
-//    Py_ssize_t read_until_size = 0;
-//    StreamReadArgs *args = Promise_DATA(handle->promise, StreamReadArgs);
-//    if (!args->n) {
-//        read_until_size = stream_scan_buffer(handle, args->c, data, data_size);
-//        args->n = 1;
-//    } else if (data_size) {
-//        read_until_size = stream_scan_block(data, data_size, args->c);
-//        if (read_until_size)
-//            read_until_size += handle->in.nbytes - data_size;
-//    }
-//
-//    if (handle->status < 0 && !read_until_size) {
-//        PyObject *result = stream_feed_buffer_and_pull_data(handle, 0, data, data_size);
-//        if (!result) {
-//            Promise_RejectPyExc(handle->promise);
-//        } else {
-//            PyObject *exc = new_exception(_state->IncompleteReadError, "end of stream");
-//            PyObject_SetAttrString(exc, "partial", result);
-//            Promise_Reject(handle->promise, exc);
-//            Py_DECREF(exc);
-//            Py_DECREF(result);
-//        }
-//        return;
-//    }
-//
-//    if (read_until_size) {
-//        stream_feed_buffer_and_resolve_promise(handle, read_until_size, data, data_size);
-//    } else {
-//        stream_add_new_chunk(handle, data, data_size, 0);
-//        if (handle->in.nbytes >= handle->read_limit && handle->read_hard_limit) {
-//            Promise_RejectString(handle->promise, state->LimitOverrunError,
-//                                 "separator is not found, and buffer exceed the limit");
-//            stream_stop_reading(handle);
-//        } else {
-//            stream_start_reading(handle);
-//        }
-//    }
-//}
-
 Py_LOCAL_INLINE(void)
-stream_feed(StreamHandle *handle)
+stream_read_backlog(StreamHandle *handle)
 {
-    _STATE_set(handle);
     Promise *it;
-    // broken state
-    while ((it = Chain_HEAD(&handle->read_backlog))) {
-        PyObject *promise = (PyObject *) it;
-        Promise *next = Chain_NEXT(it);
-        streamreadargs *args = Promise_DATA(promise, streamreadargs);
-        if (args->cb(handle, promise)) {
-            Py_DECREF(promise);
-            Chain_HEAD(&handle->read_backlog) = next;
-        } else {
+    int unlimited_read = 0;
+    Chain_PULLALL(it, &handle->read_backlog) {
+        if (stream_get_state(handle) >= STATE_ERROR && !handle->incomingbuffer.nbytes) {
+        stream_error:
+            stream_reject_backlog_item(handle, it);
+            continue;
+        }
+        int err;
+        streamreadargs *args = Promise_DATA(it, streamreadargs);
+        switch (args->op) {
+            case STREAM_READ_N:
+                err = stream_read_n(handle, it, args->n);
+                break;
+            case STREAM_READ_EXACTLY:
+                err = stream_read_exactly(handle, it, args->n);
+                break;
+            case STREAM_READ_UNTIL:
+                err = stream_read_until(handle, it, args->c);
+                break;
+        }
+        if (err == ERROR) {
+        memory_error:
+            streambuffer_clear(&handle->incomingbuffer);
+            stream_set_error(handle);
+            goto stream_error;
+        }
+        if (err == INCOMPLETE) {
+            if (stream_get_state(handle) == STATE_ERROR || stream_is_eof(handle)) {
+                // Error or EOF
+                if (stream_incomplete_read(handle, it))
+                    goto memory_error;
+            } else {
+                unlimited_read = args->op == STREAM_READ_EXACTLY;
+                Chain_APPENDLEFT(&handle->read_backlog, it);
+                break;
+            }
+        }
+        Py_DECREF(it);
+        stream_release(handle);
+    }
+    if (stream_get_state(handle) == STATE_READY) {
+        if (unlimited_read || handle->incomingbuffer.nbytes < handle->read_limit) {
             stream_start_reading(handle);
-            break;
+        } else {
+            stream_stop_reading(handle);
         }
     }
 }
 
-Py_LOCAL_INLINE(PyObject *)
-stream_read(StreamHandle *handle, streamfeed_cb cb, Py_ssize_t n, char c)
+Py_LOCAL_INLINE(Promise *)
+stream_read(StreamHandle *handle, int op, Py_ssize_t n, char c)
 {
-    _STATE_set(handle);
-    PyObject *promise = Promise_New();
+    _CTX_setstored(handle);
+    Promise *promise = Promise_New();
     if (!promise)
         return NULL;
-    *Promise_DATA(promise, streamreadargs) = (streamreadargs) {cb, n, c};
-    int can_feed = Chain_HEAD(&handle->read_backlog) == NULL;
-    Py_INCREF(handle->wrapper); // keep stream object alive
+
+    *Promise_DATA(promise, streamreadargs) = (streamreadargs) {op, n, c};
+    int empty_backlog = Chain_HEAD(&handle->read_backlog) == NULL;
     Py_INCREF(promise);
-    Chain_APPEND(&handle->read_backlog, (Promise *) promise);
-    if (can_feed) {
-        stream_feed(handle);
+    Chain_APPEND(&handle->read_backlog, promise);
+    stream_acquire(handle);
+    if (empty_backlog) {
+        stream_read_backlog(handle);
     }
+
     return promise;
 }
 
-Py_LOCAL_INLINE(PyObject *)
-ns_stream_read(Stream *stream, Py_ssize_t n)
-{
-    if (check_stream_alive(stream)) {
-        return NULL;
-    }
-    if (n == 0) {
-        PyErr_SetUVError(PyExc_OSError, UV_EINVAL);
-        return NULL;
-    }
-    return stream_read(stream->handle, stream_feed_n, n, 0);
-}
-
-/*[clinic input]
-nsmodule.Stream.read
-    n: ssize_t = -1
-[clinic start generated code]*/
-
-Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_read_impl(Stream *self, Py_ssize_t n)
-/*[clinic end generated code: output=67f310d3fd0ce2c4 input=82d70be72d0dad10]*/
-{
-    return (PyObject *) ns_stream_read(self, n);
-}
-
-Py_LOCAL_INLINE(PyObject *)
-ns_stream_readexactly(Stream *stream, Py_ssize_t n)
-{
-    if (check_stream_alive(stream)) {
-        return NULL;
-    }
-    if (n <= 0) {
-        PyErr_SetUVError(PyExc_OSError, UV_EINVAL);
-        return NULL;
-    }
-    if (stream->handle->read_hard_limit && n > stream->handle->read_limit) {
-        PyErr_SetString(PyExc_ValueError, "Can't read more bytes than the buffer limit");
-        return NULL;
-    }
-    return stream_read(stream, stream_feed_exactly, n, 0);
-}
-
-/*[clinic input]
-nsmodule.Stream.readexactly
-    n: ssize_t
-[clinic start generated code]*/
-
-Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_readexactly_impl(Stream *self, Py_ssize_t n)
-/*[clinic end generated code: output=81a83586675535cc input=9a7e64bb204b3f52]*/
-{
-    return (PyObject *) ns_stream_readexactly(self, n);
-    Py_RETURN_NONE;
-}
-
-Py_LOCAL_INLINE(PyObject *)
-ns_stream_readuntil(Stream *stream, char c)
-{
-    if (check_stream_alive(stream)) {
-        return NULL;
-    }
-    return stream_read(stream, stream_feed_until, 0, c);
-    Py_RETURN_NONE;
-}
-
-/*[clinic input]
-nsmodule.Stream.readuntil
-    c: char
-
-[clinic start generated code]*/
-
-Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_readuntil_impl(Stream *self, char c)
-/*[clinic end generated code: output=1ae79d7be62b8b65 input=33648528e6a9566a]*/
-{
-    return (PyObject *) ns_stream_readuntil(self, c);
-}
-
 Py_LOCAL_INLINE(int)
-ns_stream_get_error(Stream *stream)
+sslproto_init_stream(StreamHandle *handle, PyObject *sslcontext, const char *server_hostname, int server_socket)
 {
-    if (ns_stream_closed(stream)) {
-        return UV_EBADF;
-    }
-    switch (stream->handle->status) {
-        case UV_EOF:
-        case 0:
-        case 1:
-            return 0;
-        default:
-            return stream->handle->status;
-    }
-}
-
-/*[clinic input]
-nsmodule.Stream.get_error -> int
-
-[clinic start generated code]*/
-
-Py_LOCAL_INLINE(int)
-nsmodule_Stream_get_error_impl(Stream *self)
-/*[clinic end generated code: output=49ffcf5ea91c5b80 input=ff5900c88fdf44b4]*/
-{
-    return ns_stream_get_error(self);
-}
-
-Py_LOCAL_INLINE(int)
-ns_stream_at_eof(Stream *stream)
-{
-    if (ns_stream_closed(stream)) {
-        return 1;
-    }
-    return stream->handle->status == UV_EOF;
-}
-
-/*[clinic input]
-nsmodule.Stream.at_eof
-
-@doc[Stream.at_eof]
-[clinic start generated code]*/
-
-Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_at_eof_impl(Stream *self)
-/*[clinic end generated code: output=5194fdf70fc0bf12 input=9a8c4082e9840c9d]*/
-{
-    if (check_stream_alive(self)) {
-        return NULL;
-    }
-    if (ns_stream_at_eof(self)) {
-        Py_RETURN_TRUE;
-    }
-    Py_RETURN_FALSE;
-}
-
-static void
-stream_dealloc(Stream *self)
-{
-    if (self->handle) {
-        self->handle->wrapper = NULL;
-        Handle_Close(self->handle);
-    }
-    Object_Del(self);
-}
-
-static PyObject *
-stream_repr(Stream *self)
-{
-    const char *stream_type = "UNBOUND";
-    if (self->handle) {
-        stream_type = uv_handle_type_name(self->handle->base.type);
-    }
-    if (!stream_type) {
-        stream_type = "UNKNOWN";
-    }
-    return PyUnicode_FromFormat("<handle object at %p, type %s>", self, stream_type);
-}
-
-PyDoc_STRVAR(stream_doc,
-             "Stream provides a duplex communication channel.\n");
-
-static PyMethodDef stream_methods[] = {
-    NSMODULE_STREAM_GETSOCKNAME_METHODDEF
-    NSMODULE_STREAM_GETPEERNAME_METHODDEF
-    NSMODULE_STREAM_WRITE_METHODDEF
-    NSMODULE_STREAM_READ_METHODDEF
-    NSMODULE_STREAM_READEXACTLY_METHODDEF
-    NSMODULE_STREAM_READUNTIL_METHODDEF
-    NSMODULE_STREAM_GET_ERROR_METHODDEF
-    NSMODULE_STREAM_AT_EOF_METHODDEF
-    {NULL}
-};
-
-static PyType_Slot stream_slots[] = {
-    {Py_tp_doc, (char *) stream_doc},
-    {Py_tp_methods, stream_methods},
-    {Py_tp_repr, stream_repr},
-    {Py_tp_dealloc, stream_dealloc},
-    {0, 0},
-};
-
-static PyType_Spec stream_spec = {
-    "promisedio.ns.Stream",
-    sizeof(Stream),
-    0,
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE,
-    stream_slots
-};
-
-Py_LOCAL_INLINE(int)
-sslproto_init_stream(StreamHandle *handle, StreamConfig *config, int server_socket)
-{
-    _STATE_set(handle)
+    _CTX_setstored(handle);
     PyObject *inbio = NULL, *outbio = NULL;
     inbio = PyObject_CallNoArgs(S(MemoryBIO));
     if (!inbio)
@@ -1291,117 +1275,607 @@ sslproto_init_stream(StreamHandle *handle, StreamConfig *config, int server_sock
     outbio = PyObject_CallNoArgs(S(MemoryBIO));
     if (!outbio)
         goto fail;
-    _Py_IDENTIFIER(wrap_bio);
-    PyObject *ssl = _PyObject_CallMethodId(config->sslcontext, &PyId_wrap_bio, "OOis", inbio, outbio, server_socket,
-                                           config->server_hostname);
+    _Py_IDENTIFIER(_wrap_bio);
+    PyObject *ssl = _PyObject_CallMethodId(sslcontext, &PyId__wrap_bio, "OOis", inbio, outbio, server_socket,
+                                           server_hostname);
     if (!ssl)
         goto fail;
     handle->sslobj = ssl;
     handle->inbio = inbio;
     handle->outbio = outbio;
-    return 0;
+    return OK;
 
 fail:
     Py_XDECREF(inbio);
     Py_XDECREF(outbio);
-    return -1;
+    return ERROR;
 }
 
-Py_LOCAL_INLINE(int)
-stream_handle_init(StreamHandle *handle, StreamConfig *config, int server_socket)
+Py_LOCAL_INLINE(void)
+stream_handle_init(StreamHandle *handle, Py_ssize_t buffer_limit, Py_ssize_t chunk_min_size)
 {
-    Py_ssize_t read_limit = (config->buffer_limit <= 0) ? 65536 : config->buffer_limit;
+    Py_ssize_t read_limit = buffer_limit <= 0 ? 65536 : buffer_limit;
     handle->wrapper = NULL;
-    handle->connect_promise = NULL;
-    handle->read_limit = read_limit;
-    handle->read_trigger = (read_limit > 256) ? read_limit / 3 * 2 : read_limit;
-    handle->sslproto = 0;
+    handle->state = (streamstate) {0};
+    handle->error = NULL;
+    handle->close_promise = NULL;
     Chain_INIT(&handle->read_backlog);
     Chain_INIT(&handle->write_backlog);
-    streambuffer_init(&handle->buffer, config->chunk_min_size);
-    if (config->sslcontext) {
-        if (sslproto_init_stream(handle, config, server_socket)) {
-            return -1;
-        }
-        handle->sslproto = 1;
-    }
-    return 0;
+    streambuffer_init(&handle->incomingbuffer, chunk_min_size);
+    handle->read_limit = read_limit;
+    handle->sslobj = NULL;
 }
 
 static void
 stream_handle_finalizer(StreamHandle *handle)
 {
-    streambuffer_clear(&handle->buffer);
-    Stream *wrapper = handle->wrapper;
-    if (wrapper) {
-        wrapper->handle = NULL;
-        handle->wrapper = NULL;
+    if (handle->wrapper) {
+        handle->wrapper->handle = NULL;
     }
-    Py_XDECREF(handle->connect_promise);
-    Py_XDECREF(handle->error);
-    // read_backlog and write_backlog should be empty here, but let's play it safe
-    Promise *it;
-    Chain_PULL(it, &handle->write_backlog) {
-        Py_DECREF(it);
+    Py_CLEAR(handle->error);
+    streambuffer_clear(&handle->incomingbuffer);
+    stream_set_state(handle, STATE_CLOSE);
+    // reject all read operations
+    stream_read_backlog(handle);
+    // reject all write operations
+    stream_write_backlog(handle);
+    if (handle->sslobj) {
+        Py_CLEAR(handle->sslobj);
+        Py_CLEAR(handle->inbio);
+        Py_CLEAR(handle->outbio);
     }
-    Chain_PULL(it, &handle->read_backlog) {
-        Py_DECREF(it);
-    }
-    if (handle->sslproto) {
-        Py_XDECREF(handle->sslobj);
-        Py_XDECREF(handle->inbio);
-        Py_XDECREF(handle->outbio);
+    if (handle->close_promise) {
+        _CTX_setstored(handle);
+        Promise_Resolve(handle->close_promise, Py_None);
+        Py_CLEAR(handle->close_promise);
     }
 }
 
-PyObject *
-ns_tcp_connect(_STATE_var, const struct sockaddr *addr, const TCPStreamConfig *config)
+Py_LOCAL_INLINE(void)
+stream_push_writeop(StreamHandle *handle, Promise *promise, int op)
 {
-    Request_SETUP(uv_connect_t, req, promise);
-    if (!req) {
-        return NULL;
-    }
+    *Promise_DATA(promise, int) = op;
+    Py_INCREF(promise);
+    Chain_APPEND(&handle->write_backlog, promise);
+}
 
-    TCPHandle *handle = Handle_New(TCPHandle, stream_handle_finalizer);
-    if (!handle) {
-    cleanup:
-        Py_DECREF(promise);
+static void
+stream_connect_callback(uv_connect_t *req, int status)
+{
+    ACQUIRE_GIL
+        StreamHandle *handle = Handle_Get(req->handle, StreamHandle);
+        _CTX_setstored(handle);
+        Promise *promise = Request_PROMISE(req);
+        if (status < 0) {
+            stream_release(handle);
+            Promise_RejectUVError(promise, PyExc_OSError, status);
+        } else {
+            stream_start_reading(handle);
+            stream_push_writeop(handle, promise, STREAM_CONNECT);
+            stream_write_backlog(handle);
+        }
         Request_Close(req);
+    RELEASE_GIL
+}
+
+Py_LOCAL_INLINE(int)
+stream_check_alive(Stream *stream)
+{
+    if (!stream->handle || stream_get_state(stream->handle) == STATE_CLOSE) {
+        Py_SetUVError(PyExc_OSError, UV_EBADF);
+        return ERROR;
+    }
+    return OK;
+}
+
+/* Capsule API */
+
+CAPSULE_API(NS_API, PyObject *)
+TcpStream_GetSockName(Stream *stream)
+{
+    if (stream_check_alive(stream))
+        return NULL;
+
+    struct sockaddr_storage sa;
+    int sa_len = sizeof(sa);
+    if (stream->handle->base.type != UV_TCP) {
+        PyErr_SetString(PyExc_TypeError, "Can be used with TCP handle only");
+        return NULL;
+    }
+    int ret;
+    BEGIN_ALLOW_THREADS
+    ret = uv_tcp_getsockname((uv_tcp_t *) &stream->handle->base, (struct sockaddr *) &sa, &sa_len);
+    END_ALLOW_THREADS
+    if (ret < 0) {
+        Py_SetUVError(PyExc_OSError, ret);
         return NULL;
     }
 
-    stream_handle_init((StreamHandle *) handle, (StreamConfig *) config, 0);
-    uv_tcp_init(S(loop), &handle->base);
-    uv_tcp_nodelay(&handle->base, config->tcp_nodelay > 0);
-    uv_tcp_keepalive(&handle->base, config->tcp_keepalive > 0, config->tcp_keepalive);
-    UV_CALL(uv_tcp_connect, req, &handle->base, addr, stream_connect_callback) {
-        Handle_Close(handle);
-        PyErr_SetUVError(PyExc_OSError, error);
+    return makesockaddr(-1, ((struct sockaddr *) &sa), sa_len, 0);
+}
+
+CAPSULE_API(NS_API, PyObject *)
+TcpStream_GetPeerName(Stream *stream)
+{
+    if (stream_check_alive(stream))
+        return NULL;
+
+    struct sockaddr_storage sa;
+    int sa_len = sizeof(sa);
+    if (stream->handle->base.type != UV_TCP) {
+        PyErr_SetString(PyExc_TypeError, "Can be used with TCP handle only");
+        return NULL;
+    }
+    int ret;
+    BEGIN_ALLOW_THREADS
+    ret = uv_tcp_getpeername((uv_tcp_t *) &stream->handle->base, (struct sockaddr *) &sa, &sa_len);
+    END_ALLOW_THREADS
+    if (ret < 0) {
+        Py_SetUVError(PyExc_OSError, ret);
+        return NULL;
+    }
+
+    return makesockaddr(-1, ((struct sockaddr *) &sa), sa_len, 0);
+}
+
+CAPSULE_API(NS_API, int)
+TcpStream_SetTcpNoDelay(Stream *stream, int enabled)
+{
+    if (stream_check_alive(stream))
+        return ERROR;
+
+    int err = uv_tcp_nodelay((uv_tcp_t *) &stream->handle->base, enabled > 0);
+    if (err) {
+        Py_SetUVError(PyExc_OSError, err);
+        return ERROR;
+    }
+
+    return OK;
+}
+
+CAPSULE_API(NS_API, int)
+TcpStream_SetTcpKeepAlive(Stream *stream, int delay)
+{
+    if (stream_check_alive(stream))
+        return ERROR;
+
+    int err = uv_tcp_keepalive((uv_tcp_t *) &stream->handle->base, delay > 0, delay);
+    if (err) {
+        Py_SetUVError(PyExc_OSError, err);
+        return ERROR;
+    }
+
+    return OK;
+}
+
+Py_LOCAL_INLINE(int)
+stream_check_can_connect(Stream *stream)
+{
+    if (stream_check_alive(stream))
+        return ERROR;
+
+    switch (stream_get_state(stream->handle)) {
+        case STATE_INIT:
+            return OK;
+        case STATE_CONNECT:
+            Py_SetUVError(PyExc_OSError, UV_EALREADY);
+            return ERROR;
+        case STATE_READY:
+        case STATE_ERROR:
+            Py_SetUVError(PyExc_OSError, UV_EISCONN);
+            return ERROR;
+        default:
+            Py_SetUVError(PyExc_OSError, UV_EBADF);
+            return ERROR;
+    }
+}
+
+CAPSULE_API(NS_API, Promise *)
+TcpStream_Connect(Stream *stream, const struct sockaddr *addr, PyObject *sslctx, const char *server_name)
+{
+    if (stream_check_can_connect(stream))
+        return NULL;
+
+    _CTX_set((PyObject *) stream);
+    Request_SETUP(uv_connect_t, req, promise);
+
+    if (!req)
+        return NULL;
+
+    StreamHandle *handle = stream->handle;
+
+    if (sslctx) {
+        if (sslproto_init_stream(handle, sslctx, server_name, 0)) {
+        cleanup:
+            Request_Close(req);
+            Py_DECREF(promise);
+            return NULL;
+        }
+    }
+
+    stream_set_state(handle, STATE_CONNECT);
+    UV_CALL(uv_tcp_connect, req, (uv_tcp_t *) &handle->base, addr, stream_connect_callback) {
+        // never try again after bad attempt
+        Py_SetUVError(PyExc_OSError, uv_errno);
         goto cleanup;
     }
+
+    stream_acquire(handle);
+    return promise;
+}
+
+CAPSULE_API(NS_API, Promise *)
+Stream_Close(Stream *stream)
+{
+    if (stream_check_alive(stream))
+        return NULL;
+
+    _CTX_set((PyObject *) stream);
+    Promise *promise = Promise_New();
+    if (!promise)
+        return NULL;
+
+    StreamHandle *handle = stream->handle;
+    stream->handle = NULL;
+    stream_set_state(handle, STATE_CLOSE);
+    handle->close_promise = promise;
+    Handle_Close(handle);
+
+    return (Promise *) Py_NewRef(promise);
+}
+
+Py_LOCAL_INLINE(int)
+stream_check_connected(Stream *stream)
+{
+    if (stream_check_alive(stream))
+        return ERROR;
+
+    switch (stream_get_state(stream->handle)) {
+        case STATE_READY:
+        case STATE_ERROR:
+        case STATE_SHUTDOWN:
+            return OK;
+        case STATE_INIT:
+        case STATE_CONNECT:
+            Py_SetUVError(PyExc_OSError, UV_ENOTCONN);
+            return ERROR;
+        default:
+            Py_SetUVError(PyExc_OSError, UV_EBADF);
+            return ERROR;
+    }
+}
+
+CAPSULE_API(NS_API, Promise *)
+Stream_Shutdown(Stream *stream)
+{
+    if (stream_check_connected(stream))
+        return NULL;
+
+    StreamHandle *handle = stream->handle;
+    _CTX_setstored(handle);
+
+    Promise *promise = Promise_New();
+    if (!promise)
+        return NULL;
+
+    stream_acquire(handle);
+    stream_set_state(handle, STATE_SHUTDOWN);
+    stream_push_writeop(handle, promise, STREAM_SHUTDOWN);
+    stream_write_backlog(handle);
 
     return promise;
 }
 
+CAPSULE_API(NS_API, Promise *)
+Stream_Write(Stream *stream, PyObject *data)
+{
+    if (stream_check_connected(stream))
+        return NULL;
+
+    if (!PyBytes_Check(data)) {
+        PyErr_SetString(PyExc_TypeError, "bytes expected");
+        return NULL;
+    }
+
+    StreamHandle *handle = stream->handle;
+    _CTX_setstored(handle);
+    Promise *promise = Promise_New();
+    if (!promise)
+        return NULL;
+
+    PyTrack_INCREF(data);
+    Promise_SetCtx(promise, data);
+
+    stream_acquire(handle);
+    stream_push_writeop(handle, promise, STREAM_WRITE);
+    stream_write_backlog(handle);
+
+    return promise;
+}
+
+CAPSULE_API(NS_API, Promise *)
+Stream_Read(Stream *stream, Py_ssize_t n)
+{
+    if (stream_check_connected(stream))
+        return NULL;
+    if (n == 0) {
+        PyErr_SetString(PyExc_ValueError, "n must be greater than zero");
+        return NULL;
+    }
+    return stream_read(stream->handle, STREAM_READ_N, n, 0);
+}
+
+CAPSULE_API(NS_API, Promise *)
+Stream_ReadExactly(Stream *stream, Py_ssize_t n)
+{
+    if (stream_check_connected(stream))
+        return NULL;
+    if (n <= 0) {
+        PyErr_SetString(PyExc_ValueError, "n must be greater than zero");
+        return NULL;
+    }
+    return stream_read(stream->handle, STREAM_READ_EXACTLY, n, 0);
+}
+
+CAPSULE_API(NS_API, Promise *)
+Stream_ReadUntil(Stream *stream, char c)
+{
+    if (stream_check_connected(stream))
+        return NULL;
+    return stream_read(stream->handle, STREAM_READ_UNTIL, 0, c);
+}
+
+/*[clinic input]
+class ns.TcpStream "Stream *" "S(TcpStream)"
+[clinic start generated code]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=9335b838fe0b483f]*/
+
+/*[clinic input]
+@classmethod
+ns.TcpStream.__new__
+    buffer_limit: Py_ssize_t = -1
+    chunk_min_size: Py_ssize_t = -1
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_impl(PyTypeObject *type, Py_ssize_t buffer_limit,
+                  Py_ssize_t chunk_min_size)
+/*[clinic end generated code: output=6bbcca107fa70cd4 input=dc5e7b410933fd2d]*/
+{
+    _CTX_settype(type);
+    Loop_SETUP(loop);
+
+    Stream *self = (Stream *) Py_New(type);
+    if (!self)
+        return NULL;
+
+    TcpHandle *handle = Handle_New(TcpHandle, stream_handle_finalizer);
+    if (!handle) {
+    cleanup:
+        Py_DECREF(self);
+        return NULL;
+    }
+
+    int err;
+    BEGIN_ALLOW_THREADS
+    err = uv_tcp_init(loop, &handle->base);
+    END_ALLOW_THREADS
+    if (err) {
+        Py_SetUVError(PyExc_OSError, err);
+        Handle_Free(handle);
+        goto cleanup;
+    }
+
+    stream_handle_init((StreamHandle *) handle, buffer_limit, chunk_min_size);
+    PyTrack_MarkAllocated(self);
+    handle->wrapper = self;
+    self->handle = (StreamHandle *) handle;
+
+    return (PyObject *) self;
+}
+
+/*[clinic input]
+ns.TcpStream.set_tcp_nodelay
+    enabled: bool(accept={int})
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_set_tcp_nodelay_impl(Stream *self, int enabled)
+/*[clinic end generated code: output=56a1b0cb588cb0cf input=f228d670c209c71c]*/
+{
+    if (TcpStream_SetTcpNoDelay(self, enabled)) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+/*[clinic input]
+ns.TcpStream.set_tcp_keepalive
+    delay: int
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_set_tcp_keepalive_impl(Stream *self, int delay)
+/*[clinic end generated code: output=0764bcbc450955f0 input=fea0246258a79108]*/
+{
+    if (TcpStream_SetTcpKeepAlive(self, delay)) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+/*[clinic input]
+ns.TcpStream.connect
+    addr: inet_addr
+    sslctx: object(subclass_of="_CTX_get((PyObject *) self)->SSLContextType") = NULL
+    server_hostname: object = NULL
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_connect_impl(Stream *self, sockaddr_any *addr, PyObject *sslctx,
+                          PyObject *server_hostname)
+/*[clinic end generated code: output=938a3cc233c0a61e input=65e9a0ee0e20e244]*/
+{
+    char *hostname = NULL;
+    if (server_hostname) {
+        if (!PyArg_Parse(server_hostname, "es", "ascii", &hostname))
+            return NULL;
+    }
+    Promise *ret = TcpStream_Connect(self, (struct sockaddr *) addr, sslctx, hostname);
+    if (hostname)
+        Py_Free(hostname);
+    return (PyObject *) ret;
+}
+
+/*[clinic input]
+ns.TcpStream.getpeername
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_getpeername_impl(Stream *self)
+/*[clinic end generated code: output=2e40824379a3a5c4 input=fb45d21e630a22d4]*/
+{
+    return TcpStream_GetPeerName(self);
+}
+
+/*[clinic input]
+ns.TcpStream.getsockname
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_getsockname_impl(Stream *self)
+/*[clinic end generated code: output=e96207c8f5dd0354 input=ead01cb6e6896ba6]*/
+{
+    return TcpStream_GetSockName(self);
+}
+
+/*[clinic input]
+ns.TcpStream.write
+    data: object
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_write_impl(Stream *self, PyObject *data)
+/*[clinic end generated code: output=9423aff598070b90 input=f51c3fb94b64d42d]*/
+{
+    return (PyObject *) Stream_Write(self, data);
+}
+
+/*[clinic input]
+ns.TcpStream.read
+    n: ssize_t = -1
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_read_impl(Stream *self, Py_ssize_t n)
+/*[clinic end generated code: output=947fd3453039e96a input=e8f37fd8d6a56256]*/
+{
+    return (PyObject *) Stream_Read(self, n);
+}
+
+/*[clinic input]
+ns.TcpStream.readexactly
+    n: ssize_t
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_readexactly_impl(Stream *self, Py_ssize_t n)
+/*[clinic end generated code: output=895f49979238a17f input=5e96c2f5ae103842]*/
+{
+    return (PyObject *) Stream_ReadExactly(self, n);
+}
+
+/*[clinic input]
+ns.TcpStream.readuntil
+    c: char
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_readuntil_impl(Stream *self, char c)
+/*[clinic end generated code: output=ba29ac419c1099d4 input=faed01d3602600ae]*/
+{
+    return (PyObject *) Stream_ReadUntil(self, c);
+}
+
+/*[clinic input]
+ns.TcpStream.shutdown
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_shutdown_impl(Stream *self)
+/*[clinic end generated code: output=183d1b2be0c72cbf input=239467237491a31c]*/
+{
+    return (PyObject *) Stream_Shutdown(self);
+}
+
+/*[clinic input]
+ns.TcpStream.close
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_close_impl(Stream *self)
+/*[clinic end generated code: output=f6840eb2be33b2bb input=4df88388144cf70c]*/
+{
+    return (PyObject *) Stream_Close(self);
+}
+
+static PyMethodDef tcpstream_methods[] = {
+    NS_TCPSTREAM_GETSOCKNAME_METHODDEF
+    NS_TCPSTREAM_GETPEERNAME_METHODDEF
+    NS_TCPSTREAM_CONNECT_METHODDEF
+    NS_TCPSTREAM_SET_TCP_KEEPALIVE_METHODDEF
+    NS_TCPSTREAM_SET_TCP_NODELAY_METHODDEF
+    NS_TCPSTREAM_WRITE_METHODDEF
+    NS_TCPSTREAM_READ_METHODDEF
+    NS_TCPSTREAM_READEXACTLY_METHODDEF
+    NS_TCPSTREAM_READUNTIL_METHODDEF
+    NS_TCPSTREAM_SHUTDOWN_METHODDEF
+    NS_TCPSTREAM_CLOSE_METHODDEF
+    {NULL}
+};
+
+static PyType_Slot tcpstream_slots[] = {
+    {Py_tp_new, ns_TcpStream},
+    {Py_tp_methods, tcpstream_methods},
+    {Py_tp_repr, stream_repr},
+    {Py_tp_dealloc, stream_dealloc},
+    {0, 0},
+};
+
+static PyType_Spec tcpstream_spec = {
+    "promisedio.ns.TcpStream",
+    sizeof(Stream),
+    0,
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE,
+    tcpstream_slots
+};
+
 static int
 nsmodule_init(PyObject *module)
 {
-    LOG("nsmodule_init(%p)", module);
-
-    _STATE_setmodule(module)
-
-    Capsule_LOAD("promisedio.promise", PROMISE_API_ID);
-    Capsule_LOAD("promisedio.loop", LOOP_API_ID);
-    S(loop) = Loop_Get();
+    LOG("(%p)", module);
+    _CTX_setmodule(module);
+    Capsule_LOAD("promisedio.promise", PROMISE_API);
+    Capsule_LOAD("promisedio.loop", LOOP_API);
     return 0;
 }
 
 static int
 nsmodule_init_types(PyObject *module)
 {
-    LOG("nsmodule_init_types(%p)", module);
-    _STATE_setmodule(module)
-
+    LOG("(%p)", module);
+    _CTX_setmodule(module);
     S(GAIError) = PyErr_NewException("promisedio.ns.GAIError", PyExc_OSError, NULL);
     if (!S(GAIError))
         return -1;
@@ -1411,10 +1885,12 @@ nsmodule_init_types(PyObject *module)
     S(IncompleteReadError) = PyErr_NewException("promisedio.ns.IncompleteReadError", PyExc_EOFError, NULL);
     if (!S(IncompleteReadError))
         return -1;
-    S(StreamType) = PyType_FromModuleAndSpec(module, &stream_spec, NULL);
-    if (S(StreamType) == NULL)
+    S(TcpStream) = (PyTypeObject *) PyType_FromModuleAndSpec(module, &tcpstream_spec, NULL);
+    if (S(TcpStream) == NULL)
         return -1;
-
+    S(read_buffer_size) = PyLong_FromSsize_t(READ_BUFFER_SIZE);
+    if (S(read_buffer_size) == NULL)
+        return -1;
     PyObject *d = PyModule_GetDict(module);
     if (PyDict_SetItemString(d, "GAIError", S(GAIError)) < 0)
         return -1;
@@ -1422,9 +1898,9 @@ nsmodule_init_types(PyObject *module)
         return -1;
     if (PyDict_SetItemString(d, "IncompleteReadError", S(IncompleteReadError)) < 0)
         return -1;
-
-    Freelist_TYPE_INIT(ReadBuffer, 1);
-
+    if (PyDict_SetItemString(d, "TcpStream", (PyObject *) S(TcpStream)) < 0)
+        return -1;
+    Freelist_MEM_INIT(ReadBuffer, 8);
     // SSL
     int ret = -1;
     PyObject *ssl = PyImport_ImportModule("_ssl");
@@ -1432,6 +1908,9 @@ nsmodule_init_types(PyObject *module)
         goto finally;
     S(MemoryBIO) = PyObject_GetAttrString(ssl, "MemoryBIO");
     if (!S(MemoryBIO))
+        goto finally;
+    S(SSLContextType) = (PyTypeObject *) PyObject_GetAttrString(ssl, "_SSLContext");
+    if (!S(SSLContextType))
         goto finally;
     S(SSLWantReadError) = PyObject_GetAttrString(ssl, "SSLWantReadError");
     if (!S(SSLWantReadError))
@@ -1446,28 +1925,30 @@ finally:
     return ret;
 }
 
+#include "capsule.h"
+
 static int
 nsmodule_create_api(PyObject *module)
 {
-    LOG("nsmodule_create_api(%p)", module);
-    static void *c_api[] = {
-    };
-    Capsule_CREATE(module, NS_API_ID, c_api);
+    LOG("(%p)", module);
+    Capsule_CREATE(module, NS_API);
     return 0;
 }
 
 static int
 nsmodule_traverse(PyObject *module, visitproc visit, void *arg)
 {
-    _STATE_setmodule(module)
-    Capsule_TRAVERSE(LOOP_API_ID);
-    Capsule_TRAVERSE(PROMISE_API_ID);
+    _CTX_setmodule(module);
+    Capsule_VISIT(LOOP_API);
+    Capsule_VISIT(PROMISE_API);
     Py_VISIT(S(GAIError));
     Py_VISIT(S(LimitOverrunError));
     Py_VISIT(S(IncompleteReadError));
-    Py_VISIT(S(StreamType));
+    Py_VISIT(S(TcpStream));
+    Py_VISIT(S(read_buffer_size));
     // SSL
     Py_VISIT(S(MemoryBIO));
+    Py_VISIT(S(SSLContextType));
     Py_VISIT(S(SSLWantReadError));
     Py_VISIT(S(SSLWantWriteError));
     return 0;
@@ -1476,15 +1957,15 @@ nsmodule_traverse(PyObject *module, visitproc visit, void *arg)
 static int
 nsmodule_clear(PyObject *module)
 {
-    _STATE_setmodule(module)
-    Capsule_CLEAR(LOOP_API_ID);
-    Capsule_CLEAR(PROMISE_API_ID);
+    _CTX_setmodule(module);
     Py_CLEAR(S(GAIError));
     Py_CLEAR(S(LimitOverrunError));
     Py_CLEAR(S(IncompleteReadError));
-    Py_CLEAR(S(StreamType));
+    Py_CLEAR(S(TcpStream));
+    Py_CLEAR(S(read_buffer_size));
     // SSL
     Py_CLEAR(S(MemoryBIO));
+    Py_CLEAR(S(SSLContextType));
     Py_CLEAR(S(SSLWantReadError));
     Py_CLEAR(S(SSLWantWriteError));
     return 0;
@@ -1493,15 +1974,17 @@ nsmodule_clear(PyObject *module)
 static void
 nsmodule_free(void *module)
 {
-    LOG("nsmodule_free(%p)", module);
-    _STATE_setmodule(module)
+    LOG("(%p)", module);
+    _CTX_setmodule(module);
+    Capsule_CLEAR(LOOP_API);
+    Capsule_CLEAR(PROMISE_API);
     nsmodule_clear(module);
-    Freelist_Type_Clear(ReadBuffer);
+    Freelist_Mem_Clear(ReadBuffer);
 }
 
 static PyMethodDef nsmodule_methods[] = {
-    NSMODULE_GETADDRINFO_METHODDEF
-    NSMODULE_GETNAMEINFO_METHODDEF
+    NS_GETADDRINFO_METHODDEF
+    NS_GETNAMEINFO_METHODDEF
     {NULL},
 };
 

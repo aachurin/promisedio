@@ -1,25 +1,23 @@
 // Copyright (c) 2021 Andrey Churin (aachurin@gmail.com).
 // This file is part of promisedio
 
-#include "timer.h"
-#include "clinic/timer.c.h"
+#include <uv.h>
 #include "core/base.h"
 #include "core/capsule.h"
 #include "core/handle.h"
 #include "core/module.h"
-#include "loop/loop_api.h"
-#include "promise/promise_api.h"
-#include <uv.h>
+#include "timer.h"
+
+#include "clinic/timer.c.h"
 
 typedef struct {
-    uv_loop_t *loop;
     PyTypeObject *TimerType;
-    Capsule_MOUNT_POINT(PROMISE_API_ID)
-    Capsule_MOUNT_POINT(LOOP_API_ID)
+    Capsule_MOUNT(PROMISE_API)
+    Capsule_MOUNT(LOOP_API)
 } _modulestate;
 
 typedef struct {
-    PyObject *promise;
+    Promise *promise;
     HANDLE_BASE(uv_timer_t)
 } TimeoutHandle;
 
@@ -33,22 +31,25 @@ timeout_callback(uv_timer_t *handle)
 {
     ACQUIRE_GIL
         TimeoutHandle *h = Handle_Get(handle, TimeoutHandle);
-        _STATE_set(h)
+        _CTX_setstored(h);
         Promise_Resolve(h->promise, Py_None);
-        Handle_Close_UV((uv_handle_t *) handle);
+        Py_CLEAR(h->promise);
+        Handle_Close(h);
     RELEASE_GIL
 }
 
 static void
 timeout_finalizer(TimeoutHandle *handle)
 {
+    // TODO: Maybe reject timeout here???
     Py_XDECREF(handle->promise);
 }
 
-PyObject *
-Timer_Timeout(_STATE_var, uint64_t timeout)
+CAPSULE_API(TIMER_API, Promise *)
+Timer_Timeout(_ctx_var, uint64_t timeout)
 {
-    PyObject *promise = Promise_New();
+    Loop_SETUP(loop)
+    Promise *promise = Promise_New();
     if (!promise)
         return NULL;
     TimeoutHandle *handle = Handle_New(TimeoutHandle, timeout_finalizer);
@@ -57,9 +58,9 @@ Timer_Timeout(_STATE_var, uint64_t timeout)
         return NULL;
     }
     handle->promise = promise;
-    uv_timer_init(_state->loop, &handle->base);
+    uv_timer_init(loop, &handle->base);
     uv_timer_start(&handle->base, (uv_timer_cb) timeout_callback, timeout, 0);
-    return Py_NewRef(promise);
+    return (Promise *) Py_NewRef(promise);
 }
 
 /*[clinic input]
@@ -71,13 +72,12 @@ Py_LOCAL_INLINE(PyObject *)
 timer_sleep_impl(PyObject *module, double seconds)
 /*[clinic end generated code: output=0e7d97eb1efd2983 input=97a9461096618dc6]*/
 {
-    _STATE_setmodule(module)
-
+    _CTX_setmodule(module);
     if (seconds < 0) {
         PyErr_SetString(PyExc_ValueError, "sleep length must be non-negative");
         return NULL;
     }
-    return Timer_Timeout(_state, (uint64_t) (seconds * 1000));
+    return (PyObject *) Timer_Timeout(_ctx, (uint64_t) (seconds * 1000));
 }
 
 typedef struct timerhandle_s TimerHandle;
@@ -99,7 +99,8 @@ timer_dealloc(Timer *ob)
     if (ob->handle) {
         ob->handle->timer = NULL;
     }
-    Object_Del(ob);
+    PyTrack_MarkDeleted(ob);
+    Py_Delete(ob);
 }
 
 static PyType_Slot timer_slots[] = {
@@ -120,11 +121,11 @@ timer_callback(uv_timer_t *handle)
 {
     ACQUIRE_GIL
         TimerHandle *h = Handle_Get(handle, TimerHandle);
-        PyObject *ret = PyObject_CallNoArgs(h->func);
-        if (ret == NULL) {
-            promise_print_unhandled_exception();
+        PyObject *tmp = PyObject_CallNoArgs(h->func);
+        if (tmp == NULL) {
+            Py_PrintLastException();
         } else {
-            Py_DECREF(ret);
+            Py_DECREF(tmp);
         }
         Handle_Close(h);
     RELEASE_GIL
@@ -136,7 +137,7 @@ interval_callback(uv_timer_t *handle)
     ACQUIRE_GIL
         PyObject *tmp = PyObject_CallNoArgs(Handle_Get(handle, TimerHandle)->func);
         if (tmp == NULL) {
-            promise_print_unhandled_exception();
+            Py_PrintLastException();
         } else {
             Py_DECREF(tmp);
         }
@@ -149,13 +150,14 @@ timer_finalizer(TimerHandle *handle)
     if (handle->timer) {
         handle->timer->handle = NULL;
     }
-    Py_DECREF(handle->func);
+    PyTrack_DECREF(handle->func);
 }
 
-PyObject *
-Timer_Start(_STATE_var, PyObject *func, uint64_t timeout, uint64_t repeat, int unref)
+CAPSULE_API(TIMER_API, PyObject *)
+Timer_Start(_ctx_var, PyObject *func, uint64_t timeout, uint64_t repeat, int unref)
 {
-    Timer *timer = (Timer *) Object_New(_state->TimerType);
+    Loop_SETUP(loop)
+    Timer *timer = (Timer *) Py_New(S(TimerType));
     if (!timer)
         return NULL;
     TimerHandle *handle = Handle_New(TimerHandle, timer_finalizer);
@@ -163,11 +165,12 @@ Timer_Start(_STATE_var, PyObject *func, uint64_t timeout, uint64_t repeat, int u
         Py_DECREF(timer);
         return NULL;
     }
-    Py_INCREF(func);
+    PyTrack_MarkAllocated(timer);
+    PyTrack_INCREF(func);
     handle->func = func;
     handle->timer = timer;
     timer->handle = handle;
-    uv_timer_init(_state->loop, &handle->base);
+    uv_timer_init(loop, &handle->base);
     if (unref) {
         uv_unref((uv_handle_t *) &handle->base);
     }
@@ -179,14 +182,18 @@ Timer_Start(_STATE_var, PyObject *func, uint64_t timeout, uint64_t repeat, int u
     return (PyObject *) timer;
 }
 
-int
-Timer_Stop(_STATE_var, PyObject *ob)
+CAPSULE_API(TIMER_API, int)
+Timer_Stop(_ctx_var, PyObject *ob)
 {
-    if (Py_TYPE(ob) != _state->TimerType) {
+    if (Py_TYPE(ob) != S(TimerType)) {
         PyErr_SetString(PyExc_TypeError, "Timer object expected");
         return -1;
     }
-    Handle_Close(((Timer *) ob)->handle);
+    TimerHandle *handle = ((Timer *) ob)->handle;
+    if (handle) {
+        ((Timer *) ob)->handle = NULL;
+        Handle_Close(handle);
+    }
     return 0;
 }
 
@@ -211,10 +218,8 @@ timer_set_timeout_impl(PyObject *module, PyObject *func, double timeout,
         PyErr_SetString(PyExc_ValueError, "timeout must be non-negative");
         return NULL;
     }
-
-    _STATE_setmodule(module)
-
-    return Timer_Start(_state, func, (uint64_t) (timeout * 1000), 0, unref);
+    _CTX_setmodule(module);
+    return Timer_Start(_ctx, func, (uint64_t) (timeout * 1000), 0, unref);
 }
 
 /*[clinic input]
@@ -238,11 +243,9 @@ timer_set_interval_impl(PyObject *module, PyObject *func, double interval,
         PyErr_SetString(PyExc_ValueError, "interval must be non-negative");
         return NULL;
     }
-
-    _STATE_setmodule(module)
-
+    _CTX_setmodule(module);
     uint64_t timeout = (uint64_t) (interval * 1000);
-    return Timer_Start(_state, func, timeout, timeout, unref);
+    return Timer_Start(_ctx, func, timeout, timeout, unref);
 }
 
 /*[clinic input]
@@ -254,9 +257,8 @@ Py_LOCAL_INLINE(PyObject *)
 timer_clear_timeout_impl(PyObject *module, PyObject *timer)
 /*[clinic end generated code: output=a1989760e1d3b1a8 input=b2cafa306c01792e]*/
 {
-    _STATE_setmodule(module)
-
-    if (Timer_Stop(_state, timer)) {
+    _CTX_setmodule(module);
+    if (Timer_Stop(_ctx, timer)) {
         return NULL;
     }
     Py_RETURN_NONE;
@@ -271,9 +273,8 @@ Py_LOCAL_INLINE(PyObject *)
 timer_clear_interval_impl(PyObject *module, PyObject *timer)
 /*[clinic end generated code: output=44cfa146bc5fed17 input=79bd857166af6be9]*/
 {
-    _STATE_setmodule(module)
-
-    if (Timer_Stop(_state, timer)) {
+    _CTX_setmodule(module);
+    if (Timer_Stop(_ctx, timer)) {
         return NULL;
     }
     Py_RETURN_NONE;
@@ -282,58 +283,51 @@ timer_clear_interval_impl(PyObject *module, PyObject *timer)
 static int
 timermodule_init(PyObject *module)
 {
-    LOG("timermodule_init(%p)", module);
-
-    _STATE_setmodule(module)
-
-    Capsule_LOAD("promisedio.promise", PROMISE_API_ID);
-    Capsule_LOAD("promisedio.loop", LOOP_API_ID);
-    _state->loop = Loop_Get();
-    _state->TimerType = (PyTypeObject *) PyType_FromModuleAndSpec(module, &timer_spec, NULL);
-    if (_state->TimerType == NULL)
+    _CTX_setmodule(module);
+    LOG("(%p)", module);
+    Capsule_LOAD("promisedio.promise", PROMISE_API);
+    Capsule_LOAD("promisedio.loop", LOOP_API);
+    S(TimerType) = (PyTypeObject *) PyType_FromModuleAndSpec(module, &timer_spec, NULL);
+    if (S(TimerType) == NULL)
         return -1;
     return 0;
 }
 
+#include "capsule.h"
+
 static int
 timermodule_create_api(PyObject *module)
 {
-    LOG("timermodule_create_api(%p)", module);
-    static void *c_api[] = {
-        [TIMER_TIMEOUT_API_ID] = Timer_Timeout,
-        [TIMER_START_API_ID] = Timer_Start,
-        [TIMER_STOP_API_ID] = Timer_Stop,
-    };
-    Capsule_CREATE(module, TIMER_API_ID, c_api);
+    LOG("(%p)", module);
+    Capsule_CREATE(module, TIMER_API);
     return 0;
 }
 
 static int
 timermodule_traverse(PyObject *module, visitproc visit, void *arg)
 {
-    _STATE_setmodule(module)
-
-    Capsule_TRAVERSE(LOOP_API_ID);
-    Capsule_TRAVERSE(PROMISE_API_ID);
-    Py_VISIT(_state->TimerType);
+    _CTX_setmodule(module);
+    Capsule_VISIT(LOOP_API);
+    Capsule_VISIT(PROMISE_API);
+    Py_VISIT(S(TimerType));
     return 0;
 }
 
 static int
 timermodule_clear(PyObject *module)
 {
-    _STATE_setmodule(module)
-
-    Capsule_CLEAR(LOOP_API_ID);
-    Capsule_CLEAR(PROMISE_API_ID);
-    Py_CLEAR(_state->TimerType);
+    _CTX_setmodule(module);
+    Py_CLEAR(S(TimerType));
     return 0;
 }
 
 static void
 timermodule_free(void *module)
 {
-    LOG("timermodule_free(%p)", module);
+    _CTX_setmodule(module);
+    LOG("(%p)", module);
+    Capsule_CLEAR(LOOP_API);
+    Capsule_CLEAR(PROMISE_API);
     timermodule_clear(module);
 }
 

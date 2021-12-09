@@ -1,4 +1,4 @@
-from promisedio import exec_async, run, fs
+from promisedio import loop, fs, promise
 
 
 async def example1():
@@ -41,12 +41,9 @@ async def example3():
         await fs.rmdir("demo3")
 
 
-exec_async(example1())
-exec_async(example2())
-exec_async(example3())
+promise.exec_async(example1())
+promise.exec_async(example2())
+promise.exec_async(example3())
 
-run()
-
-# uncomment to see debug info
-from promisedio import _getallocatedobjectscount
-print(_getallocatedobjectscount())
+loop.run_until_complete()
+print("@ALLOC_STATS")

@@ -13,39 +13,37 @@
 #define Handle_Get(ptr, type) ((type *)((ptr)->data))
 
 typedef struct {
-    void *_state;
+    void *_ctx;
     char base[0];
 } Request;
 
 Py_LOCAL_INLINE(uv_req_t *)
-Request_New(void *_state, PyObject *promise, size_t size)
+Request_New(void *_ctx, PyObject *promise, size_t size)
 {
-    Request *ptr = (Request *) Mem_Malloc(size + sizeof(Request));
-    LOG("Request_New(%zu) -> %p", size, &ptr->base);
+    Request *ptr = (Request *) Py_Malloc(size + sizeof(Request));
     if (!ptr) {
         PyErr_NoMemory();
         return NULL;
     }
-    _STATE_save(ptr);
+    LOG("(%p, %zu) -> %p", promise, size, &ptr->base);
+    ptr->_ctx = _ctx;
     uv_req_t *req = (uv_req_t *) &ptr->base;
-    req->data = Py_XNewRef(promise);
+    PyTrack_XINCREF(promise);
+    req->data = promise;
     return req;
 }
 
-#define Request_New(type, promise) ((type *) Request_New(_state, (PyObject *) (promise), sizeof(type)))
-#define Request_PROMISE(req) ((PyObject *)((req)->data))
-#define Request_DATA(req, tp) Promise_DATA(Request_PROMISE(req), tp)
-#define Request_GetCtx(req) Promise_GetCtx(Request_PROMISE(req))
-#define Request_SetCtx(req, value) Promise_SetCtx(Request_PROMISE(req), value)
-
-#define _STATE_setreq(req) _STATE_set((Request *) container_of(req, Request));
+#define Request_New(type, promise) ((type *) Request_New(_ctx, (PyObject *) (promise), sizeof(type)))
+#define Request_OBJ(req) ((PyObject *)((req)->data))
+#define Request_PROMISE(req) ((Promise *)((req)->data))
+#define _CTX_setreq(req) _CTX_setstored((Request *) container_of(req, Request));
 
 Py_LOCAL_INLINE(void)
 Request_Close(uv_req_t *req)
 {
-    LOG("Request_Close(%p)", req);
-    Py_XDECREF(req->data);
-    Mem_Free(container_of(req, Request));
+    LOG("(%p)", req);
+    PyTrack_XDECREF(req->data);
+    Py_Free(container_of(req, Request));
 }
 
 #define Request_Close(req) Request_Close((uv_req_t *) (req))
@@ -54,7 +52,7 @@ typedef void (*finalizer)(uv_handle_t *handle);
 
 #define HANDLE_BASE(handle_type) \
     finalizer _finalizer;        \
-    void *_state;                 \
+    void *_ctx;                  \
     handle_type base;
 
 typedef struct {
@@ -62,42 +60,46 @@ typedef struct {
 } HandleBase;
 
 Py_LOCAL_INLINE(void *)
-Handle_New(void *_state, size_t size, size_t base_offset, finalizer cb)
+Handle_New(void *_ctx, size_t size, size_t base_offset, finalizer cb)
 {
-    void *ptr = Mem_Malloc(size);
-    LOG("Handle_New(%zu) -> %p", size, ptr);
+    void *ptr = Py_Malloc(size);
     if (!ptr) {
         PyErr_NoMemory();
         return NULL;
     }
+    LOG("(%zu) -> %p", size, ptr);
     HandleBase *base = (HandleBase *) ((char *) ptr + base_offset);
     base->_finalizer = cb;
-    base->_state = _state;
+    base->_ctx = _ctx;
     base->base.data = ptr;
     return ptr;
 }
 
 #define Handle_New(type, cb) \
-    (type *) Handle_New(_state, sizeof(type), offsetof(type, _finalizer), (finalizer) (cb))
+    (type *) Handle_New(_ctx, sizeof(type), offsetof(type, _finalizer), (finalizer) (cb))
 
-Py_LOCAL_INLINE(void)
+#define Handle_Free(h) Py_Free(h)
+
+static void
 handle__on_close(uv_handle_t *handle)
 {
     ACQUIRE_GIL
-        Mem_Free(handle->data);
+        HandleBase *base = container_of(handle, HandleBase);
+        if (base->_finalizer) {
+            base->_finalizer(handle->data);
+        }
+        Py_Free(handle->data);
     RELEASE_GIL
 }
 
 Py_LOCAL_INLINE(void)
 Handle_Close_UV(uv_handle_t *handle)
 {
-    LOG("Handle_Close(%p)", handle->data);
     if (handle && !uv_is_closing(handle)) {
-        HandleBase *base = container_of(handle, HandleBase);
-        if (base->_finalizer) {
-            base->_finalizer(handle->data);
-        }
+        LOG("(%p)", handle->data);
+        BEGIN_ALLOW_THREADS
         uv_close(handle, handle__on_close);
+        END_ALLOW_THREADS
     }
 }
 
@@ -105,7 +107,7 @@ Handle_Close_UV(uv_handle_t *handle)
 
 #define Request_SETUP(req_type, req, promise)   \
     req_type *(req) = NULL;                     \
-    PyObject *(promise) = Promise_New();        \
+    Promise *(promise) = Promise_New();         \
     if (promise) {                              \
         (req) = Request_New(req_type, promise); \
         if (!(req)) {                           \
@@ -114,9 +116,10 @@ Handle_Close_UV(uv_handle_t *handle)
         }                                       \
     }
 
-#define Request_Resolve(req, value) Promise_Resolve(Request_PROMISE(req), value)
-#define Request_RejectPyExc(req) Promise_RejectPyExc(Request_PROMISE(req))
-#define Request_RejectUVError(req, exc, uverr) Promise_RejectUVError(Request_PROMISE(req), exc, uverr)
-#define Request_RejectString(req, exc, msg) Promise_RejectString(Request_PROMISE(req), exc, msg)
+#define Loop_SETUP(loop)                        \
+    uv_loop_t *(loop) = Loop_Get();             \
+    if (!loop) {                                \
+        return NULL;                            \
+    }
 
 #endif //PROMISEDIO_CORE_HANDLE_H

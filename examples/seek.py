@@ -1,14 +1,9 @@
-from promisedio import exec_async, run, fs
+from promisedio import loop, fs, promise
 
 
 async def seek_example():
     print(await fs.seek(0, 0, 1))
 
 
-exec_async(seek_example())
-
-run()
-
-# uncomment to see debug info
-from promisedio import _getallocatedobjectscount
-print(_getallocatedobjectscount())
+promise.exec_async(seek_example())
+loop.run_until_complete()

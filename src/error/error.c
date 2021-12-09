@@ -7,7 +7,7 @@
 int
 errormodule_init(PyObject *module)
 {
-    LOG("errormodule_init(%p)", module);
+    LOG("(%p)", module);
 #define XX(code, _) if (PyModule_AddIntConstant(module, #code, UV_ ## code)) return -1;
     UV_ERRNO_MAP(XX)
 #undef XX
@@ -17,7 +17,7 @@ errormodule_init(PyObject *module)
 static void
 errormodule_free(void *module)
 {
-    LOG("errormodule_free(%p)", module);
+    LOG("(%p)", module);
 }
 
 static PyModuleDef_Slot errormodule_slots[] = {

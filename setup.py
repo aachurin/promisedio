@@ -7,19 +7,16 @@ define_macros = {}
 undef_macros = []
 env = os.environ.get
 
-if env("BUILD_WITH_DEBUG"):
-    define_macros["DEBUG_LOG"] = "1"
-    define_macros["DEBUG_MEM"] = "1"
+if env("BUILD_DEBUG_LOG"):
+    define_macros["BUILD_DEBUG_LOG"] = "1"
     undef_macros += ["NDEBUG"]
 
-if env("BUILD_WITHOUT_FREELISTS"):
-    define_macros["WITHOUT_FREELISTS"] = "1"
+if env("BUILD_DEBUG_MEM"):
+    define_macros["BUILD_DEBUG_MEM"] = "1"
+    undef_macros += ["NDEBUG"]
 
-if env("BUILD_WITH_OPENSSL"):
-    with_openssl = True
-    define_macros["WITH_OPENSSL"] = "1"
-else:
-    with_openssl = False
+if env("BUILD_DISABLE_FREELISTS"):
+    define_macros["BUILD_DISABLE_FREELISTS"] = "1"
 
 define_macros["Py_BUILD_CORE"] = "1"
 define_macros = list(define_macros.items())
@@ -71,7 +68,7 @@ extensions = [
         "promisedio.ns",
         sources=["src/ns/ns.c"],
         library_dirs=[py_libs],
-        libraries=["uv"] + (["ssl"] if with_openssl else []),
+        libraries=["uv"],
         **common_ext_params
     ),
 ]

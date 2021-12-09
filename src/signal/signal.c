@@ -1,23 +1,22 @@
 // Copyright (c) 2021 Andrey Churin (aachurin@gmail.com).
 // This file is part of promisedio
 
-#include <uv.h>
 #include "core/base.h"
 #include "core/module.h"
 #include "core/capsule.h"
-#include "loop/loop_api.h"
+#include "core/atomic.h"
 #include "clinic/signal.c.h"
-#include "internal/pycore_atomic.h"
+
 
 typedef struct {
-    uv_loop_t *loop;
     int is_main_interp;
     PyObject *signal_func;
 } _modulestate;
 
+typedef void (*sigevent)();
+
 static struct {
-    _Py_atomic_int initialized;
-    void (*set_sig)();
+    _Py_atomic_address sig_ev;
 } global_state = {0};
 
 /*[clinic input]
@@ -29,7 +28,6 @@ static void
 signal_handler(int sig_num)
 {
     int save_errno = errno;
-
     PyErr_SetInterruptEx(sig_num);
 
 #ifndef HAVE_SIGACTION
@@ -55,9 +53,16 @@ signal_handler(int sig_num)
         SetEvent(_PyOS_SigintEvent());
     }
 #endif
-    if (_Py_atomic_load(&global_state.initialized)) {
-        global_state.set_sig();
+    sigevent sig_func = (sigevent)_Py_atomic_load(&global_state.sig_ev);
+    if (sig_func) {
+        sig_func();
     }
+}
+
+CAPSULE_API(SIGNAL_API, void)
+Signal_SetSigEvent(sigevent cb)
+{
+    _Py_atomic_store(&global_state.sig_ev, (uintptr_t) cb);
 }
 
 /*[clinic input]
@@ -70,67 +75,51 @@ Py_LOCAL_INLINE(PyObject *)
 signal_signal_impl(PyObject *module, PyObject *signalnum, PyObject *handler)
 /*[clinic end generated code: output=d6215a4c80f4273b input=3009c20a709e2f7e]*/
 {
-    _STATE_setmodule(module)
-
-    PyObject *ret = PyObject_CallFunctionObjArgs(_state->signal_func, signalnum, handler);
-    if (!ret)
-        return NULL;
-    int signum = _PyLong_AsInt(signalnum);
-    void (*c_handler)(int) = PyOS_getsig(signum);
-    if (c_handler == SIG_DFL || c_handler == SIG_IGN) {
+    _CTX_setmodule(module);
+    if (S(is_main_interp)) {
+        PyObject *ret = PyObject_CallFunctionObjArgs(S(signal_func), signalnum, handler);
+        if (!ret)
+            return NULL;
+        int signum = _PyLong_AsInt(signalnum);
+        void (*c_handler)(int) = PyOS_getsig(signum);
+        if (c_handler == SIG_DFL || c_handler == SIG_IGN) {
+            return ret;
+        }
+        PyOS_setsig(signum, signal_handler);
         return ret;
+    } else {
+        // TODO:
+        Py_RETURN_NONE;
     }
-    PyOS_setsig(signum, signal_handler);
-    return ret;
 }
 
-static int
-signalmodule_init(PyObject *module)
-{
-    LOG("signalmodule_init(%p)", module);
-
-    _STATE_setmodule(module)
-
-    if (_PyOS_IsMainThread()) {
-        _state->is_main_interp = 1;
-        _Py_atomic_store(&global_state.initialized, 0);
-    }
-    return 0;
-}
+#define SIGNAL_KEY "__promisedio.a1d0c6e83f027327d8461063f4ac58a6"
 
 static int
-signalmodule_create_api(PyObject *module)
+signalmodule_exec(PyObject *module)
 {
-    LOG("signalmodule_create_api(%p)", module);
-    static void *c_api[] = {};
-    Capsule_CREATE(module, SIGNAL_API_ID, c_api);
-    return 0;
-}
-
-static int
-signalmodule_install_signals(PyObject *module)
-{
-    _STATE_setmodule(module)
-
-    if (_state->is_main_interp) {
-        LOG("signalmodule_install_signals(%p)", module);
+    _CTX_setmodule(module);
+    LOG("(%p)", module);
+    S(is_main_interp) = Py_IsMainInterp();
+    if (S(is_main_interp)) {
         int err = -1;
-        PyObject *signal_mod = NULL, *my_signal_func = NULL;
-        my_signal_func = PyObject_GetAttrString(module, "signal");
-        if (!my_signal_func)
+        PyObject *signal_mod = NULL;
+        PyObject *signal_func = NULL;
+        signal_func = PyObject_GetAttrString(module, "signal");
+        if (!signal_func)
             goto finally;
         signal_mod = PyImport_ImportModule("_signal");
         if (!signal_mod)
             goto finally;
-        if (PyObject_HasAttrString(signal_mod, "__promisedio.signal_orig")) {
-            _state->signal_func = PyObject_GetAttrString(signal_mod, "__promisedio.signal_orig");
+        if (PyObject_HasAttrString(signal_mod, SIGNAL_KEY)) {
+            S(signal_func) = PyObject_GetAttrString(signal_mod, SIGNAL_KEY);
         } else {
-            _state->signal_func = PyObject_GetAttrString(signal_mod, "signal");
-            if (!_state->signal_func)
+            S(signal_func) = PyObject_GetAttrString(signal_mod, "signal");
+            if (!S(signal_func))
                 goto finally;
-            if (PyObject_SetAttrString(signal_mod, "__promisedio.signal_orig", _state->signal_func))
+            if (PyObject_SetAttrString(signal_mod, SIGNAL_KEY, S(signal_func)))
                 goto finally;
-            if (PyObject_SetAttrString(signal_mod, "signal", my_signal_func))
+            if (PyObject_SetAttrString(signal_mod, "signal", signal_func))
                 goto finally;
         }
         for (int signum = 1; signum < NSIG; signum++) {
@@ -140,52 +129,44 @@ signalmodule_install_signals(PyObject *module)
             PyOS_setsig(signum, signal_handler);
         }
         err = 0;
-        finally:
+    finally:
         Py_XDECREF(signal_mod);
-        Py_XDECREF(my_signal_func);
+        Py_XDECREF(signal_func);
         return err;
     }
     return 0;
 }
 
-static int
-signalmodule_init_complete(PyObject *module)
-{
-    _STATE_setmodule(module)
+#include "capsule.h"
 
-    LOG("signalmodule_init_complete(%p)", module);
-    if (_state->is_main_interp) {
-        global_state.set_sig = (void (*)()) Capsule_LOAD_FUNC(
-            "promisedio.loop", LOOP_API_ID, LOOP_SETSIG_API_ID);
-        if (!global_state.set_sig)
-            return -1;
-        _Py_atomic_store(&global_state.initialized, 1);
-    }
+static int
+signalmodule_create_api(PyObject *module)
+{
+    LOG("(%p)", module);
+    Capsule_CREATE(module, SIGNAL_API);
     return 0;
 }
 
 static int
 signalmodule_traverse(PyObject *module, visitproc visit, void *arg)
 {
-    _STATE_setmodule(module)
-
-    Py_VISIT(_state->signal_func);
+    _CTX_setmodule(module);
+    Py_VISIT(S(signal_func));
     return 0;
 }
 
 static int
 signalmodule_clear(PyObject *module)
 {
-    _STATE_setmodule(module)
-
-    Py_CLEAR(_state->signal_func);
+    _CTX_setmodule(module);
+    Py_CLEAR(S(signal_func));
     return 0;
 }
 
 static void
 signalmodule_free(void *module)
 {
-    LOG("signalmodule_free(%p)", module);
+    LOG("(%p)", module);
     signalmodule_clear(module);
 }
 
@@ -195,10 +176,8 @@ static PyMethodDef signalmodule_methods[] = {
 };
 
 static PyModuleDef_Slot signalmodule_slots[] = {
-    {Py_mod_exec, signalmodule_init},
+    {Py_mod_exec, signalmodule_exec},
     {Py_mod_exec, signalmodule_create_api},
-    {Py_mod_exec, signalmodule_install_signals},
-    {Py_mod_exec, signalmodule_init_complete},
     {0, NULL},
 };
 

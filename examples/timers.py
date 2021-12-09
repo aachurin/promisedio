@@ -1,28 +1,32 @@
 import time
-from promisedio import exec_async, run, timer
+import signal
+from promisedio import timer, loop, promise
 
+def here(_, __):
+    print("HERE!")
 
-print("started", time.time())
+signal.signal(signal.SIGUSR1, here)
+print("start", time.time())
+timer.sleep(10).then(lambda x: print("DONE"))
 
-
-async def example1(timeout):
+async def example1():
+    print("example1 start", time.time())
     def test1():
-        print("should not be here")
+        assert 0, "Should not be here"
 
     def test2():
-        print("here", time.time())
+        print("test2", time.time())
 
     def test3():
-        print("interval", time.time())
+        print("@ALLOC_STATS")
+        print("test3", time.time())
 
-    # timer.set_timeout(test1, timeout, unref=True)
-    timer.set_timeout(test2, timeout / 2.)
-    # timer.set_interval(test3, 1., unref=True)
-    print("done", time.time())
+    timer.set_timeout(test1, 11, unref=True)
+    timer.set_timeout(test2, 5)
+    timer.set_interval(test3, 1., unref=True)
+    print("example1 end", time.time())
 
-exec_async(example1(5))
-run()
 
-# uncomment to see debug info
-from promisedio import _getallocatedobjectscount
-print(_getallocatedobjectscount())
+promise.exec_async(example1())
+loop.run_until_complete()
+print("end", time.time())

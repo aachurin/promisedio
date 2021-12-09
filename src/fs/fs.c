@@ -11,22 +11,19 @@
 #include "core/converters/numeric.h"
 #include "core/converters/file.h"
 #include "core/converters/string.h"
-#include "loop/loop_api.h"
-#include "promise/promise_api.h"
 #include "fs.h"
 
 /*[clinic input]
-module fsmodule
+module fs
 [clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=e64efc353b3914bd]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=de53127b95d08f91]*/
 
 typedef struct {
-    uv_loop_t *loop;
     PyObject *FSError;
     PyTypeObject *StatType;
     PyTypeObject *FileIOType;
-    Capsule_MOUNT_POINT(PROMISE_API_ID)
-    Capsule_MOUNT_POINT(LOOP_API_ID)
+    Capsule_MOUNT(PROMISE_API)
+    Capsule_MOUNT(LOOP_API)
 } _modulestate;
 
 #if BUFSIZ < (8 * 1024)
@@ -41,23 +38,22 @@ typedef struct {
     uv_fs_req_cleanup(req);  \
     Request_Close(req)
 
-#define FS_CALL(promise, func, ...)                     \
-    Request_SETUP(uv_fs_t, _req, promise);              \
-    if (_req) {                                         \
-        UV_CALL(func, S(loop), _req, __VA_ARGS__)       \
-        {                                               \
-            Request_CloseFs(_req);                      \
-            PyErr_SetUVError(S(FSError), error);          \
-            Py_DECREF(promise);                         \
-            promise = NULL;                             \
-        }                                               \
+#define FS_CALL(loop, promise, func, ...)           \
+    Request_SETUP(uv_fs_t, _req, promise)           \
+    if (_req) {                                     \
+        UV_CALL(func, loop, _req, __VA_ARGS__)      \
+        {                                           \
+            Request_CloseFs(_req);                  \
+            Py_SetUVError(S(FSError), uv_errno);    \
+            Py_DECREF(promise);                     \
+            promise = NULL;                         \
+        }                                           \
     }
 
 typedef struct {
     PyObject_HEAD
     uv_file fd;
     int closefd;
-    _STATE_var;
 } FileIO;
 
 typedef struct {
@@ -67,22 +63,22 @@ typedef struct {
 
 #include "clinic/fs.c.h"
 
-#define Request_RejectFsExc(req, uverr) Request_RejectUVError(req, S(FSError), uverr)
+#define Promise_RejectFsExc(promise, uverr) Promise_RejectUVError(promise, S(FSError), uverr)
 
 static void
 int_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
-            Request_RejectFsExc(req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
         } else {
             PyObject *value = PyLong_FromSsize_t(req->result);
             if (!value) {
-                Request_RejectPyExc(req);
+                Promise_Reject(p, NULL);
             } else {
-                Request_Resolve(req, value);
+                Promise_Resolve(p, value);
                 Py_DECREF(value);
             }
         }
@@ -94,12 +90,12 @@ static void
 none_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
-            Request_RejectFsExc(req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
         } else {
-            Request_Resolve(req, Py_None);
+            Promise_Resolve(p, Py_None);
         }
         Request_CloseFs(req);
     RELEASE_GIL
@@ -109,12 +105,12 @@ static void
 bool_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
-            Request_Resolve(req, Py_False);
+            Promise_Resolve(p, Py_False);
         } else {
-            Request_Resolve(req, Py_True);
+            Promise_Resolve(p, Py_True);
         }
         Request_CloseFs(req);
     RELEASE_GIL
@@ -124,16 +120,16 @@ static void
 path_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
-            Request_RejectFsExc(req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
         } else {
             PyObject *result = PyUnicode_DecodeFSDefault(req->path);
             if (!result) {
-                Request_RejectPyExc(req);
+                Promise_Reject(p, NULL);
             } else {
-                Request_Resolve(req, result);
+                Promise_Resolve(p, result);
                 Py_DECREF(result);
             }
         }
@@ -145,16 +141,16 @@ static void
 ptr_path_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
-            Request_RejectFsExc(req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
         } else {
             PyObject *result = PyUnicode_DecodeFSDefault(req->ptr);
             if (!result) {
-                Request_RejectPyExc(req);
+                Promise_Reject(p, NULL);
             } else {
-                Request_Resolve(req, result);
+                Promise_Resolve(p, result);
                 Py_DECREF(result);
             }
         }
@@ -166,17 +162,18 @@ static void
 stat_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
-            Request_RejectFsExc(req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
         } else {
-            Stat *obj = (Stat *) Object_New(S(StatType));
+            Stat *obj = (Stat *) Py_New(S(StatType));
             if (!obj) {
-                Request_RejectPyExc(req);
+                Promise_Reject(p, NULL);
             } else {
+                PyTrack_MarkAllocated(obj);
                 obj->st = req->statbuf;
-                Request_Resolve(req, (PyObject *) obj);
+                Promise_Resolve(p, (PyObject *) obj);
                 Py_DECREF(obj);
             }
         }
@@ -184,59 +181,60 @@ stat_callback(uv_fs_t *req)
     RELEASE_GIL
 }
 
-static PyObject *
-Fs_stat(_STATE_var, const char *path)
+CAPSULE_API(FS_API, Promise *)
+Fs_Stat(_ctx_var, const char *path)
 {
-    FS_CALL(promise, uv_fs_stat, path, stat_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_stat, path, stat_callback)
     return promise;
 }
 
-static PyObject *
-Fs_lstat(_STATE_var, const char *path)
+CAPSULE_API(FS_API, Promise *)
+Fs_Lstat(_ctx_var, const char *path)
 {
-    FS_CALL(promise, uv_fs_lstat, path, stat_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_lstat, path, stat_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.stat
+fs.stat
     path: Path
     *
     follow_symlinks: bool = True
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_stat_impl(PyObject *module, PyObject *path, int follow_symlinks)
-/*[clinic end generated code: output=34c2110f495eb75b input=8c9a45ec0514120d]*/
+fs_stat_impl(PyObject *module, PyObject *path, int follow_symlinks)
+/*[clinic end generated code: output=3ca9a0ff706b0282 input=86f245764cee8a69]*/
 {
-    _STATE_setmodule(module)
-
+    _CTX_setmodule(module);
     if (follow_symlinks) {
-        return Fs_stat(_state, PyBytes_AS_STRING(path));
+        return (PyObject *) Fs_Stat(_ctx, PyBytes_AS_STRING(path));
     } else {
-        return Fs_lstat(_state, PyBytes_AS_STRING(path));
+        return (PyObject *) Fs_Lstat(_ctx, PyBytes_AS_STRING(path));
     }
 }
 
-static PyObject *
-Fs_fstat(_STATE_var, uv_file fd)
+CAPSULE_API(FS_API, Promise *)
+Fs_Fstat(_ctx_var, int fd)
 {
-    FS_CALL(promise, uv_fs_fstat, fd, stat_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_fstat, fd, stat_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.fstat
+fs.fstat
     fd: fd
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_fstat_impl(PyObject *module, int fd)
-/*[clinic end generated code: output=c3640f76f04482ed input=3b1318ca74906749]*/
+fs_fstat_impl(PyObject *module, int fd)
+/*[clinic end generated code: output=6009b13fb6a840ae input=5d9d8127d47ae9f2]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_fstat(_state, fd);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Fstat(_ctx, fd);
 }
 
 typedef struct {
@@ -274,12 +272,15 @@ fs__seek(uv_loop_t *loop, SeekReq *req, uv_file fd, Py_off_t pos, int how, uv_af
 #ifdef SEEK_SET
     /* Turn 0, 1, 2 into SEEK_{SET,CUR,END} */
     switch (how) {// NOLINT(hicpp-multiway-paths-covered)
-    case 0:how = SEEK_SET;
-        break;
-    case 1:how = SEEK_CUR;
-        break;
-    case 2:how = SEEK_END;
-        break;
+        case 0:
+            how = SEEK_SET;
+            break;
+        case 1:
+            how = SEEK_CUR;
+            break;
+        case 2:
+            how = SEEK_END;
+            break;
     }
 #endif
     req->fd = fd;
@@ -293,18 +294,18 @@ static void
 seek_callback(SeekReq *req, int status)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE((uv_req_t *) req);
         if (status == UV_ECANCELED) {
-            Request_RejectFsExc((uv_req_t *) req, status);
+            Promise_RejectFsExc(p, status);
         } else if (req->result < 0) {
-            Request_RejectFsExc((uv_req_t *) req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
         } else {
             PyObject *value = PyLong_FromOff_t(req->result);
             if (!value) {
-                Request_RejectPyExc((uv_req_t *) req);
+                Promise_Reject(p, NULL);
             } else {
-                Request_Resolve((uv_req_t *) req, value);
+                Promise_Resolve(p, value);
                 Py_DECREF(value);
             }
         }
@@ -312,65 +313,65 @@ seek_callback(SeekReq *req, int status)
     RELEASE_GIL
 }
 
-static PyObject *
-Fs_seek(_STATE_var, uv_file fd, Py_off_t pos, int how)
+CAPSULE_API(FS_API, Promise *)
+Fs_Seek(_ctx_var, int fd, Py_off_t pos, int how)
 {
+    Loop_SETUP(loop)
     Request_SETUP(SeekReq, req, promise)
     if (req) {
-        UV_CALL(fs__seek, S(loop), req, fd, pos, how, (uv_after_work_cb) seek_callback) {
+        UV_CALL(fs__seek, loop, req, fd, pos, how, (uv_after_work_cb) seek_callback) {
         };
     }
     return promise;
 }
 
 /*[clinic input]
-fsmodule.seek
+fs.seek
     fd: fd
     pos: off_t
     how: int
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_seek_impl(PyObject *module, int fd, Py_off_t pos, int how)
-/*[clinic end generated code: output=906a3566cff61a30 input=47bc1ab2bd2e1be8]*/
+fs_seek_impl(PyObject *module, int fd, Py_off_t pos, int how)
+/*[clinic end generated code: output=ef51eb2dceb31d78 input=3c990ca37e7bc185]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_seek(_state, fd, pos, how);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Seek(_ctx, fd, pos, how);
 }
 
-static PyObject *
-Fs_open(_STATE_var, const char *path, int flags, int mode)
+CAPSULE_API(FS_API, Promise *)
+Fs_Open(_ctx_var, const char *path, int flags, int mode)
 {
-    FS_CALL(promise, uv_fs_open, path, flags, mode, int_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_open, path, flags, mode, int_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.openfd
+fs.openfd
     path: Path
     flags: int
     mode: int = 0o666
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_openfd_impl(PyObject *module, PyObject *path, int flags, int mode)
-/*[clinic end generated code: output=869ea355647b4244 input=b9e82dbbfbed4151]*/
+fs_openfd_impl(PyObject *module, PyObject *path, int flags, int mode)
+/*[clinic end generated code: output=ea8de6fdaaadaf08 input=b662728d8f4b901e]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_open(_state, PyBytes_AS_STRING(path), flags, mode);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Open(_ctx, PyBytes_AS_STRING(path), flags, mode);
 }
 
 static PyObject *
-fileio_new(_STATE_var, int fd, int closefd)
+fileio_new(_ctx_var, int fd, int closefd)
 {
-    FileIO *self = (FileIO *) Object_New(S(FileIOType));
+    FileIO *self = (FileIO *) Py_New(S(FileIOType));
     if (!self)
         return NULL;
+    PyTrack_MarkAllocated(self);
     self->fd = fd;
     self->closefd = closefd;
-    _STATE_save(self);
     return (PyObject *) self;
 }
 
@@ -378,24 +379,24 @@ static void
 open_stat_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
-            Request_RejectFsExc(req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
             goto finally;
         }
 #if defined(S_ISDIR)
         if (S_ISDIR(req->statbuf.st_mode)) {
-            Request_RejectFsExc(req, UV_EISDIR);
+            Promise_RejectFsExc(p, UV_EISDIR);
             goto finally;
         }
 #endif
-        PyObject *fileobj = fileio_new(_state, *Request_DATA(req, uv_file), 1);
+        PyObject *fileobj = fileio_new(_ctx, *Promise_DATA(p, uv_file), 1);
         if (!fileobj) {
-            Request_RejectPyExc(req);
+            Promise_Reject(p, NULL);
             goto finally;
         }
-        Request_Resolve(req, fileobj);
+        Promise_Resolve(p, fileobj);
         Py_DECREF(fileobj);
 
     finally:
@@ -407,88 +408,90 @@ static void
 open_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
-            Request_RejectFsExc(req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
             goto finally;
         }
-        uv_fs_t *nreq = Request_New(uv_fs_t, Request_PROMISE(req));
+        uv_fs_t *nreq = Request_New(uv_fs_t, p);
         if (!nreq) {
-            Request_RejectPyExc(req);
+            Promise_Reject(p, NULL);
             goto finally;
         }
         uv_file fd = (uv_file) req->result;
-        *Request_DATA(req, uv_file) = fd;
+        *Promise_DATA(p, uv_file) = fd;
         UV_CALL(uv_fs_fstat, req->loop, nreq, fd, open_stat_callback) {
             Request_CloseFs(nreq);
-            Request_RejectFsExc(nreq, error);
+            Promise_RejectFsExc(p, uv_errno);
         }
     finally:
     Request_CloseFs(req);
     RELEASE_GIL
 }
 
-static PyObject *
-fs_fileio_open(_STATE_var, const char *path, int flags)
+static Promise *
+fs_fileio_open(_ctx_var, const char *path, int flags)
 {
-    FS_CALL(promise, uv_fs_open, path, flags, 0666, open_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_open, path, flags, 0666, open_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.open
+fs.open
     path: object
     mode: cstring = "r"
     closefd: bool(accept={int}) = True
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_open_impl(PyObject *module, PyObject *path, const char *mode,
-                   int closefd)
-/*[clinic end generated code: output=467a96136cf13efe input=8a45bf55955e17a5]*/
+fs_open_impl(PyObject *module, PyObject *path, const char *mode, int closefd)
+/*[clinic end generated code: output=d0e1b7085b442b73 input=d1f22ba3363fc2df]*/
 {
-    _STATE_setmodule(module)
-
+    _CTX_setmodule(module);
     int flags = 0, writable = 0, readable = 0;
 
     for (unsigned long i = 0; i < strlen(mode); i++) {
         char c = mode[i];
         switch (c) {
-        case 'x':
-            if (writable || readable) {
-            bad_mode:
-                PyErr_SetString(PyExc_ValueError,
-                                "must have exactly one of create/read/write/append mode");
-                return NULL;
-            }
-            writable = 1;
-            flags |= UV_FS_O_EXCL | UV_FS_O_CREAT;
-            break;
-        case 'r':
-            if (writable || readable) {
-                goto bad_mode;
-            }
-            readable = 1;
-            break;
-        case 'w':
-            if (writable || readable) {
-                goto bad_mode;
-            }
-            writable = 1;
-            flags |= UV_FS_O_CREAT | UV_FS_O_TRUNC;
-            break;
-        case 'a':
-            if (writable || readable) {
-                goto bad_mode;
-            }
-            writable = 1;
-            flags |= UV_FS_O_APPEND | UV_FS_O_CREAT;
-            break;
-        case '+':writable = 1;
-            break;
-        case 'b': break;
-        default: goto invalid_mode;
+            case 'x':
+                if (writable || readable) {
+                bad_mode:
+                    PyErr_SetString(PyExc_ValueError,
+                                    "must have exactly one of create/read/write/append mode");
+                    return NULL;
+                }
+                writable = 1;
+                flags |= UV_FS_O_EXCL | UV_FS_O_CREAT;
+                break;
+            case 'r':
+                if (writable || readable) {
+                    goto bad_mode;
+                }
+                readable = 1;
+                break;
+            case 'w':
+                if (writable || readable) {
+                    goto bad_mode;
+                }
+                writable = 1;
+                flags |= UV_FS_O_CREAT | UV_FS_O_TRUNC;
+                break;
+            case 'a':
+                if (writable || readable) {
+                    goto bad_mode;
+                }
+                writable = 1;
+                flags |= UV_FS_O_APPEND | UV_FS_O_CREAT;
+                break;
+            case '+':
+                writable = 1;
+                break;
+            case 'b':
+                break;
+            default:
+                goto invalid_mode;
         }
 
         /* c must not be duplicated */
@@ -521,10 +524,10 @@ fsmodule_open_impl(PyObject *module, PyObject *path, const char *mode,
             }
             return NULL;
         }
-        PyObject *fileobj = fileio_new(_state, fd, closefd);
+        PyObject *fileobj = fileio_new(_ctx, fd, closefd);
         if (!fileobj)
             return NULL;
-        return Promise_NewResolved(fileobj);
+        return (PyObject *) Promise_NewResolved(fileobj);
     }
 
     if (!closefd) {
@@ -537,10 +540,10 @@ fsmodule_open_impl(PyObject *module, PyObject *path, const char *mode,
         return NULL;
     }
 
-    PyObject *result = fs_fileio_open(_state, PyBytes_AS_STRING(fspath), flags);
+    Promise *result = fs_fileio_open(_ctx, PyBytes_AS_STRING(fspath), flags);
     Py_DECREF(fspath);
 
-    return result;
+    return (PyObject *) result;
 }
 
 Py_LOCAL_INLINE(int)
@@ -556,41 +559,46 @@ static void
 read_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-        PyObject *buffer = Request_SetCtx(req, NULL);
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
+        PyObject *buffer = Promise_SetCtx(p, NULL);
         if (req->result < 0) {
-            Request_RejectFsExc(req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
             goto finally;
         }
         Py_ssize_t size = req->result;
         if (size < PyBytes_GET_SIZE(buffer)) {
-            if (_PyBytes_Resize(&buffer, size) != 0) {
-                Request_RejectPyExc(req);
+            PyTrack_MarkBeginResize(buffer);
+            if (_PyBytes_Resize(&buffer, size)) {
+                Promise_Reject(p, NULL);
                 goto finally;
             }
+            PyTrack_MarkEndResize(buffer);
         }
-        Request_Resolve(req, buffer);
-
+        Promise_Resolve(p, buffer);
     finally:
-        Py_XDECREF(buffer);
+        PyTrack_XDECREF(buffer);
         Request_CloseFs(req);
     RELEASE_GIL
 }
 
-static PyObject *
-Fs_read(_STATE_var, uv_file fd, Py_ssize_t size, Py_off_t offset)
+CAPSULE_API(FS_API, Promise *)
+Fs_Read(_ctx_var, int fd, Py_ssize_t size, Py_off_t offset)
 {
     if (size > _PY_READ_MAX) {
         size = _PY_READ_MAX;
     }
+    Loop_SETUP(loop)
     PyObject *buffer = PyBytes_FromStringAndSize(NULL, size);
     if (!buffer)
         return NULL;
-    FS_CALL(promise, fs__read, fd, PyBytes_AS_STRING(buffer), size, offset, read_callback);
+    char *buffer_ptr = PyBytes_AS_STRING(buffer);
+    FS_CALL(loop, promise, fs__read, fd, buffer_ptr, size, offset, read_callback)
     if (!promise) {
         Py_DECREF(buffer);
         return NULL;
     }
+    PyTrack_MarkAllocated(buffer);
     Promise_SetCtx(promise, buffer);
     return promise;
 }
@@ -624,52 +632,53 @@ static void
 readall_read_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
-        readallstate *readstate = Request_DATA(req, readallstate);
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
+        readallstate *readstate = Promise_DATA(p, readallstate);
         if (req->result < 0) {
-            Request_RejectFsExc(req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
         cleanup:
-            Py_DECREF(readstate->buffer);
+            PyTrack_DECREF(readstate->buffer);
             goto finally;
         }
         if (req->result == 0) {
             if (PyBytes_GET_SIZE(readstate->buffer) > readstate->bytes_read) {
+                PyTrack_MarkBeginResize(readstate->buffer);
                 if (_PyBytes_Resize(&readstate->buffer, readstate->bytes_read) < 0) {
-                    Request_RejectPyExc(req);
+                    Promise_Reject(p, NULL);
                     goto finally;
                 }
+                PyTrack_MarkEndResize(readstate->buffer);
             }
-            Request_Resolve(req, readstate->buffer);
+            Promise_Resolve(p, readstate->buffer);
             goto cleanup;
         }
         readstate->bytes_read += req->result;
         if (readstate->bytes_read >= PyBytes_GET_SIZE(readstate->buffer)) {
             size_t new_size = new_buffersize(readstate->bytes_read);
             if (new_size > PY_SSIZE_T_MAX) {
-                Request_RejectString(req, PyExc_OverflowError,
+                Promise_RejectString(p, PyExc_OverflowError,
                                      "unbounded read returned more bytes "
                                      "than a Python bytes object can hold");
                 goto cleanup;
             }
             if (_PyBytes_Resize(&readstate->buffer, (Py_ssize_t) new_size) < 0) {
-                Request_RejectPyExc(req);
+                Promise_Reject(p, NULL);
                 goto finally;
             }
         }
-        uv_fs_t *nreq = Request_New(uv_fs_t, Request_PROMISE(req));
+        uv_fs_t *nreq = Request_New(uv_fs_t, p);
         if (!nreq) {
-            Request_RejectPyExc(req);
+            Promise_Reject(p, NULL);
             goto cleanup;
         }
         char *buf = PyBytes_AS_STRING(readstate->buffer) + readstate->bytes_read;
         Py_ssize_t size = PyBytes_GET_SIZE(readstate->buffer) - readstate->bytes_read;
         UV_CALL(fs__read, req->loop, nreq, readstate->fd, buf, size, -1, readall_read_callback) {
             Request_CloseFs(nreq);
-            Request_RejectFsExc(nreq, error);
+            Promise_RejectFsExc(p, uv_errno);
             goto cleanup;
         }
-
     finally:
     Request_CloseFs(req);
     RELEASE_GIL
@@ -679,13 +688,12 @@ static void
 readall_stat_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
-        readallstate *readstate = Request_DATA(req, readallstate);
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
+        readallstate *readstate = Promise_DATA(p, readallstate);
         Py_off_t pos = readstate->pos;
         Py_off_t end;
         size_t bufsize;
-
         if (req->result < 0) {
             end = (Py_off_t) -1;
         } else {
@@ -702,23 +710,24 @@ readall_stat_callback(uv_fs_t *req)
         }
         PyObject *buffer = PyBytes_FromStringAndSize(NULL, (Py_ssize_t) bufsize);
         if (!buffer) {
-            Request_RejectPyExc(req);
+            Promise_Reject(p, NULL);
             goto finally;
         }
-        uv_fs_t *nreq = Request_New(uv_fs_t, Request_PROMISE(req));
+        uv_fs_t *nreq = Request_New(uv_fs_t, p);
         if (!nreq) {
-            Request_RejectPyExc(req);
+            Promise_Reject(p, NULL);
         cleanup:
             Py_DECREF(buffer);
             goto finally;
         }
         readstate->buffer = buffer;
-        UV_CALL(fs__read, req->loop, nreq, readstate->fd, PyBytes_AS_STRING(buffer), bufsize, -1, readall_read_callback) {
+        char *buffer_ptr = PyBytes_AS_STRING(buffer);
+        UV_CALL(fs__read, req->loop, nreq, readstate->fd, buffer_ptr, bufsize, -1, readall_read_callback) {
             Request_CloseFs(nreq);
-            Request_RejectFsExc(nreq, error);
+            Promise_RejectFsExc(p, uv_errno);
             goto cleanup;
         }
-
+        PyTrack_MarkAllocated(buffer);
     finally:
     Request_CloseFs(req);
     RELEASE_GIL
@@ -728,68 +737,66 @@ static void
 readall_seek_callback(SeekReq *req, int status)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE((uv_req_t *) req);
         if (status == UV_ECANCELED) {
-            Request_RejectFsExc((uv_req_t *) req, status);
+            Promise_RejectFsExc(p, status);
             goto finally;
         }
         if (req->result < 0) {
-            Request_RejectFsExc((uv_req_t *) req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
             goto finally;
         }
-        readallstate *readstate = Request_DATA((uv_req_t *) req, readallstate);
+        readallstate *readstate = Promise_DATA(p, readallstate);
         readstate->pos = req->result;
-        uv_fs_t *nreq = Request_New(uv_fs_t, Request_PROMISE((uv_req_t *) req));
+        uv_fs_t *nreq = Request_New(uv_fs_t, p);
         if (!nreq) {
-            Request_RejectPyExc((uv_req_t *) req);
+            Promise_Reject(p, NULL);
             goto finally;
         }
         UV_CALL(uv_fs_fstat, req->base.loop, nreq, readstate->fd, readall_stat_callback) {
             Request_CloseFs(nreq);
-            Request_RejectFsExc((uv_req_t *) req, error);
+            Promise_RejectFsExc(p, uv_errno);
         }
-
     finally:
         Request_Close(req);
     RELEASE_GIL
 }
 
-static PyObject *
-Fs_readall(_STATE_var, int fd)
+CAPSULE_API(FS_API, Promise *)
+Fs_Readall(_ctx_var, int fd)
 {
+    Loop_SETUP(loop)
     Request_SETUP(SeekReq, req, promise)
     if (req) {
         *Promise_DATA(promise, readallstate) = (readallstate) {.fd = fd, .pos = 0, .bytes_read = 0};
-        UV_CALL(fs__seek, S(loop), req, fd, 0, 1, (uv_after_work_cb) readall_seek_callback) {
+        UV_CALL(fs__seek, loop, req, fd, 0, 1, (uv_after_work_cb) readall_seek_callback) {
         }
     }
     return promise;
 }
 
 /*[clinic input]
-fsmodule.read
+fs.read
     fd: fd
     size: ssize_t = -1
     offset: off_t = -1
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_read_impl(PyObject *module, int fd, Py_ssize_t size,
-                   Py_off_t offset)
-/*[clinic end generated code: output=396bd62d96251937 input=05d94314bbcc3693]*/
+fs_read_impl(PyObject *module, int fd, Py_ssize_t size, Py_off_t offset)
+/*[clinic end generated code: output=04e8e196783beea5 input=a4e8469faca2f474]*/
 {
-    _STATE_setmodule(module)
-
+    _CTX_setmodule(module);
     if (size < 0) {
         if (offset >= 0) {
             PyErr_SetString(PyExc_ValueError,
                             "offset could only be specified in conjunction with the size parameter");
             return NULL;
         }
-        return Fs_readall(_state, fd);
+        return (PyObject *) Fs_Readall(_ctx, fd);
     } else {
-        return Fs_read(_state, fd, size, offset);
+        return (PyObject *) Fs_Read(_ctx, fd, size, offset);
     }
 }
 
@@ -806,227 +813,229 @@ static void
 write_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
-            Request_RejectFsExc(req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
         } else {
             PyObject *size = PyLong_FromSsize_t(req->result);
-            Request_Resolve(req, size);
+            Promise_Resolve(p, size);
             Py_DECREF(size);
         }
         Request_CloseFs(req);
     RELEASE_GIL
 }
 
-static PyObject *
-Fs_write(_STATE_var, int fd, PyObject *data, Py_off_t offset)
+CAPSULE_API(FS_API, Promise *)
+Fs_Write(_ctx_var, int fd, PyObject *data, Py_off_t offset)
 {
-    FS_CALL(promise, fs__write, fd, PyBytes_AS_STRING(data), PyBytes_GET_SIZE(data), offset, write_callback);
+    Loop_SETUP(loop)
+    char *data_ptr = PyBytes_AsString(data);
+    Py_ssize_t data_size = PyBytes_GET_SIZE(data);
+    FS_CALL(loop, promise, fs__write, fd, data_ptr, data_size, offset, write_callback)
     if (promise) {
-        Promise_SetCtx(promise, Py_NewRef(data));
+        PyTrack_INCREF(data);
+        Promise_SetCtx(promise, data);
     }
     return promise;
 }
 
 /*[clinic input]
-fsmodule.write
+fs.write
     fd: fd
     data: object
     offset: off_t = -1
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_write_impl(PyObject *module, int fd, PyObject *data,
-                    Py_off_t offset)
-/*[clinic end generated code: output=808eccfd68701fd6 input=8ca508c266830447]*/
+fs_write_impl(PyObject *module, int fd, PyObject *data, Py_off_t offset)
+/*[clinic end generated code: output=1a454c115dbc90ed input=534300ee283e827f]*/
 {
-    _STATE_setmodule(module)
-
+    _CTX_setmodule(module);
     if (!PyBytes_Check(data)) {
         PyErr_SetString(PyExc_TypeError,
                         "bytes expected");
         return NULL;
     }
-    return Fs_write(_state, fd, data, offset);
+    return (PyObject *) Fs_Write(_ctx, fd, data, offset);
 }
 
-static PyObject *
-Fs_close(_STATE_var, uv_file fd)
+CAPSULE_API(FS_API, Promise *)
+Fs_Close(_ctx_var, int fd)
 {
-    FS_CALL(promise, uv_fs_close, fd, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_close, fd, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.close
+fs.close
     fd: fd
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_close_impl(PyObject *module, int fd)
-/*[clinic end generated code: output=d04156d19c252b76 input=817c95eb436fb04e]*/
+fs_close_impl(PyObject *module, int fd)
+/*[clinic end generated code: output=f901b196ba9112b2 input=9924e6ef7e6d1220]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_close(_state, fd);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Close(_ctx, fd);
 }
 
 /*[clinic input]
-fsmodule.closefd
+fs.closefd
     fd: fd
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_closefd_impl(PyObject *module, int fd)
-/*[clinic end generated code: output=eaef24198e88257b input=989b9539ed00e505]*/
+fs_closefd_impl(PyObject *module, int fd)
+/*[clinic end generated code: output=81be509bfc174198 input=01ac8c57f98cfd13]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_close(_state, fd);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Close(_ctx, fd);
 }
 
-static PyObject *
-Fs_unlink(_STATE_var, const char *path)
+CAPSULE_API(FS_API, Promise *)
+Fs_Unlink(_ctx_var, const char *path)
 {
-    FS_CALL(promise, uv_fs_unlink, path, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_unlink, path, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.unlink
+fs.unlink
     path: Path
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_unlink_impl(PyObject *module, PyObject *path)
-/*[clinic end generated code: output=2f123e2d9bf6524b input=87d37afcb53600eb]*/
+fs_unlink_impl(PyObject *module, PyObject *path)
+/*[clinic end generated code: output=7ad634ae2068c296 input=cb4c0bd1f0318581]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_unlink(_state, PyBytes_AS_STRING(path));
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Unlink(_ctx, PyBytes_AS_STRING(path));
 }
 
-static PyObject *
-Fs_mkdir(_STATE_var, const char *path, int mode)
+CAPSULE_API(FS_API, Promise *)
+Fs_Mkdir(_ctx_var, const char *path, int mode)
 {
-    FS_CALL(promise, uv_fs_mkdir, path, mode, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_mkdir, path, mode, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.mkdir
+fs.mkdir
     path: Path
     mode: int = 0o777
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_mkdir_impl(PyObject *module, PyObject *path, int mode)
-/*[clinic end generated code: output=028a207967a67392 input=e2450206189560e5]*/
+fs_mkdir_impl(PyObject *module, PyObject *path, int mode)
+/*[clinic end generated code: output=cc6ca10eed6b5de4 input=98d19f5dc82fe45e]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_mkdir(_state, PyBytes_AS_STRING(path), mode);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Mkdir(_ctx, PyBytes_AS_STRING(path), mode);
 }
 
-static PyObject *
-Fs_rmdir(_STATE_var, const char *path)
+CAPSULE_API(FS_API, Promise *)
+Fs_Rmdir(_ctx_var, const char *path)
 {
-    FS_CALL(promise, uv_fs_rmdir, path, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_rmdir, path, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.rmdir
+fs.rmdir
     path: Path
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_rmdir_impl(PyObject *module, PyObject *path)
-/*[clinic end generated code: output=7c5cfd7e64059a73 input=7bc63aaf140d3f0a]*/
+fs_rmdir_impl(PyObject *module, PyObject *path)
+/*[clinic end generated code: output=8a899641fa9fc5cb input=ea608c81e46fdc83]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_rmdir(_state, PyBytes_AS_STRING(path));
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Rmdir(_ctx, PyBytes_AS_STRING(path));
 }
 
-static PyObject *
-Fs_mkdtemp(_STATE_var, const char *tpl)
+CAPSULE_API(FS_API, Promise *)
+Fs_Mkdtemp(_ctx_var, const char *tpl)
 {
-    FS_CALL(promise, uv_fs_mkdtemp, tpl, path_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_mkdtemp, tpl, path_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.mkdtemp
+fs.mkdtemp
     tpl: Path
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_mkdtemp_impl(PyObject *module, PyObject *tpl)
-/*[clinic end generated code: output=3b968f1bdab58f84 input=878aac88aaa2f23b]*/
+fs_mkdtemp_impl(PyObject *module, PyObject *tpl)
+/*[clinic end generated code: output=4845725af98ca58c input=0cb22bb81ab08559]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_mkdtemp(_state, PyBytes_AS_STRING(tpl));
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Mkdtemp(_ctx, PyBytes_AS_STRING(tpl));
 }
 
 static void
 mkstemp_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
-            Request_RejectFsExc(req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
         } else {
             PyObject *result = Py_BuildValue("ns", req->result, req->path);
             if (result) {
-                Request_Resolve(req, result);
+                Promise_Resolve(p, result);
                 Py_DECREF(result);
             } else {
-                Request_RejectPyExc(req);
+                Promise_Reject(p, NULL);
             }
         }
         Request_CloseFs(req);
     RELEASE_GIL
 }
 
-static PyObject *
-Fs_mkstemp(_STATE_var, const char *tpl)
+CAPSULE_API(FS_API, Promise *)
+Fs_Mkstemp(_ctx_var, const char *tpl)
 {
-    FS_CALL(promise, uv_fs_mkstemp, tpl, mkstemp_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_mkstemp, tpl, mkstemp_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.mkstemp
+fs.mkstemp
     tpl: Path
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_mkstemp_impl(PyObject *module, PyObject *tpl)
-/*[clinic end generated code: output=571496324bf87333 input=955ad7257ba28006]*/
+fs_mkstemp_impl(PyObject *module, PyObject *tpl)
+/*[clinic end generated code: output=eb08f9d67d79bb6f input=78c43098a049ed25]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_mkstemp(_state, PyBytes_AS_STRING(tpl));
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Mkstemp(_ctx, PyBytes_AS_STRING(tpl));
 }
 
 static void
 scandir_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _STATE_setreq(req)
-
+        _CTX_setreq(req)
+        Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
-            Request_RejectFsExc(req, (int) req->result);
+            Promise_RejectFsExc(p, (int) req->result);
             goto finally;
         }
         Py_ssize_t n = req->result;
         PyObject *result = PyTuple_New(n);
         if (!result) {
         error:
-            Request_RejectPyExc(req);
+            Promise_Reject(p, NULL);
             goto finally;
         }
         if (n) {
@@ -1035,22 +1044,30 @@ scandir_callback(uv_fs_t *req)
             while (UV_EOF != uv_fs_scandir_next(req, &dent)) {
                 int type = 0;
                 switch (dent.type) {
-                case UV_DIRENT_UNKNOWN:type = 0;
-                    break;
-                case UV_DIRENT_FILE:type = 1;
-                    break;
-                case UV_DIRENT_DIR:type = 2;
-                    break;
-                case UV_DIRENT_LINK:type = 3;
-                    break;
-                case UV_DIRENT_FIFO:type = 4;
-                    break;
-                case UV_DIRENT_SOCKET:type = 5;
-                    break;
-                case UV_DIRENT_CHAR:type = 6;
-                    break;
-                case UV_DIRENT_BLOCK:type = 7;
-                    break;
+                    case UV_DIRENT_UNKNOWN:
+                        type = 0;
+                        break;
+                    case UV_DIRENT_FILE:
+                        type = 1;
+                        break;
+                    case UV_DIRENT_DIR:
+                        type = 2;
+                        break;
+                    case UV_DIRENT_LINK:
+                        type = 3;
+                        break;
+                    case UV_DIRENT_FIFO:
+                        type = 4;
+                        break;
+                    case UV_DIRENT_SOCKET:
+                        type = 5;
+                        break;
+                    case UV_DIRENT_CHAR:
+                        type = 6;
+                        break;
+                    case UV_DIRENT_BLOCK:
+                        type = 7;
+                        break;
                 }
                 PyObject *item = Py_BuildValue("is", type, dent.name);
                 if (!item) {
@@ -1061,154 +1078,154 @@ scandir_callback(uv_fs_t *req)
                 index++;
             }
         }
-        Request_Resolve(req, result);
+        Promise_Resolve(p, result);
         Py_DECREF(result);
-
     finally:
     Request_CloseFs(req);
     RELEASE_GIL
 }
 
-static PyObject *
-Fs_scandir(_STATE_var, const char *path)
+CAPSULE_API(FS_API, Promise *)
+Fs_Scandir(_ctx_var, const char *path)
 {
-    FS_CALL(promise, uv_fs_scandir, path, 0, scandir_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_scandir, path, 0, scandir_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.scandir
+fs.scandir
     path: Path
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_scandir_impl(PyObject *module, PyObject *path)
-/*[clinic end generated code: output=6aa607df28540a89 input=b3d65f1989abc9fa]*/
+fs_scandir_impl(PyObject *module, PyObject *path)
+/*[clinic end generated code: output=4a789c9f969b08a3 input=cada47c048b838f2]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_scandir(_state, PyBytes_AS_STRING(path));
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Scandir(_ctx, PyBytes_AS_STRING(path));
 }
 
-static PyObject *
-Fs_rename(_STATE_var, const char *path, const char *new_path)
+CAPSULE_API(FS_API, Promise *)
+Fs_Rename(_ctx_var, const char *path, const char *new_path)
 {
-    FS_CALL(promise, uv_fs_rename, path, new_path, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_rename, path, new_path, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.rename
+fs.rename
     path: Path
     new_path: Path
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_rename_impl(PyObject *module, PyObject *path, PyObject *new_path)
-/*[clinic end generated code: output=391eeecc807f0cc3 input=09a60a0c73997327]*/
+fs_rename_impl(PyObject *module, PyObject *path, PyObject *new_path)
+/*[clinic end generated code: output=1eb79ef01e1cc6eb input=d10ca1dea1c36ca9]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_rename(_state, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path));
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Rename(_ctx, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path));
 }
 
-static PyObject *
-Fs_fsync(_STATE_var, int fd)
+CAPSULE_API(FS_API, Promise *)
+Fs_Fsync(_ctx_var, int fd)
 {
-    FS_CALL(promise, uv_fs_fsync, fd, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_fsync, fd, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.fsync
+fs.fsync
     fd: fd
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_fsync_impl(PyObject *module, int fd)
-/*[clinic end generated code: output=abf535072a5dfb6c input=ef7886c50c403733]*/
+fs_fsync_impl(PyObject *module, int fd)
+/*[clinic end generated code: output=77234dc5eba48e15 input=1dd4da63ef5f4b34]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_fsync(_state, fd);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Fsync(_ctx, fd);
 }
 
-static PyObject *
-Fs_ftruncate(_STATE_var, int fd, Py_ssize_t length)
+CAPSULE_API(FS_API, Promise *)
+Fs_Ftruncate(_ctx_var, int fd, Py_ssize_t length)
 {
-    FS_CALL(promise, uv_fs_ftruncate, fd, length, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_ftruncate, fd, length, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.ftruncate
+fs.ftruncate
     fd: fd
     length: ssize_t
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_ftruncate_impl(PyObject *module, int fd, Py_ssize_t length)
-/*[clinic end generated code: output=2779ae1035eee114 input=fcbe7801b02a45f6]*/
+fs_ftruncate_impl(PyObject *module, int fd, Py_ssize_t length)
+/*[clinic end generated code: output=4c3adf479c59bac5 input=3037b1c14c63fd76]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_ftruncate(_state, fd, length);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Ftruncate(_ctx, fd, length);
 }
 
-static PyObject *
-Fs_fdatasync(_STATE_var, int fd)
+CAPSULE_API(FS_API, Promise *)
+Fs_Fdatasync(_ctx_var, int fd)
 {
-    FS_CALL(promise, uv_fs_fdatasync, fd, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_fdatasync, fd, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.fdatasync
+fs.fdatasync
     fd: fd
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_fdatasync_impl(PyObject *module, int fd)
-/*[clinic end generated code: output=fe92b7b3ee14f5ce input=5bd719df409262a3]*/
+fs_fdatasync_impl(PyObject *module, int fd)
+/*[clinic end generated code: output=1172614bb569d996 input=12f7058927d6d90c]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_fdatasync(_state, fd);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Fdatasync(_ctx, fd);
 }
 
-static PyObject *
-Fs_copyfile(_STATE_var, const char *path, const char *new_path, int flags)
+CAPSULE_API(FS_API, Promise *)
+Fs_Copyfile(_ctx_var, const char *path, const char *new_path, int flags)
 {
-    FS_CALL(promise, uv_fs_copyfile, path, new_path, flags, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_copyfile, path, new_path, flags, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.copyfile
+fs.copyfile
     path: Path
     new_path: Path
     flags: int = 0
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_copyfile_impl(PyObject *module, PyObject *path, PyObject *new_path,
-                       int flags)
-/*[clinic end generated code: output=d0435f44f336e0b9 input=c0171ddd034ccb93]*/
+fs_copyfile_impl(PyObject *module, PyObject *path, PyObject *new_path,
+                 int flags)
+/*[clinic end generated code: output=f26db733a792e8d0 input=18e6000f66ed993e]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_copyfile(_state, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path), flags);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Copyfile(_ctx, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path), flags);
 }
 
-static PyObject *
-Fs_sendfile(_STATE_var, int out_fd, int in_fd, Py_off_t in_offset, size_t length)
+CAPSULE_API(FS_API, Promise *)
+Fs_Sendfile(_ctx_var, int out_fd, int in_fd, Py_off_t in_offset, size_t length)
 {
-    FS_CALL(promise, uv_fs_sendfile, out_fd, in_fd, in_offset, length, int_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_sendfile, out_fd, in_fd, in_offset, length, int_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.sendfile
+fs.sendfile
     out_fd: fd
     in_fd: fd
     offset: off_t
@@ -1216,97 +1233,98 @@ fsmodule.sendfile
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_sendfile_impl(PyObject *module, int out_fd, int in_fd,
-                       Py_off_t offset, Py_ssize_t count)
-/*[clinic end generated code: output=71b10da8acbadb33 input=ee4228431ddfd9b0]*/
+fs_sendfile_impl(PyObject *module, int out_fd, int in_fd, Py_off_t offset,
+                 Py_ssize_t count)
+/*[clinic end generated code: output=ac27efde8b1056f5 input=7147bf805abbfeab]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_sendfile(_state, out_fd, in_fd, offset, count);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Sendfile(_ctx, out_fd, in_fd, offset, count);
 }
 
-static PyObject *
-Fs_access(_STATE_var, const char *path, int mode)
+CAPSULE_API(FS_API, Promise *)
+Fs_Access(_ctx_var, const char *path, int mode)
 {
-    FS_CALL(promise, uv_fs_access, path, mode, bool_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_access, path, mode, bool_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.access
+fs.access
     path: Path
     mode: int
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_access_impl(PyObject *module, PyObject *path, int mode)
-/*[clinic end generated code: output=5b4e8d8a3c3470b1 input=ca88f0e7fcf5ddf3]*/
+fs_access_impl(PyObject *module, PyObject *path, int mode)
+/*[clinic end generated code: output=66baaaf393f5d323 input=bceb734cd1fe2473]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_access(_state, PyBytes_AS_STRING(path), mode);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Access(_ctx, PyBytes_AS_STRING(path), mode);
 }
 
-static PyObject *
-Fs_chmod(_STATE_var, const char *path, int mode)
+CAPSULE_API(FS_API, Promise *)
+Fs_Chmod(_ctx_var, const char *path, int mode)
 {
-    FS_CALL(promise, uv_fs_chmod, path, mode, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_chmod, path, mode, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.chmod
+fs.chmod
     path: Path
     mode: int
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_chmod_impl(PyObject *module, PyObject *path, int mode)
-/*[clinic end generated code: output=65e1250ff82ac9f7 input=3436136e26a28a6d]*/
+fs_chmod_impl(PyObject *module, PyObject *path, int mode)
+/*[clinic end generated code: output=c96185fc378f4240 input=5ad22c77ad1094ae]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_chmod(_state, PyBytes_AS_STRING(path), mode);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Chmod(_ctx, PyBytes_AS_STRING(path), mode);
 }
 
-static PyObject *
-Fs_fchmod(_STATE_var, int fd, int mode)
+CAPSULE_API(FS_API, Promise *)
+Fs_Fchmod(_ctx_var, int fd, int mode)
 {
-    FS_CALL(promise, uv_fs_fchmod, fd, mode, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_fchmod, fd, mode, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.fchmod
+fs.fchmod
     fd: fd
     mode: int
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_fchmod_impl(PyObject *module, int fd, int mode)
-/*[clinic end generated code: output=cd21ad0d91f5a668 input=e5abb45d1df62cca]*/
+fs_fchmod_impl(PyObject *module, int fd, int mode)
+/*[clinic end generated code: output=34682ca7db418d11 input=57ef52ad97618eb2]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_fchmod(_state, fd, mode);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Fchmod(_ctx, fd, mode);
 }
 
-static PyObject *
-Fs_utime(_STATE_var, const char *path, double atime, double mtime)
+CAPSULE_API(FS_API, Promise *)
+Fs_Utime(_ctx_var, const char *path, double atime, double mtime)
 {
-    FS_CALL(promise, uv_fs_utime, path, atime, mtime, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_utime, path, atime, mtime, none_callback)
     return promise;
 }
 
-static PyObject *
-Fs_lutime(_STATE_var, const char *path, double atime, double mtime)
+CAPSULE_API(FS_API, Promise *)
+Fs_Lutime(_ctx_var, const char *path, double atime, double mtime)
 {
-    FS_CALL(promise, uv_fs_lutime, path, atime, mtime, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_lutime, path, atime, mtime, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.utime
+fs.utime
     path: Path
     atime: double
     mtime: double,
@@ -1315,73 +1333,73 @@ fsmodule.utime
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_utime_impl(PyObject *module, PyObject *path, double atime,
-                    double mtime, int follow_symlinks)
-/*[clinic end generated code: output=103b602ebfe3ede0 input=a05a6a9ecee86b68]*/
+fs_utime_impl(PyObject *module, PyObject *path, double atime, double mtime,
+              int follow_symlinks)
+/*[clinic end generated code: output=935a5e77f4392a74 input=d2d2ada07f37e8ac]*/
 {
-    _STATE_setmodule(module)
-
+    _CTX_setmodule(module);
     if (follow_symlinks) {
-        return Fs_utime(_state, PyBytes_AS_STRING(path), atime, mtime);
+        return (PyObject *) Fs_Utime(_ctx, PyBytes_AS_STRING(path), atime, mtime);
     } else {
-        return Fs_lutime(_state, PyBytes_AS_STRING(path), atime, mtime);
+        return (PyObject *) Fs_Lutime(_ctx, PyBytes_AS_STRING(path), atime, mtime);
     }
 }
 
-static PyObject *
-Fs_futime(_STATE_var, int fd, double atime, double mtime)
+CAPSULE_API(FS_API, Promise *)
+Fs_Futime(_ctx_var, int fd, double atime, double mtime)
 {
-    FS_CALL(promise, uv_fs_futime, fd, atime, mtime, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_futime, fd, atime, mtime, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.futime
+fs.futime
     fd: fd
     atime: double
     mtime: double
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_futime_impl(PyObject *module, int fd, double atime, double mtime)
-/*[clinic end generated code: output=ef0613cb96db5273 input=4aa66db7cf7f59a0]*/
+fs_futime_impl(PyObject *module, int fd, double atime, double mtime)
+/*[clinic end generated code: output=f4620d30861b1bf1 input=005fcf64445c1b4b]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_futime(_state, fd, atime, mtime);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Futime(_ctx, fd, atime, mtime);
 }
 
-static PyObject *
-Fs_link(_STATE_var, const char *path, const char *new_path)
+CAPSULE_API(FS_API, Promise *)
+Fs_Link(_ctx_var, const char *path, const char *new_path)
 {
-    FS_CALL(promise, uv_fs_link, path, new_path, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_link, path, new_path, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.link
+fs.link
     path: Path
     new_path: Path
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_link_impl(PyObject *module, PyObject *path, PyObject *new_path)
-/*[clinic end generated code: output=aa5d2a01a189c562 input=febee114325b702d]*/
+fs_link_impl(PyObject *module, PyObject *path, PyObject *new_path)
+/*[clinic end generated code: output=2a0f7745bbf5e142 input=a1c3d02af0f400c2]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_link(_state, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path));
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Link(_ctx, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path));
 }
 
-static PyObject *
-Fs_symlink(_STATE_var, const char *path, const char *new_path, int flags)
+CAPSULE_API(FS_API, Promise *)
+Fs_Symlink(_ctx_var, const char *path, const char *new_path, int flags)
 {
-    FS_CALL(promise, uv_fs_symlink, path, new_path, flags, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_symlink, path, new_path, flags, none_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.symlink
+fs.symlink
     path: Path
     new_path: Path
     *
@@ -1389,54 +1407,63 @@ fsmodule.symlink
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_symlink_impl(PyObject *module, PyObject *path, PyObject *new_path,
-                      int flags)
-/*[clinic end generated code: output=b212d13ed5bd08cb input=a043b46b3beb5851]*/
+fs_symlink_impl(PyObject *module, PyObject *path, PyObject *new_path,
+                int flags)
+/*[clinic end generated code: output=7dda80446611250f input=3b2df6695e025ce0]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_symlink(_state, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path), flags);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Symlink(_ctx, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path), flags);
 }
 
-static PyObject *
-Fs_readlink(_STATE_var, const char *path)
+CAPSULE_API(FS_API, Promise *)
+Fs_Readlink(_ctx_var, const char *path)
 {
-    FS_CALL(promise, uv_fs_readlink, path, ptr_path_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_readlink, path, ptr_path_callback)
     return promise;
 }
 
 /*[clinic input]
-fsmodule.readlink
+fs.readlink
     path: Path
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_readlink_impl(PyObject *module, PyObject *path)
-/*[clinic end generated code: output=1cf86d0cb6083957 input=697d7fca6a8c1249]*/
+fs_readlink_impl(PyObject *module, PyObject *path)
+/*[clinic end generated code: output=1a033f553e3cc0df input=2e4577d2fc1fce38]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_readlink(_state, PyBytes_AS_STRING(path));
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Readlink(_ctx, PyBytes_AS_STRING(path));
 }
 
+CAPSULE_API(FS_API, Promise *)
+Fs_Chown(_ctx_var, const char *path, uv_uid_t uid, uv_gid_t gid)
+{
 #ifndef MS_WINDOWS
-
-static PyObject *
-Fs_chown(_STATE_var, const char *path, uv_uid_t uid, uv_gid_t gid)
-{
-    FS_CALL(promise, uv_fs_chown, path, uid, gid, none_callback);
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_chown, path, uid, gid, none_callback)
     return promise;
+#else
+    PyErr_SetString(PyExc_NotImplementedError, "Not supported");
+    return NULL;
+#endif
 }
 
-static PyObject *
-Fs_lchown(_STATE_var, const char *path, uv_uid_t uid, uv_gid_t gid)
+CAPSULE_API(FS_API, Promise *)
+Fs_Lchown(_ctx_var, const char *path, uv_uid_t uid, uv_gid_t gid)
 {
-    FS_CALL(promise, uv_fs_lchown, path, uid, gid, none_callback);
+#ifndef MS_WINDOWS
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_lchown, path, uid, gid, none_callback)
     return promise;
+#else
+    PyErr_SetString(PyExc_NotImplementedError, "Not supported");
+    return NULL;
+#endif
 }
 
 /*[clinic input]
-fsmodule.chown
+fs.chown
     path: Path
     uid: uid_t,
     gid: gid_t,
@@ -1445,43 +1472,45 @@ fsmodule.chown
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_chown_impl(PyObject *module, PyObject *path, uid_t uid, gid_t gid,
-                    int follow_symlinks)
-/*[clinic end generated code: output=d5fe57e184fbadb8 input=83a6237f74e31297]*/
+fs_chown_impl(PyObject *module, PyObject *path, uid_t uid, gid_t gid,
+              int follow_symlinks)
+/*[clinic end generated code: output=b4f92ec2c249651f input=1c9528d26ba50b43]*/
 {
-    _STATE_setmodule(module)
-
+    _CTX_setmodule(module);
     if (follow_symlinks) {
-        return Fs_chown(_state, PyBytes_AS_STRING(path), uid, gid);
+        return (PyObject *) Fs_Chown(_ctx, PyBytes_AS_STRING(path), uid, gid);
     } else {
-        return Fs_lchown(_state, PyBytes_AS_STRING(path), uid, gid);
+        return (PyObject *) Fs_Lchown(_ctx, PyBytes_AS_STRING(path), uid, gid);
     }
 }
 
-Py_LOCAL_INLINE(PyObject *)
-Fs_fchown(_STATE_var, int fd, uv_uid_t uid, uv_gid_t gid)
+CAPSULE_API(FS_API, Promise *)
+Fs_Fchown(_ctx_var, int fd, uv_uid_t uid, uv_gid_t gid)
 {
-    FS_CALL(promise, uv_fs_fchown, fd, uid, gid, none_callback);
+#ifndef MS_WINDOWS
+    Loop_SETUP(loop)
+    FS_CALL(loop, promise, uv_fs_fchown, fd, uid, gid, none_callback)
     return promise;
+#else
+    PyErr_SetString(PyExc_NotImplementedError, "Not supported");
+    return NULL;
+#endif
 }
 
 /*[clinic input]
-fsmodule.fchown
+fs.fchown
     fd: fd
     uid: uid_t,
     gid: gid_t,
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_fchown_impl(PyObject *module, int fd, uid_t uid, gid_t gid)
-/*[clinic end generated code: output=a3be8be6755c3d2e input=13946a55330ca438]*/
+fs_fchown_impl(PyObject *module, int fd, uid_t uid, gid_t gid)
+/*[clinic end generated code: output=08465d9f9297e283 input=be2d9ec2487e007f]*/
 {
-    _STATE_setmodule(module)
-
-    return Fs_fchown(_state, fd, uid, gid);
+    _CTX_setmodule(module);
+    return (PyObject *) Fs_Fchown(_ctx, fd, uid, gid);
 }
-
-#endif
 
 static PyObject *
 Stat_st_dev(Stat *self, __attribute__((unused)) void *closure)
@@ -1599,9 +1628,16 @@ static PyGetSetDef stat_getset[] = {
     {NULL},
 };
 
+static void
+stat_dealloc(PyObject *self)
+{
+    PyTrack_MarkDeleted(self);
+    Py_Delete(self);
+}
+
 static PyType_Slot stat_slots[] = {
     {Py_tp_getset, stat_getset},
-    {Py_tp_dealloc, Mem_Free},
+    {Py_tp_dealloc, stat_dealloc},
     {0, 0},
 };
 
@@ -1614,12 +1650,12 @@ static PyType_Spec stat_spec = {
 };
 
 /*[clinic input]
-class fsmodule.FileIO "FileIO *" "&FileIOType"
+class fs.FileIO "FileIO *" "S(FileIOType)"
 [clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=ecb73b2a06b06615]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=adc5c20470ff4ace]*/
 
 /*[clinic input]
-fsmodule.FileIO.close
+fs.FileIO.close
 
 Close this handle.
 
@@ -1630,20 +1666,19 @@ call, however, will have an effect.
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_FileIO_close_impl(FileIO *self)
-/*[clinic end generated code: output=60eb034b0f991c78 input=ebf3fe67bf6932e4]*/
+fs_FileIO_close_impl(FileIO *self)
+/*[clinic end generated code: output=b65a5e38c4695b3a input=f92aa7dd8d5bd472]*/
 {
-    _STATE_set(self)
-
+    _CTX_set((PyObject *) self);
     if (self->fd < 0) {
-        return Promise_NewResolved(Py_None);
+        return (PyObject *) Promise_NewResolved(Py_None);
     } else if (!self->closefd) {
         self->fd = -1;
-        return Promise_NewResolved(Py_None);
+        return (PyObject *) Promise_NewResolved(Py_None);
     } else {
         int fd = self->fd;
         self->fd = -1;
-        return (PyObject *) Fs_close(_state, fd);
+        return (PyObject *) Fs_Close(_ctx, fd);
     }
 }
 
@@ -1655,14 +1690,14 @@ fileio_err_closed(void)
 }
 
 /*[clinic input]
-fsmodule.FileIO.fileno
+fs.FileIO.fileno
 
 Return the underlying file descriptor (an integer).
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_FileIO_fileno_impl(FileIO *self)
-/*[clinic end generated code: output=8ad0732646e05d2c input=3286ff344110240d]*/
+fs_FileIO_fileno_impl(FileIO *self)
+/*[clinic end generated code: output=32fe8f526c33df6f input=d2d29c72594b6486]*/
 {
     if (self->fd < 0)
         return fileio_err_closed();
@@ -1670,7 +1705,7 @@ fsmodule_FileIO_fileno_impl(FileIO *self)
 }
 
 /*[clinic input]
-fsmodule.FileIO.read
+fs.FileIO.read
     size: ssize_t = -1
     offset: off_t = -1
 
@@ -1678,11 +1713,10 @@ Read at most size bytes, returned as bytes.
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_FileIO_read_impl(FileIO *self, Py_ssize_t size, Py_off_t offset)
-/*[clinic end generated code: output=a0fc4040888c3005 input=7b2cfb1b2d1627ce]*/
+fs_FileIO_read_impl(FileIO *self, Py_ssize_t size, Py_off_t offset)
+/*[clinic end generated code: output=f5520bf613a7bcd6 input=1e3d51dfb810aac3]*/
 {
-    _STATE_set(self)
-
+    _CTX_set((PyObject *) self);
     if (self->fd < 0)
         return fileio_err_closed();
     if (size < 0) {
@@ -1691,14 +1725,14 @@ fsmodule_FileIO_read_impl(FileIO *self, Py_ssize_t size, Py_off_t offset)
                             "offset could only be used with the size argument");
             return NULL;
         }
-        return (PyObject *) Fs_readall(_state, self->fd);
+        return (PyObject *) Fs_Readall(_ctx, self->fd);
     } else {
-        return (PyObject *) Fs_read(_state, self->fd, size, offset);
+        return (PyObject *) Fs_Read(_ctx, self->fd, size, offset);
     }
 }
 
 /*[clinic input]
-fsmodule.FileIO.write
+fs.FileIO.write
     data: object
     offset: off_t = -1
 
@@ -1708,11 +1742,10 @@ Returns the number of bytes written, which is always the length of data in bytes
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_FileIO_write_impl(FileIO *self, PyObject *data, Py_off_t offset)
-/*[clinic end generated code: output=f10ec0fa444d76b3 input=f2492035a530ab61]*/
+fs_FileIO_write_impl(FileIO *self, PyObject *data, Py_off_t offset)
+/*[clinic end generated code: output=5101a0529fb1e4b7 input=af78dece81ce7e29]*/
 {
-    _STATE_set(self)
-
+    _CTX_set((PyObject *) self);
     if (self->fd < 0)
         return fileio_err_closed();
     if (!PyBytes_Check(data)) {
@@ -1720,11 +1753,11 @@ fsmodule_FileIO_write_impl(FileIO *self, PyObject *data, Py_off_t offset)
                         "bytes expected");
         return NULL;
     }
-    return (PyObject *) Fs_write(_state, self->fd, data, offset);
+    return (PyObject *) Fs_Write(_ctx, self->fd, data, offset);
 }
 
 /*[clinic input]
-fsmodule.FileIO.seek
+fs.FileIO.seek
     offset: off_t
     whence: int = 0
 
@@ -1732,29 +1765,30 @@ Read at most size bytes, returned as bytes.
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-fsmodule_FileIO_seek_impl(FileIO *self, Py_off_t offset, int whence)
-/*[clinic end generated code: output=c9ea49e2042d7e88 input=03b7bf4944a2e937]*/
+fs_FileIO_seek_impl(FileIO *self, Py_off_t offset, int whence)
+/*[clinic end generated code: output=d4fdae935ebc13c7 input=34a065c6cb86e967]*/
 {
-    _STATE_set(self)
-
+    _CTX_set((PyObject *) self);
     if (self->fd < 0)
         return fileio_err_closed();
-    return (PyObject *) Fs_seek(_state, self->fd, offset, whence);
+    return (PyObject *) Fs_Seek(_ctx, self->fd, offset, whence);
 }
 
 static void
 fileio_dealloc(FileIO *self)
 {
-    _STATE_set(self)
-
-    if (self->fd >= 0) {
+    _CTX_set((PyObject *) self);
+    int fd = self->fd;
+    PyTrack_MarkDeleted(self);
+    Py_Delete(self);
+    if (fd >= 0) {
         // close silently, ignore errors, sync
-        int fd = self->fd;
-        self->fd = -1;
         uv_fs_t req;
-        uv_fs_close(S(loop), &req, fd, NULL);
+        uv_loop_t *loop = Loop_Get();
+        Py_BEGIN_ALLOW_THREADS
+        uv_fs_close(loop, &req, fd, NULL);
+        Py_END_ALLOW_THREADS
     }
-    Object_Del(self);
 }
 
 static PyObject *
@@ -1776,11 +1810,11 @@ static PyGetSetDef fileio_getsetlist[] = {
 };
 
 static PyMethodDef fileio_methods[] = {
-    FSMODULE_FILEIO_CLOSE_METHODDEF
-    FSMODULE_FILEIO_FILENO_METHODDEF
-    FSMODULE_FILEIO_READ_METHODDEF
-    FSMODULE_FILEIO_SEEK_METHODDEF
-    FSMODULE_FILEIO_WRITE_METHODDEF
+    FS_FILEIO_CLOSE_METHODDEF
+    FS_FILEIO_FILENO_METHODDEF
+    FS_FILEIO_READ_METHODDEF
+    FS_FILEIO_SEEK_METHODDEF
+    FS_FILEIO_WRITE_METHODDEF
     {NULL}, /* Sentinel */
 };
 
@@ -1796,26 +1830,23 @@ static PyType_Spec fileio_spec = {
     sizeof(FileIO),
     0,
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE,
-    fileio_slots};
+    fileio_slots
+};
 
 static int
 fsmodule_init(PyObject *module)
 {
-    LOG("fsmodule_init(%p)", module);
-
-    _STATE_setmodule(module)
-
-    Capsule_LOAD("promisedio.promise", PROMISE_API_ID);
-    Capsule_LOAD("promisedio.loop", LOOP_API_ID);
-    S(loop) = Loop_Get();
+    _CTX_setmodule(module);
+    LOG("(%p)", module);
+    Capsule_LOAD("promisedio.promise", PROMISE_API);
+    Capsule_LOAD("promisedio.loop", LOOP_API);
     return 0;
 }
 
 static int
 fsmodule_init_types_and_constants(PyObject *module)
 {
-    _STATE_setmodule(module)
-
+    _CTX_setmodule(module);
 #define ADDINT(n, v)                           \
     if (PyModule_AddIntConstant(module, n, v)) \
     return -1
@@ -1875,58 +1906,22 @@ fsmodule_init_types_and_constants(PyObject *module)
     return 0;
 }
 
+#include "capsule.h"
+
 static int
 fsmodule_create_api(PyObject *module)
 {
-    LOG("fsmodule_create_api(%p)", module);
-    static void *c_api[] = {
-        [FS_STAT_API_ID] = Fs_stat,
-        [FS_LSTAT_API_ID] = Fs_lstat,
-        [FS_FSTAT_API_ID] = Fs_fstat,
-        [FS_OPEN_API_ID] = Fs_open,
-        [FS_READ_API_ID] = Fs_read,
-        [FS_READALL_API_ID] = Fs_readall,
-        [FS_WRITE_API_ID] = Fs_write,
-        [FS_SEEK_API_ID] = Fs_seek,
-        [FS_CLOSE_API_ID] = Fs_close,
-        [FS_UNLINK_API_ID] = Fs_unlink,
-        [FS_MKDIR_API_ID] = Fs_mkdir,
-        [FS_RMDIR_API_ID] = Fs_rmdir,
-        [FS_MKDTEMP_API_ID] = Fs_mkdtemp,
-        [FS_MKSTEMP_API_ID] = Fs_mkstemp,
-        [FS_SCANDIR_API_ID] = Fs_scandir,
-        [FS_RENAME_API_ID] = Fs_rename,
-        [FS_FTRUNCATE_API_ID] = Fs_ftruncate,
-        [FS_FSYNC_API_ID] = Fs_fsync,
-        [FS_FDATASYNC_API_ID] = Fs_fdatasync,
-        [FS_COPYFILE_API_ID] = Fs_copyfile,
-        [FS_SENDFILE_API_ID] = Fs_sendfile,
-        [FS_ACCESS_API_ID] = Fs_access,
-        [FS_CHMOD_API_ID] = Fs_chmod,
-        [FS_FCHMOD_API_ID] = Fs_fchmod,
-        [FS_UTIME_API_ID] = Fs_utime,
-        [FS_FUTIME_API_ID] = Fs_futime,
-        [FS_LUTIME_API_ID] = Fs_lutime,
-        [FS_LINK_API_ID] = Fs_link,
-        [FS_SYMLINK_API_ID] = Fs_symlink,
-        [FS_READLINK_API_ID] = Fs_readlink,
-#ifndef MS_WINDOWS
-        [FS_CHOWN_API_ID] = Fs_chown,
-        [FS_FCHOWN_API_ID] = Fs_fchown,
-        [FS_LCHOWN_API_ID] = Fs_lchown,
-#endif
-    };
-    Capsule_CREATE(module, FS_API_ID, c_api);
+    LOG("(%p)", module);
+    Capsule_CREATE(module, FS_API);
     return 0;
 }
 
 static int
 fsmodule_traverse(PyObject *module, visitproc visit, void *arg)
 {
-    _STATE_setmodule(module)
-
-    Capsule_TRAVERSE(LOOP_API_ID);
-    Capsule_TRAVERSE(PROMISE_API_ID);
+    _CTX_setmodule(module);
+    Capsule_VISIT(LOOP_API);
+    Capsule_VISIT(PROMISE_API);
     Py_VISIT(S(FSError));
     Py_VISIT(S(StatType));
     Py_VISIT(S(FileIOType));
@@ -1936,10 +1931,7 @@ fsmodule_traverse(PyObject *module, visitproc visit, void *arg)
 static int
 fsmodule_clear(PyObject *module)
 {
-    _STATE_setmodule(module)
-
-    Capsule_CLEAR(LOOP_API_ID);
-    Capsule_CLEAR(PROMISE_API_ID);
+    _CTX_setmodule(module);
     Py_CLEAR(S(FSError));
     Py_CLEAR(S(StatType));
     Py_CLEAR(S(FileIOType));
@@ -1949,42 +1941,45 @@ fsmodule_clear(PyObject *module)
 static void
 fsmodule_free(void *module)
 {
-    LOG("fsmodule_free(%p)", module);
+    _CTX_setmodule(module);
+    LOG("(%p)", module);
+    Capsule_CLEAR(LOOP_API);
+    Capsule_CLEAR(PROMISE_API);
     fsmodule_clear(module);
 }
 
 static PyMethodDef fsmodule_methods[] = {
-    FSMODULE_STAT_METHODDEF
-    FSMODULE_FSTAT_METHODDEF
-    FSMODULE_SEEK_METHODDEF
-    FSMODULE_CLOSE_METHODDEF
-    FSMODULE_CLOSEFD_METHODDEF
-    FSMODULE_OPENFD_METHODDEF
-    FSMODULE_OPEN_METHODDEF
-    FSMODULE_READ_METHODDEF
-    FSMODULE_WRITE_METHODDEF
-    FSMODULE_UNLINK_METHODDEF
-    FSMODULE_MKDIR_METHODDEF
-    FSMODULE_RMDIR_METHODDEF
-    FSMODULE_MKDTEMP_METHODDEF
-    FSMODULE_MKSTEMP_METHODDEF
-    FSMODULE_SCANDIR_METHODDEF
-    FSMODULE_RENAME_METHODDEF
-    FSMODULE_FSYNC_METHODDEF
-    FSMODULE_FTRUNCATE_METHODDEF
-    FSMODULE_FDATASYNC_METHODDEF
-    FSMODULE_COPYFILE_METHODDEF
-    FSMODULE_SENDFILE_METHODDEF
-    FSMODULE_ACCESS_METHODDEF
-    FSMODULE_CHMOD_METHODDEF
-    FSMODULE_FCHMOD_METHODDEF
-    FSMODULE_UTIME_METHODDEF
-    FSMODULE_FUTIME_METHODDEF
-    FSMODULE_LINK_METHODDEF
-    FSMODULE_SYMLINK_METHODDEF
-    FSMODULE_READLINK_METHODDEF
-    FSMODULE_CHOWN_METHODDEF
-    FSMODULE_FCHOWN_METHODDEF
+    FS_STAT_METHODDEF
+    FS_FSTAT_METHODDEF
+    FS_SEEK_METHODDEF
+    FS_CLOSE_METHODDEF
+    FS_CLOSEFD_METHODDEF
+    FS_OPENFD_METHODDEF
+    FS_OPEN_METHODDEF
+    FS_READ_METHODDEF
+    FS_WRITE_METHODDEF
+    FS_UNLINK_METHODDEF
+    FS_MKDIR_METHODDEF
+    FS_RMDIR_METHODDEF
+    FS_MKDTEMP_METHODDEF
+    FS_MKSTEMP_METHODDEF
+    FS_SCANDIR_METHODDEF
+    FS_RENAME_METHODDEF
+    FS_FSYNC_METHODDEF
+    FS_FTRUNCATE_METHODDEF
+    FS_FDATASYNC_METHODDEF
+    FS_COPYFILE_METHODDEF
+    FS_SENDFILE_METHODDEF
+    FS_ACCESS_METHODDEF
+    FS_CHMOD_METHODDEF
+    FS_FCHMOD_METHODDEF
+    FS_UTIME_METHODDEF
+    FS_FUTIME_METHODDEF
+    FS_LINK_METHODDEF
+    FS_SYMLINK_METHODDEF
+    FS_READLINK_METHODDEF
+    FS_CHOWN_METHODDEF
+    FS_FCHOWN_METHODDEF
     {NULL},
 };
 

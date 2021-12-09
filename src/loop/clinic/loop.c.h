@@ -59,40 +59,4 @@ loop_hrtime(PyObject *module, PyObject *Py_UNUSED(ignored))
 {
     return loop_hrtime_impl(module);
 }
-
-PyDoc_STRVAR(loop___after_fork__doc__,
-"__after_fork($module, /)\n"
-"--\n"
-"\n"
-"");
-
-#define LOOP___AFTER_FORK_METHODDEF    \
-    {"__after_fork", (PyCFunction)loop___after_fork, METH_NOARGS, loop___after_fork__doc__},
-
-Py_LOCAL_INLINE(PyObject *)
-loop___after_fork_impl(PyObject *module);
-
-static PyObject *
-loop___after_fork(PyObject *module, PyObject *Py_UNUSED(ignored))
-{
-    return loop___after_fork_impl(module);
-}
-
-PyDoc_STRVAR(loop___before_fork__doc__,
-"__before_fork($module, /)\n"
-"--\n"
-"\n"
-"");
-
-#define LOOP___BEFORE_FORK_METHODDEF    \
-    {"__before_fork", (PyCFunction)loop___before_fork, METH_NOARGS, loop___before_fork__doc__},
-
-Py_LOCAL_INLINE(PyObject *)
-loop___before_fork_impl(PyObject *module);
-
-static PyObject *
-loop___before_fork(PyObject *module, PyObject *Py_UNUSED(ignored))
-{
-    return loop___before_fork_impl(module);
-}
-/*[clinic end generated code: output=df0896f743eeed37 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=38e90123cd47295c input=a9049054013a1b77]*/

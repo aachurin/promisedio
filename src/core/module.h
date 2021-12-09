@@ -7,20 +7,36 @@
 #include "base.h"
 #include "internal/pycore_moduleobject.h"
 
+#define _modulestate a__modulestate
+#define _ctx a__ctx
+#define _ctx_var _modulestate *_ctx
+
 Py_LOCAL_INLINE(void *)
-Module_GetState(PyObject *mod) {
-    assert(PyModule_Check(mod));
-    return ((PyModuleObject *)mod)->md_state;
+_CTX__getmodule(PyObject *module)
+{
+    return ((PyModuleObject *) module)->md_state;
 }
 
-#define _modulestate a__modulestate
-#define _state a__state
-#define _STATE_var _modulestate *_state
-#define _STATE_get(obj) ((_modulestate *)((obj)->_state))
-#define _STATE_getmodule(module) ((_modulestate *)Module_GetState(module))
-#define _STATE_set(obj) _STATE_var = _STATE_get(obj);
-#define _STATE_setmodule(module) _STATE_var = _STATE_getmodule(module);
-#define _STATE_save(obj) (obj)->_state = _state
-#define S(some) _state->some
+Py_LOCAL_INLINE(void *)
+_CTX__gettype(PyTypeObject *obj)
+{
+    return _CTX__getmodule(((PyHeapTypeObject *) obj)->ht_module);
+}
+
+Py_LOCAL_INLINE(void *)
+_CTX__get(PyObject *obj)
+{
+    return _CTX__gettype(Py_TYPE(obj));
+}
+
+#define _CTX_getmodule(module) ((_modulestate *) _CTX__getmodule(module))
+#define _CTX_gettype(type) ((_modulestate *) _CTX__gettype(type))
+#define _CTX_get(obj) ((_modulestate *) _CTX__get(obj))
+#define _CTX_getstored(ptr) ((_modulestate *)((ptr)->_ctx))
+#define _CTX_setstored(ptr) _ctx_var = _CTX_getstored(ptr)
+#define _CTX_setmodule(module) _ctx_var = _CTX_getmodule(module)
+#define _CTX_settype(type) _ctx_var = _CTX_gettype(type)
+#define _CTX_set(obj) _ctx_var = _CTX_get(obj)
+#define S(some) _ctx->some
 
 #endif //PROMISEDIO_CORE_MODULE_H

@@ -1,5 +1,5 @@
 import time
-from promisedio import exec_async, run, timer
+from promisedio import loop, timer, promise
 
 
 print("started", time.time())
@@ -21,10 +21,5 @@ async def example1(timeout):
     print("done", time.time())
 
 
-exec_async(example1(5))
-
-run()
-
-# uncomment to see debug info
-from promisedio import _getallocatedobjectscount
-print(_getallocatedobjectscount())
+promise.exec_async(example1(5))
+loop.run_until_complete()

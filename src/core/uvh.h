@@ -4,28 +4,29 @@
 #ifndef PROMISEDIO_CORE_UVH_H
 #define PROMISEDIO_CORE_UVH_H
 
-#define UV_CALL(func, ...)      \
-    int error;                  \
-    Py_BEGIN_ALLOW_THREADS      \
-    error = func(__VA_ARGS__);  \
-    Py_END_ALLOW_THREADS        \
-    if (error < 0)
+#define UV_CALL(func, ...)          \
+    int uv_errno;                   \
+    BEGIN_ALLOW_THREADS             \
+    uv_errno = func(__VA_ARGS__);   \
+    END_ALLOW_THREADS               \
+    if (uv_errno < 0)
 
 
 Py_LOCAL_INLINE(PyObject *)
-PyErr_UVError(PyObject *exc, int uverr)
+Py_NewUVError(PyObject *exc, int uverr)
 {
     PyObject *args = Py_BuildValue("(is)", uverr, uv_strerror(uverr));
     PyObject *ret = NULL;
     if (args) {
         ret = PyObject_CallOneArg(exc, args);
-        Py_DECREF(args)
+        Py_DECREF(args);
     }
+    PyTrack_MarkAllocated(ret);
     return ret;
 }
 
 Py_LOCAL_INLINE(void)
-PyErr_SetUVError(PyObject *exc, int uverr)
+Py_SetUVError(PyObject *exc, int uverr)
 {
     PyObject *args = Py_BuildValue("(is)", uverr, uv_strerror(uverr));
     if (args != NULL) {
@@ -37,7 +38,7 @@ PyErr_SetUVError(PyObject *exc, int uverr)
 #define Promise_RejectUVError(promise, exc, uverr) {                    \
     PyObject *_args = Py_BuildValue("(is)", uverr, uv_strerror(uverr)); \
     if (!_args) {                                                       \
-        Promise_RejectPyExc(promise);                                   \
+        Promise_Reject(promise, NULL);                                  \
     } else {                                                            \
         Promise_RejectArgs(promise, exc, _args);                        \
     }                                                                   \

@@ -7,18 +7,35 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-#ifdef DEBUG_LOG
-    #define LOG(...) LOGC(__VA_ARGS__); PySys_WriteStderr("\n")
-    #define LOGC(...) PySys_FormatStderr(__VA_ARGS__)
+#ifdef BUILD_DEBUG_LOG
+#define LOG(...)                                                        \
+PySys_FormatStderr("%s:%d, %s -- ", __FILE__, __LINE__, __func__),      \
+PySys_FormatStderr(__VA_ARGS__),                                        \
+PySys_WriteStderr("\n")
+#define LOGС(cond, ...)                                                 \
+if (cond) {                                                             \
+    PySys_FormatStderr("%s:%d, %s -- ", __FILE__, __LINE__, __func__),  \
+    PySys_FormatStderr(__VA_ARGS__),                                    \
+    PySys_WriteStderr("\n");                                            \
+}
 #else
-    #define LOG(...)
-    #define LOGC(...)
+#define LOG(...)
+#define LOGC(...)
+#endif
+
+#ifdef BUILD_DEBUG_MEM
+#define MEMLOG(action, ptr, type)                                       \
+    PySys_FormatStderr("#%s\t(%p, %s)", action, ptr, type),             \
+    PySys_FormatStderr(" -- %s:%d, %s", __FILE__, __LINE__, __func__),  \
+    PySys_WriteStderr("\n")
+#else
+#define MEMLOG(...)
 #endif
 
 #define ACQUIRE_GIL \
-{ PyGILState_STATE _gstate = PyGILState_Ensure();
+    { PyGILState_STATE _gstate = PyGILState_Ensure();
 #define RELEASE_GIL \
-PyGILState_Release(_gstate); }
+    PyGILState_Release(_gstate); }
 
 #ifdef MS_WINDOWS
 /* Windows uses long long for offsets */
@@ -68,11 +85,20 @@ typedef off_t Py_off_t;
 #endif
 #endif
 
+#define Py_IsMainInterp() (PyInterpreterState_Get() == PyInterpreterState_Main())
 #define STRINGIFY(X) STRINGIFY2(X)
 #define STRINGIFY2(X) #X
-#define CAT(X,Y) CAT_2(X,Y)
-#define CAT_2(X,Y) X##Y
-#define CAT3(A,B,C) CAT(A,CAT(B,C))
+#define CAT(X, Y) CAT_2(X,Y)
+#define CAT_2(X, Y) X##Y
+#define CAT3(A, B, C) CAT(A,CAT(B,C))
 #define PYSRC(NAME) STRINGIFY(CAT3(pysource/PY_MAJOR_VERSION.PY_MINOR_VERSION.PY_MICRO_VERSION, _, NAME))
+
+#ifndef NOGIL
+#define BEGIN_ALLOW_THREADS Py_BEGIN_ALLOW_THREADS
+#define END_ALLOW_THREADS Py_END_ALLOW_THREADS
+#else
+#define BEGIN_ALLOW_THREADS
+#define END_ALLOW_THREADS
+#endif
 
 #endif //PROMISEDIO_CORE_BASE_H

@@ -2,7 +2,7 @@
 preserve
 [clinic start generated code]*/
 
-PyDoc_STRVAR(nsmodule_getaddrinfo__doc__,
+PyDoc_STRVAR(ns_getaddrinfo__doc__,
 "getaddrinfo($module, /, node, service, family=0, type=0, proto=0,\n"
 "            flags=0)\n"
 "--\n"
@@ -13,16 +13,15 @@ PyDoc_STRVAR(nsmodule_getaddrinfo__doc__,
 "\n"
 "For more information, see [getaddrinfo](https://docs.python.org/3/library/socket.html#socket.getaddrinfo)");
 
-#define NSMODULE_GETADDRINFO_METHODDEF    \
-    {"getaddrinfo", (PyCFunction)(void(*)(void))nsmodule_getaddrinfo, METH_FASTCALL|METH_KEYWORDS, nsmodule_getaddrinfo__doc__},
+#define NS_GETADDRINFO_METHODDEF    \
+    {"getaddrinfo", (PyCFunction)(void(*)(void))ns_getaddrinfo, METH_FASTCALL|METH_KEYWORDS, ns_getaddrinfo__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-nsmodule_getaddrinfo_impl(PyObject *module, const char *node,
-                          PyObject *service, int family, int type, int proto,
-                          int flags);
+ns_getaddrinfo_impl(PyObject *module, const char *node, PyObject *service,
+                    int family, int type, int proto, int flags);
 
 static PyObject *
-nsmodule_getaddrinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+ns_getaddrinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"node", "service", "family", "type", "proto", "flags", NULL};
@@ -79,13 +78,13 @@ nsmodule_getaddrinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs, 
         goto exit;
     }
 skip_optional_pos:
-    return_value = nsmodule_getaddrinfo_impl(module, node, service, family, type, proto, flags);
+    return_value = ns_getaddrinfo_impl(module, node, service, family, type, proto, flags);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(nsmodule_getnameinfo__doc__,
+PyDoc_STRVAR(ns_getnameinfo__doc__,
 "getnameinfo($module, /, sockaddr, flags)\n"
 "--\n"
 "\n"
@@ -97,15 +96,14 @@ PyDoc_STRVAR(nsmodule_getnameinfo__doc__,
 "\n"
 "For more information about flags you can consult [getnameinfo(3)](https://man7.org/linux/man-pages/man3/getnameinfo.3.html)");
 
-#define NSMODULE_GETNAMEINFO_METHODDEF    \
-    {"getnameinfo", (PyCFunction)(void(*)(void))nsmodule_getnameinfo, METH_FASTCALL|METH_KEYWORDS, nsmodule_getnameinfo__doc__},
+#define NS_GETNAMEINFO_METHODDEF    \
+    {"getnameinfo", (PyCFunction)(void(*)(void))ns_getnameinfo, METH_FASTCALL|METH_KEYWORDS, ns_getnameinfo__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-nsmodule_getnameinfo_impl(PyObject *module, sockaddr_any *sockaddr,
-                          int flags);
+ns_getnameinfo_impl(PyObject *module, sockaddr_any *sockaddr, int flags);
 
 static PyObject *
-nsmodule_getnameinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+ns_getnameinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"sockaddr", "flags", NULL};
@@ -125,65 +123,246 @@ nsmodule_getnameinfo(PyObject *module, PyObject *const *args, Py_ssize_t nargs, 
     if (flags == -1 && PyErr_Occurred()) {
         goto exit;
     }
-    return_value = nsmodule_getnameinfo_impl(module, &sockaddr, flags);
+    return_value = ns_getnameinfo_impl(module, &sockaddr, flags);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(nsmodule_Stream_getsockname__doc__,
-"getsockname($self, /)\n"
-"--\n"
-"\n"
-"\n"
-"Return the socket\'s own address (For TCP only).");
-
-#define NSMODULE_STREAM_GETSOCKNAME_METHODDEF    \
-    {"getsockname", (PyCFunction)nsmodule_Stream_getsockname, METH_NOARGS, nsmodule_Stream_getsockname__doc__},
-
 Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_getsockname_impl(Stream *self);
+ns_TcpStream_impl(PyTypeObject *type, Py_ssize_t buffer_limit,
+                  Py_ssize_t chunk_min_size);
 
 static PyObject *
-nsmodule_Stream_getsockname(Stream *self, PyObject *Py_UNUSED(ignored))
+ns_TcpStream(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    return nsmodule_Stream_getsockname_impl(self);
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"buffer_limit", "chunk_min_size", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "TcpStream", 0};
+    PyObject *argsbuf[2];
+    PyObject * const *fastargs;
+    Py_ssize_t nargs = PyTuple_GET_SIZE(args);
+    Py_ssize_t noptargs = nargs + (kwargs ? PyDict_GET_SIZE(kwargs) : 0) - 0;
+    Py_ssize_t buffer_limit = -1;
+    Py_ssize_t chunk_min_size = -1;
+
+    fastargs = _PyArg_UnpackKeywords(_PyTuple_CAST(args)->ob_item, nargs, kwargs, NULL, &_parser, 0, 2, 0, argsbuf);
+    if (!fastargs) {
+        goto exit;
+    }
+    if (!noptargs) {
+        goto skip_optional_pos;
+    }
+    if (fastargs[0]) {
+        {
+            Py_ssize_t ival = -1;
+            PyObject *iobj = _PyNumber_Index(fastargs[0]);
+            if (iobj != NULL) {
+                ival = PyLong_AsSsize_t(iobj);
+                Py_DECREF(iobj);
+            }
+            if (ival == -1 && PyErr_Occurred()) {
+                goto exit;
+            }
+            buffer_limit = ival;
+        }
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
+    }
+    {
+        Py_ssize_t ival = -1;
+        PyObject *iobj = _PyNumber_Index(fastargs[1]);
+        if (iobj != NULL) {
+            ival = PyLong_AsSsize_t(iobj);
+            Py_DECREF(iobj);
+        }
+        if (ival == -1 && PyErr_Occurred()) {
+            goto exit;
+        }
+        chunk_min_size = ival;
+    }
+skip_optional_pos:
+    return_value = ns_TcpStream_impl(type, buffer_limit, chunk_min_size);
+
+exit:
+    return return_value;
 }
 
-PyDoc_STRVAR(nsmodule_Stream_getpeername__doc__,
+PyDoc_STRVAR(ns_TcpStream_set_tcp_nodelay__doc__,
+"set_tcp_nodelay($self, /, enabled)\n"
+"--\n"
+"\n"
+"");
+
+#define NS_TCPSTREAM_SET_TCP_NODELAY_METHODDEF    \
+    {"set_tcp_nodelay", (PyCFunction)(void(*)(void))ns_TcpStream_set_tcp_nodelay, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_set_tcp_nodelay__doc__},
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_set_tcp_nodelay_impl(Stream *self, int enabled);
+
+static PyObject *
+ns_TcpStream_set_tcp_nodelay(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"enabled", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "set_tcp_nodelay", 0};
+    PyObject *argsbuf[1];
+    int enabled;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    enabled = _PyLong_AsInt(args[0]);
+    if (enabled == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+    return_value = ns_TcpStream_set_tcp_nodelay_impl(self, enabled);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(ns_TcpStream_set_tcp_keepalive__doc__,
+"set_tcp_keepalive($self, /, delay)\n"
+"--\n"
+"\n"
+"");
+
+#define NS_TCPSTREAM_SET_TCP_KEEPALIVE_METHODDEF    \
+    {"set_tcp_keepalive", (PyCFunction)(void(*)(void))ns_TcpStream_set_tcp_keepalive, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_set_tcp_keepalive__doc__},
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_set_tcp_keepalive_impl(Stream *self, int delay);
+
+static PyObject *
+ns_TcpStream_set_tcp_keepalive(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"delay", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "set_tcp_keepalive", 0};
+    PyObject *argsbuf[1];
+    int delay;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    delay = _PyLong_AsInt(args[0]);
+    if (delay == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+    return_value = ns_TcpStream_set_tcp_keepalive_impl(self, delay);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(ns_TcpStream_connect__doc__,
+"connect($self, /, addr, sslctx=<unrepresentable>,\n"
+"        server_hostname=<unrepresentable>)\n"
+"--\n"
+"\n"
+"");
+
+#define NS_TCPSTREAM_CONNECT_METHODDEF    \
+    {"connect", (PyCFunction)(void(*)(void))ns_TcpStream_connect, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_connect__doc__},
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_connect_impl(Stream *self, sockaddr_any *addr, PyObject *sslctx,
+                          PyObject *server_hostname);
+
+static PyObject *
+ns_TcpStream_connect(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"addr", "sslctx", "server_hostname", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "connect", 0};
+    PyObject *argsbuf[3];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
+    sockaddr_any addr;
+    PyObject *sslctx = NULL;
+    PyObject *server_hostname = NULL;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 3, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!inet_addr_converter(args[0], &addr)) {
+        goto exit;
+    }
+    if (!noptargs) {
+        goto skip_optional_pos;
+    }
+    if (args[1]) {
+        if (!PyObject_TypeCheck(args[1], _CTX_get((PyObject *) self)->SSLContextType)) {
+            _PyArg_BadArgument("connect", "argument 'sslctx'", (_CTX_get((PyObject *) self)->SSLContextType)->tp_name, args[1]);
+            goto exit;
+        }
+        sslctx = args[1];
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
+    }
+    server_hostname = args[2];
+skip_optional_pos:
+    return_value = ns_TcpStream_connect_impl(self, &addr, sslctx, server_hostname);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(ns_TcpStream_getpeername__doc__,
 "getpeername($self, /)\n"
 "--\n"
 "\n"
-"\n"
 "Get the current address to which the handle is bound (For TCP only)");
 
-#define NSMODULE_STREAM_GETPEERNAME_METHODDEF    \
-    {"getpeername", (PyCFunction)nsmodule_Stream_getpeername, METH_NOARGS, nsmodule_Stream_getpeername__doc__},
+#define NS_TCPSTREAM_GETPEERNAME_METHODDEF    \
+    {"getpeername", (PyCFunction)ns_TcpStream_getpeername, METH_NOARGS, ns_TcpStream_getpeername__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_getpeername_impl(Stream *self);
+ns_TcpStream_getpeername_impl(Stream *self);
 
 static PyObject *
-nsmodule_Stream_getpeername(Stream *self, PyObject *Py_UNUSED(ignored))
+ns_TcpStream_getpeername(Stream *self, PyObject *Py_UNUSED(ignored))
 {
-    return nsmodule_Stream_getpeername_impl(self);
+    return ns_TcpStream_getpeername_impl(self);
 }
 
-PyDoc_STRVAR(nsmodule_Stream_write__doc__,
+PyDoc_STRVAR(ns_TcpStream_getsockname__doc__,
+"getsockname($self, /)\n"
+"--\n"
+"\n"
+"Return the socket\'s own address (For TCP only).");
+
+#define NS_TCPSTREAM_GETSOCKNAME_METHODDEF    \
+    {"getsockname", (PyCFunction)ns_TcpStream_getsockname, METH_NOARGS, ns_TcpStream_getsockname__doc__},
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_getsockname_impl(Stream *self);
+
+static PyObject *
+ns_TcpStream_getsockname(Stream *self, PyObject *Py_UNUSED(ignored))
+{
+    return ns_TcpStream_getsockname_impl(self);
+}
+
+PyDoc_STRVAR(ns_TcpStream_write__doc__,
 "write($self, /, data)\n"
 "--\n"
 "\n"
-"\n"
 "Write data to the stream.");
 
-#define NSMODULE_STREAM_WRITE_METHODDEF    \
-    {"write", (PyCFunction)(void(*)(void))nsmodule_Stream_write, METH_FASTCALL|METH_KEYWORDS, nsmodule_Stream_write__doc__},
+#define NS_TCPSTREAM_WRITE_METHODDEF    \
+    {"write", (PyCFunction)(void(*)(void))ns_TcpStream_write, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_write__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_write_impl(Stream *self, PyObject *data);
+ns_TcpStream_write_impl(Stream *self, PyObject *data);
 
 static PyObject *
-nsmodule_Stream_write(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+ns_TcpStream_write(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"data", NULL};
@@ -196,13 +375,13 @@ nsmodule_Stream_write(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyO
         goto exit;
     }
     data = args[0];
-    return_value = nsmodule_Stream_write_impl(self, data);
+    return_value = ns_TcpStream_write_impl(self, data);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(nsmodule_Stream_read__doc__,
+PyDoc_STRVAR(ns_TcpStream_read__doc__,
 "read($self, /, n=-1)\n"
 "--\n"
 "\n"
@@ -212,14 +391,14 @@ PyDoc_STRVAR(nsmodule_Stream_read__doc__,
 "\n"
 "If EOF was received and the internal buffer is empty, return an empty bytes object.");
 
-#define NSMODULE_STREAM_READ_METHODDEF    \
-    {"read", (PyCFunction)(void(*)(void))nsmodule_Stream_read, METH_FASTCALL|METH_KEYWORDS, nsmodule_Stream_read__doc__},
+#define NS_TCPSTREAM_READ_METHODDEF    \
+    {"read", (PyCFunction)(void(*)(void))ns_TcpStream_read, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_read__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_read_impl(Stream *self, Py_ssize_t n);
+ns_TcpStream_read_impl(Stream *self, Py_ssize_t n);
 
 static PyObject *
-nsmodule_Stream_read(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+ns_TcpStream_read(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"n", NULL};
@@ -239,13 +418,13 @@ nsmodule_Stream_read(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyOb
         goto exit;
     }
 skip_optional_pos:
-    return_value = nsmodule_Stream_read_impl(self, n);
+    return_value = ns_TcpStream_read_impl(self, n);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(nsmodule_Stream_readexactly__doc__,
+PyDoc_STRVAR(ns_TcpStream_readexactly__doc__,
 "readexactly($self, /, n)\n"
 "--\n"
 "\n"
@@ -256,14 +435,14 @@ PyDoc_STRVAR(nsmodule_Stream_readexactly__doc__,
 "\n"
 "Returned value is not limited by the configured stream limit, if hard limit is not set.");
 
-#define NSMODULE_STREAM_READEXACTLY_METHODDEF    \
-    {"readexactly", (PyCFunction)(void(*)(void))nsmodule_Stream_readexactly, METH_FASTCALL|METH_KEYWORDS, nsmodule_Stream_readexactly__doc__},
+#define NS_TCPSTREAM_READEXACTLY_METHODDEF    \
+    {"readexactly", (PyCFunction)(void(*)(void))ns_TcpStream_readexactly, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_readexactly__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_readexactly_impl(Stream *self, Py_ssize_t n);
+ns_TcpStream_readexactly_impl(Stream *self, Py_ssize_t n);
 
 static PyObject *
-nsmodule_Stream_readexactly(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+ns_TcpStream_readexactly(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"n", NULL};
@@ -278,13 +457,13 @@ nsmodule_Stream_readexactly(Stream *self, PyObject *const *args, Py_ssize_t narg
     if (!ssize_t_converter(args[0], &n)) {
         goto exit;
     }
-    return_value = nsmodule_Stream_readexactly_impl(self, n);
+    return_value = ns_TcpStream_readexactly_impl(self, n);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(nsmodule_Stream_readuntil__doc__,
+PyDoc_STRVAR(ns_TcpStream_readuntil__doc__,
 "readuntil($self, /, c)\n"
 "--\n"
 "\n"
@@ -298,14 +477,14 @@ PyDoc_STRVAR(nsmodule_Stream_readuntil__doc__,
 "\n"
 "Returned value is not limited by the configured stream limit, if hard limit is not set.");
 
-#define NSMODULE_STREAM_READUNTIL_METHODDEF    \
-    {"readuntil", (PyCFunction)(void(*)(void))nsmodule_Stream_readuntil, METH_FASTCALL|METH_KEYWORDS, nsmodule_Stream_readuntil__doc__},
+#define NS_TCPSTREAM_READUNTIL_METHODDEF    \
+    {"readuntil", (PyCFunction)(void(*)(void))ns_TcpStream_readuntil, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_readuntil__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_readuntil_impl(Stream *self, char c);
+ns_TcpStream_readuntil_impl(Stream *self, char c);
 
 static PyObject *
-nsmodule_Stream_readuntil(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+ns_TcpStream_readuntil(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"c", NULL};
@@ -327,56 +506,45 @@ nsmodule_Stream_readuntil(Stream *self, PyObject *const *args, Py_ssize_t nargs,
         _PyArg_BadArgument("readuntil", "argument 'c'", "a byte string of length 1", args[0]);
         goto exit;
     }
-    return_value = nsmodule_Stream_readuntil_impl(self, c);
+    return_value = ns_TcpStream_readuntil_impl(self, c);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(nsmodule_Stream_get_error__doc__,
-"get_error($self, /)\n"
+PyDoc_STRVAR(ns_TcpStream_shutdown__doc__,
+"shutdown($self, /)\n"
 "--\n"
 "\n"
-"Get the current error code (EOF is not error, so normally should be zero).");
+"");
 
-#define NSMODULE_STREAM_GET_ERROR_METHODDEF    \
-    {"get_error", (PyCFunction)nsmodule_Stream_get_error, METH_NOARGS, nsmodule_Stream_get_error__doc__},
-
-Py_LOCAL_INLINE(int)
-nsmodule_Stream_get_error_impl(Stream *self);
-
-static PyObject *
-nsmodule_Stream_get_error(Stream *self, PyObject *Py_UNUSED(ignored))
-{
-    PyObject *return_value = NULL;
-    int _return_value;
-
-    _return_value = nsmodule_Stream_get_error_impl(self);
-    if ((_return_value == -1) && PyErr_Occurred()) {
-        goto exit;
-    }
-    return_value = PyLong_FromLong((long)_return_value);
-
-exit:
-    return return_value;
-}
-
-PyDoc_STRVAR(nsmodule_Stream_at_eof__doc__,
-"at_eof($self, /)\n"
-"--\n"
-"\n"
-"\n"
-"True if EOF is reached.");
-
-#define NSMODULE_STREAM_AT_EOF_METHODDEF    \
-    {"at_eof", (PyCFunction)nsmodule_Stream_at_eof, METH_NOARGS, nsmodule_Stream_at_eof__doc__},
+#define NS_TCPSTREAM_SHUTDOWN_METHODDEF    \
+    {"shutdown", (PyCFunction)ns_TcpStream_shutdown, METH_NOARGS, ns_TcpStream_shutdown__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-nsmodule_Stream_at_eof_impl(Stream *self);
+ns_TcpStream_shutdown_impl(Stream *self);
 
 static PyObject *
-nsmodule_Stream_at_eof(Stream *self, PyObject *Py_UNUSED(ignored))
+ns_TcpStream_shutdown(Stream *self, PyObject *Py_UNUSED(ignored))
 {
-    return nsmodule_Stream_at_eof_impl(self);
+    return ns_TcpStream_shutdown_impl(self);
 }
-/*[clinic end generated code: output=bf32bac5e42ba411 input=a9049054013a1b77]*/
+
+PyDoc_STRVAR(ns_TcpStream_close__doc__,
+"close($self, /)\n"
+"--\n"
+"\n"
+"");
+
+#define NS_TCPSTREAM_CLOSE_METHODDEF    \
+    {"close", (PyCFunction)ns_TcpStream_close, METH_NOARGS, ns_TcpStream_close__doc__},
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpStream_close_impl(Stream *self);
+
+static PyObject *
+ns_TcpStream_close(Stream *self, PyObject *Py_UNUSED(ignored))
+{
+    return ns_TcpStream_close_impl(self);
+}
+/*[clinic end generated code: output=27f70a9fee4436b0 input=a9049054013a1b77]*/
