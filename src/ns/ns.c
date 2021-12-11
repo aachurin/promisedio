@@ -34,6 +34,9 @@ typedef struct {
     PyObject *read_buffer_size;
     PyTypeObject *SSLContextType;
     PyTypeObject *TcpStream;
+    PyTypeObject *PipeStream;
+//    PyTypeObject *TcpServer;
+//    PyTypeObject *PipeServer;
     Freelist_MEM_HEAD(ReadBuffer)
     Capsule_MOUNT(PROMISE_API)
     Capsule_MOUNT(LOOP_API)
@@ -415,7 +418,6 @@ streambuffer_clear(streambuffer *buffer)
  *
  */
 
-#define STATE_INIT      0x0
 #define STATE_CONNECT   0x1
 #define STATE_READY     0x2
 #define STATE_SHUTDOWN  0x3
@@ -521,7 +523,7 @@ stream_start_reading(StreamHandle *handle)
         LOG("(%p)", handle);
         handle->state.reading = 1;
         BEGIN_ALLOW_THREADS
-        uv_read_start(&handle->base, stream_alloc_callback, stream_read_callback);
+            uv_read_start(&handle->base, stream_alloc_callback, stream_read_callback);
         END_ALLOW_THREADS
     }
 }
@@ -533,7 +535,7 @@ stream_stop_reading(StreamHandle *handle)
         LOG("(%p)", handle);
         handle->state.reading = 0;
         BEGIN_ALLOW_THREADS
-        uv_read_stop(&handle->base);
+            uv_read_stop(&handle->base);
         END_ALLOW_THREADS
     }
 }
@@ -587,8 +589,8 @@ stream_is_write_locked(StreamHandle *handle)
 {
     return (
         handle->state.writing ||
-        handle->state.sslwriting ||
-        handle->state.sslreading
+            handle->state.sslwriting ||
+            handle->state.sslreading
     );
 }
 
@@ -806,9 +808,9 @@ Py_LOCAL_INLINE(int)
 stream_connected(StreamHandle *handle, Promise *promise)
 {
     _CTX_setstored(handle);
-    Promise_Resolve(promise, Py_None);
+    Promise_Resolve(promise, (PyObject *) handle->wrapper);
     stream_set_state(handle, STATE_READY);
-    stream_release(handle);
+    Py_DECREF(handle->wrapper);
     return OK;
 }
 
@@ -1265,45 +1267,47 @@ stream_read(StreamHandle *handle, int op, Py_ssize_t n, char c)
 }
 
 Py_LOCAL_INLINE(int)
-sslproto_init_stream(StreamHandle *handle, PyObject *sslcontext, const char *server_hostname, int server_socket)
+stream_handle_init(StreamHandle *handle, PyObject *sslcontext, Py_ssize_t limit, Py_ssize_t chunk_size,
+                   const char *server_hostname, int server_socket)
 {
     _CTX_setstored(handle);
-    PyObject *inbio = NULL, *outbio = NULL;
-    inbio = PyObject_CallNoArgs(S(MemoryBIO));
-    if (!inbio)
-        goto fail;
-    outbio = PyObject_CallNoArgs(S(MemoryBIO));
-    if (!outbio)
-        goto fail;
-    _Py_IDENTIFIER(_wrap_bio);
-    PyObject *ssl = _PyObject_CallMethodId(sslcontext, &PyId__wrap_bio, "OOis", inbio, outbio, server_socket,
-                                           server_hostname);
-    if (!ssl)
-        goto fail;
-    handle->sslobj = ssl;
-    handle->inbio = inbio;
-    handle->outbio = outbio;
-    return OK;
-
-fail:
-    Py_XDECREF(inbio);
-    Py_XDECREF(outbio);
-    return ERROR;
-}
-
-Py_LOCAL_INLINE(void)
-stream_handle_init(StreamHandle *handle, Py_ssize_t buffer_limit, Py_ssize_t chunk_min_size)
-{
-    Py_ssize_t read_limit = buffer_limit <= 0 ? 65536 : buffer_limit;
+    Py_ssize_t read_limit = limit <= 0 ? 65536 : limit;
     handle->wrapper = NULL;
     handle->state = (streamstate) {0};
     handle->error = NULL;
     handle->close_promise = NULL;
     Chain_INIT(&handle->read_backlog);
     Chain_INIT(&handle->write_backlog);
-    streambuffer_init(&handle->incomingbuffer, chunk_min_size);
+    streambuffer_init(&handle->incomingbuffer, chunk_size);
     handle->read_limit = read_limit;
     handle->sslobj = NULL;
+
+    if (sslcontext) {
+        PyObject *inbio = NULL, *outbio = NULL;
+        inbio = PyObject_CallNoArgs(S(MemoryBIO));
+        if (!inbio)
+            goto fail;
+        outbio = PyObject_CallNoArgs(S(MemoryBIO));
+        if (!outbio)
+            goto fail;
+        _Py_IDENTIFIER(_wrap_bio);
+        if (server_socket) {
+            handle->sslobj = _PyObject_CallMethodId(sslcontext, &PyId__wrap_bio, "OOi", inbio, outbio, 1);
+        } else {
+            handle->sslobj = _PyObject_CallMethodId(sslcontext, &PyId__wrap_bio, "OOis", inbio, outbio, 0, server_hostname);
+        }
+        if (!handle->sslobj)
+            goto fail;
+        handle->inbio = inbio;
+        handle->outbio = outbio;
+        return OK;
+
+    fail:
+        Py_XDECREF(inbio);
+        Py_XDECREF(outbio);
+        return ERROR;
+    }
+    return OK;
 }
 
 static void
@@ -1347,7 +1351,7 @@ stream_connect_callback(uv_connect_t *req, int status)
         _CTX_setstored(handle);
         Promise *promise = Request_PROMISE(req);
         if (status < 0) {
-            stream_release(handle);
+            Py_CLEAR(handle->wrapper);
             Promise_RejectUVError(promise, PyExc_OSError, status);
         } else {
             stream_start_reading(handle);
@@ -1384,7 +1388,7 @@ TcpStream_GetSockName(Stream *stream)
     }
     int ret;
     BEGIN_ALLOW_THREADS
-    ret = uv_tcp_getsockname((uv_tcp_t *) &stream->handle->base, (struct sockaddr *) &sa, &sa_len);
+        ret = uv_tcp_getsockname((uv_tcp_t *) &stream->handle->base, (struct sockaddr *) &sa, &sa_len);
     END_ALLOW_THREADS
     if (ret < 0) {
         Py_SetUVError(PyExc_OSError, ret);
@@ -1408,7 +1412,7 @@ TcpStream_GetPeerName(Stream *stream)
     }
     int ret;
     BEGIN_ALLOW_THREADS
-    ret = uv_tcp_getpeername((uv_tcp_t *) &stream->handle->base, (struct sockaddr *) &sa, &sa_len);
+        ret = uv_tcp_getpeername((uv_tcp_t *) &stream->handle->base, (struct sockaddr *) &sa, &sa_len);
     END_ALLOW_THREADS
     if (ret < 0) {
         Py_SetUVError(PyExc_OSError, ret);
@@ -1423,6 +1427,11 @@ TcpStream_SetTcpNoDelay(Stream *stream, int enabled)
 {
     if (stream_check_alive(stream))
         return ERROR;
+
+    if (stream->handle->base.type != UV_TCP) {
+        PyErr_SetString(PyExc_TypeError, "Can be used with TCP handle only");
+        return ERROR;
+    }
 
     int err = uv_tcp_nodelay((uv_tcp_t *) &stream->handle->base, enabled > 0);
     if (err) {
@@ -1439,6 +1448,11 @@ TcpStream_SetTcpKeepAlive(Stream *stream, int delay)
     if (stream_check_alive(stream))
         return ERROR;
 
+    if (stream->handle->base.type != UV_TCP) {
+        PyErr_SetString(PyExc_TypeError, "Can be used with TCP handle only");
+        return ERROR;
+    }
+
     int err = uv_tcp_keepalive((uv_tcp_t *) &stream->handle->base, delay > 0, delay);
     if (err) {
         Py_SetUVError(PyExc_OSError, err);
@@ -1446,62 +1460,6 @@ TcpStream_SetTcpKeepAlive(Stream *stream, int delay)
     }
 
     return OK;
-}
-
-Py_LOCAL_INLINE(int)
-stream_check_can_connect(Stream *stream)
-{
-    if (stream_check_alive(stream))
-        return ERROR;
-
-    switch (stream_get_state(stream->handle)) {
-        case STATE_INIT:
-            return OK;
-        case STATE_CONNECT:
-            Py_SetUVError(PyExc_OSError, UV_EALREADY);
-            return ERROR;
-        case STATE_READY:
-        case STATE_ERROR:
-            Py_SetUVError(PyExc_OSError, UV_EISCONN);
-            return ERROR;
-        default:
-            Py_SetUVError(PyExc_OSError, UV_EBADF);
-            return ERROR;
-    }
-}
-
-CAPSULE_API(NS_API, Promise *)
-TcpStream_Connect(Stream *stream, const struct sockaddr *addr, PyObject *sslctx, const char *server_name)
-{
-    if (stream_check_can_connect(stream))
-        return NULL;
-
-    _CTX_set((PyObject *) stream);
-    Request_SETUP(uv_connect_t, req, promise);
-
-    if (!req)
-        return NULL;
-
-    StreamHandle *handle = stream->handle;
-
-    if (sslctx) {
-        if (sslproto_init_stream(handle, sslctx, server_name, 0)) {
-        cleanup:
-            Request_Close(req);
-            Py_DECREF(promise);
-            return NULL;
-        }
-    }
-
-    stream_set_state(handle, STATE_CONNECT);
-    UV_CALL(uv_tcp_connect, req, (uv_tcp_t *) &handle->base, addr, stream_connect_callback) {
-        // never try again after bad attempt
-        Py_SetUVError(PyExc_OSError, uv_errno);
-        goto cleanup;
-    }
-
-    stream_acquire(handle);
-    return promise;
 }
 
 CAPSULE_API(NS_API, Promise *)
@@ -1524,31 +1482,10 @@ Stream_Close(Stream *stream)
     return (Promise *) Py_NewRef(promise);
 }
 
-Py_LOCAL_INLINE(int)
-stream_check_connected(Stream *stream)
-{
-    if (stream_check_alive(stream))
-        return ERROR;
-
-    switch (stream_get_state(stream->handle)) {
-        case STATE_READY:
-        case STATE_ERROR:
-        case STATE_SHUTDOWN:
-            return OK;
-        case STATE_INIT:
-        case STATE_CONNECT:
-            Py_SetUVError(PyExc_OSError, UV_ENOTCONN);
-            return ERROR;
-        default:
-            Py_SetUVError(PyExc_OSError, UV_EBADF);
-            return ERROR;
-    }
-}
-
 CAPSULE_API(NS_API, Promise *)
 Stream_Shutdown(Stream *stream)
 {
-    if (stream_check_connected(stream))
+    if (stream_check_alive(stream))
         return NULL;
 
     StreamHandle *handle = stream->handle;
@@ -1569,7 +1506,7 @@ Stream_Shutdown(Stream *stream)
 CAPSULE_API(NS_API, Promise *)
 Stream_Write(Stream *stream, PyObject *data)
 {
-    if (stream_check_connected(stream))
+    if (stream_check_alive(stream))
         return NULL;
 
     if (!PyBytes_Check(data)) {
@@ -1596,7 +1533,7 @@ Stream_Write(Stream *stream, PyObject *data)
 CAPSULE_API(NS_API, Promise *)
 Stream_Read(Stream *stream, Py_ssize_t n)
 {
-    if (stream_check_connected(stream))
+    if (stream_check_alive(stream))
         return NULL;
     if (n == 0) {
         PyErr_SetString(PyExc_ValueError, "n must be greater than zero");
@@ -1608,7 +1545,7 @@ Stream_Read(Stream *stream, Py_ssize_t n)
 CAPSULE_API(NS_API, Promise *)
 Stream_ReadExactly(Stream *stream, Py_ssize_t n)
 {
-    if (stream_check_connected(stream))
+    if (stream_check_alive(stream))
         return NULL;
     if (n <= 0) {
         PyErr_SetString(PyExc_ValueError, "n must be greater than zero");
@@ -1620,9 +1557,84 @@ Stream_ReadExactly(Stream *stream, Py_ssize_t n)
 CAPSULE_API(NS_API, Promise *)
 Stream_ReadUntil(Stream *stream, char c)
 {
-    if (stream_check_connected(stream))
+    if (stream_check_alive(stream))
         return NULL;
     return stream_read(stream->handle, STREAM_READ_UNTIL, 0, c);
+}
+
+CAPSULE_API(NS_API, Promise *)
+Stream_OpenConnection(_ctx_var, const struct sockaddr *remote_addr, const struct sockaddr *local_addr,
+                      Py_ssize_t limit, Py_ssize_t chunk_size, int nodelay, int keepalive,
+                      PyObject *ssl, const char *server_hostname)
+{
+    Stream *self = (Stream *) Py_New(S(TcpStream));
+    if (!self)
+        return NULL;
+
+    PyTrack_MarkAllocated(self);
+
+    self->handle = NULL;
+    StreamHandle *handle = (StreamHandle *) Handle_New(TcpHandle, stream_handle_finalizer);
+
+    if (!handle) {
+    cleanup_self:
+        Py_DECREF(self);
+        return NULL;
+    }
+
+    if (stream_handle_init(handle, ssl, limit, chunk_size, server_hostname, 0)) {
+    cleanup_handle:
+        if (handle)
+            Handle_Free(handle);
+        goto cleanup_self;
+    }
+
+    Loop_SETUP(loop);
+    Request_SETUP(uv_connect_t, conn_req, promise);
+
+    if (!conn_req) {
+    cleanup_req:
+        Request_Close(conn_req);
+        Py_DECREF(promise);
+        goto cleanup_handle;
+    }
+
+    {
+        UV_CALL(uv_tcp_init, loop, (uv_tcp_t *) &handle->base) {
+            Py_SetUVError(PyExc_OSError, uv_errno);
+            goto cleanup_req;
+        }
+    }
+
+    handle->wrapper = self;
+    self->handle = handle;
+    stream_set_state(handle, STATE_CONNECT);
+
+    if (nodelay >= 0) {
+        uv_tcp_nodelay((uv_tcp_t *) &handle->base, nodelay > 0);
+    }
+
+    if (keepalive >= 0) {
+        uv_tcp_keepalive((uv_tcp_t *) &handle->base, keepalive > 0, keepalive);
+    }
+
+    if (local_addr) {
+        UV_CALL(uv_tcp_bind, (uv_tcp_t *) &handle->base, local_addr, 0) {
+            handle = NULL; // handle closed in stream destructor
+            Py_SetUVError(PyExc_OSError, uv_errno);
+            goto cleanup_req;
+        }
+    }
+
+    {
+        UV_CALL(uv_tcp_connect, conn_req, (uv_tcp_t *) &handle->base, remote_addr, stream_connect_callback) {
+            handle = NULL; // handle closed in stream destructor
+            Py_SetUVError(PyExc_OSError, uv_errno);
+            goto cleanup_req;
+        }
+    }
+
+    return promise;
 }
 
 /*[clinic input]
@@ -1631,47 +1643,44 @@ class ns.TcpStream "Stream *" "S(TcpStream)"
 /*[clinic end generated code: output=da39a3ee5e6b4b0d input=9335b838fe0b483f]*/
 
 /*[clinic input]
-@classmethod
-ns.TcpStream.__new__
-    buffer_limit: Py_ssize_t = -1
-    chunk_min_size: Py_ssize_t = -1
+ns.open_connection
+    remote_addr: inet_addr
+    *
+    local_addr: object = NULL
+    limit: Py_ssize_t = -1
+    chunk_size: Py_ssize_t = -1
+    nodelay: int = -1
+    keepalive: int = -1
+    ssl: object(subclass_of="_CTX_getmodule(module)->SSLContextType") = NULL
+    server_hostname: object = NULL
+
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-ns_TcpStream_impl(PyTypeObject *type, Py_ssize_t buffer_limit,
-                  Py_ssize_t chunk_min_size)
-/*[clinic end generated code: output=6bbcca107fa70cd4 input=dc5e7b410933fd2d]*/
+ns_open_connection_impl(PyObject *module, sockaddr_any *remote_addr,
+                        PyObject *local_addr, Py_ssize_t limit,
+                        Py_ssize_t chunk_size, int nodelay, int keepalive,
+                        PyObject *ssl, PyObject *server_hostname)
+/*[clinic end generated code: output=f7062a6fee7a41d6 input=0d5e5d401e54fd8e]*/
 {
-    _CTX_settype(type);
-    Loop_SETUP(loop);
-
-    Stream *self = (Stream *) Py_New(type);
-    if (!self)
-        return NULL;
-
-    TcpHandle *handle = Handle_New(TcpHandle, stream_handle_finalizer);
-    if (!handle) {
-    cleanup:
-        Py_DECREF(self);
-        return NULL;
+    _CTX_setmodule(module);
+    sockaddr_any local_addr_s;
+    sockaddr_any *local_addr_ptr = NULL;
+    if (local_addr) {
+        if (!inet_addr_converter(local_addr, &local_addr_s))
+            return NULL;
+        local_addr_ptr = &local_addr_s;
     }
-
-    int err;
-    BEGIN_ALLOW_THREADS
-    err = uv_tcp_init(loop, &handle->base);
-    END_ALLOW_THREADS
-    if (err) {
-        Py_SetUVError(PyExc_OSError, err);
-        Handle_Free(handle);
-        goto cleanup;
+    char *hostname = NULL;
+    if (server_hostname) {
+        if (!PyArg_Parse(server_hostname, "es", "ascii", &hostname))
+            return NULL;
     }
-
-    stream_handle_init((StreamHandle *) handle, buffer_limit, chunk_min_size);
-    PyTrack_MarkAllocated(self);
-    handle->wrapper = self;
-    self->handle = (StreamHandle *) handle;
-
-    return (PyObject *) self;
+    Promise *ret = Stream_OpenConnection(_ctx, (struct sockaddr *) remote_addr, (struct sockaddr *) local_addr_ptr,
+                                         limit, chunk_size, nodelay, keepalive, ssl, hostname);
+    if (hostname)
+        Py_Free(hostname);
+    return (PyObject *) ret;
 }
 
 /*[clinic input]
@@ -1704,30 +1713,6 @@ ns_TcpStream_set_tcp_keepalive_impl(Stream *self, int delay)
         return NULL;
     }
     Py_RETURN_NONE;
-}
-
-/*[clinic input]
-ns.TcpStream.connect
-    addr: inet_addr
-    sslctx: object(subclass_of="_CTX_get((PyObject *) self)->SSLContextType") = NULL
-    server_hostname: object = NULL
-
-[clinic start generated code]*/
-
-Py_LOCAL_INLINE(PyObject *)
-ns_TcpStream_connect_impl(Stream *self, sockaddr_any *addr, PyObject *sslctx,
-                          PyObject *server_hostname)
-/*[clinic end generated code: output=938a3cc233c0a61e input=65e9a0ee0e20e244]*/
-{
-    char *hostname = NULL;
-    if (server_hostname) {
-        if (!PyArg_Parse(server_hostname, "es", "ascii", &hostname))
-            return NULL;
-    }
-    Promise *ret = TcpStream_Connect(self, (struct sockaddr *) addr, sslctx, hostname);
-    if (hostname)
-        Py_Free(hostname);
-    return (PyObject *) ret;
 }
 
 /*[clinic input]
@@ -1833,7 +1818,6 @@ ns_TcpStream_close_impl(Stream *self)
 static PyMethodDef tcpstream_methods[] = {
     NS_TCPSTREAM_GETSOCKNAME_METHODDEF
     NS_TCPSTREAM_GETPEERNAME_METHODDEF
-    NS_TCPSTREAM_CONNECT_METHODDEF
     NS_TCPSTREAM_SET_TCP_KEEPALIVE_METHODDEF
     NS_TCPSTREAM_SET_TCP_NODELAY_METHODDEF
     NS_TCPSTREAM_WRITE_METHODDEF
@@ -1846,7 +1830,6 @@ static PyMethodDef tcpstream_methods[] = {
 };
 
 static PyType_Slot tcpstream_slots[] = {
-    {Py_tp_new, ns_TcpStream},
     {Py_tp_methods, tcpstream_methods},
     {Py_tp_repr, stream_repr},
     {Py_tp_dealloc, stream_dealloc},
@@ -1859,6 +1842,287 @@ static PyType_Spec tcpstream_spec = {
     0,
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE,
     tcpstream_slots
+};
+
+CAPSULE_API(NS_API, Promise *)
+Stream_OpenUnixConnection(_ctx_var, const char *path, Py_ssize_t limit, Py_ssize_t chunk_size,
+                          PyObject *ssl, const char *server_hostname)
+{
+    Stream *self = (Stream *) Py_New(S(PipeStream));
+    if (!self)
+        return NULL;
+
+    PyTrack_MarkAllocated(self);
+
+    self->handle = NULL;
+    StreamHandle *handle = (StreamHandle *) Handle_New(PipeHandle, stream_handle_finalizer);
+
+    if (!handle) {
+    cleanup_self:
+        Py_DECREF(self);
+        return NULL;
+    }
+
+    if (stream_handle_init(handle, ssl, limit, chunk_size, server_hostname, 0)) {
+    cleanup_handle:
+        Handle_Free(handle);
+        goto cleanup_self;
+    }
+
+    Loop_SETUP(loop);
+    Request_SETUP(uv_connect_t, conn_req, promise);
+
+    if (!conn_req) {
+    cleanup_req:
+        Request_Close(conn_req);
+        Py_DECREF(promise);
+        goto cleanup_handle;
+    }
+
+    UV_CALL(uv_pipe_init, loop, (uv_pipe_t *) &handle->base, 0) {
+        Py_SetUVError(PyExc_OSError, uv_errno);
+        goto cleanup_req;
+    }
+
+    handle->wrapper = self;
+    self->handle = handle;
+    stream_set_state(handle, STATE_CONNECT);
+
+    BEGIN_ALLOW_THREADS
+        uv_pipe_connect(conn_req, (uv_pipe_t *) &handle->base, path, stream_connect_callback);
+    END_ALLOW_THREADS
+
+    return promise;
+}
+
+CAPSULE_API(NS_API, PyObject *)
+PipeStream_GetPeerName(Stream *stream)
+{
+    if (stream_check_alive(stream))
+        return NULL;
+
+    if (stream->handle->base.type != UV_NAMED_PIPE) {
+        PyErr_SetString(PyExc_TypeError, "Can be used with Pipe handle only");
+        return NULL;
+    }
+
+    char mock[1];
+    size_t size = 0;
+    {
+        UV_CALL(uv_pipe_getpeername, (uv_pipe_t *) &stream->handle->base, mock, &size) {
+            Py_SetUVError(PyExc_OSError, uv_errno);
+            return NULL;
+        }
+    }
+
+    PyObject *result = PyBytes_FromStringAndSize(NULL, size);
+    if (!result)
+        return NULL;
+
+    {
+        UV_CALL(uv_pipe_getpeername, (uv_pipe_t *) &stream->handle->base, PyBytes_AS_STRING(result), &size) {
+            Py_DECREF(result);
+            Py_SetUVError(PyExc_OSError, uv_errno);
+            return NULL;
+        }
+    }
+
+    return result;
+}
+
+CAPSULE_API(NS_API, PyObject *)
+PipeStream_GetSockName(Stream *stream)
+{
+    if (stream_check_alive(stream))
+        return NULL;
+
+    if (stream->handle->base.type != UV_NAMED_PIPE) {
+        PyErr_SetString(PyExc_TypeError, "Can be used with Pipe handle only");
+        return NULL;
+    }
+    char mock[1];
+    size_t size = 0;
+    {
+        UV_CALL(uv_pipe_getsockname, (uv_pipe_t *) &stream->handle->base, mock, &size) {
+            Py_SetUVError(PyExc_OSError, uv_errno);
+            return NULL;
+        }
+    }
+
+    PyObject *result = PyBytes_FromStringAndSize(NULL, size);
+    if (!result)
+        return NULL;
+
+    {
+        UV_CALL(uv_pipe_getsockname, (uv_pipe_t *) &stream->handle->base, PyBytes_AS_STRING(result), &size) {
+            Py_DECREF(result);
+            Py_SetUVError(PyExc_OSError, uv_errno);
+            return NULL;
+        }
+    }
+
+    return result;
+}
+
+/*[clinic input]
+class ns.PipeStream "Stream *" "S(PipeStream)"
+[clinic start generated code]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=222d37785f31e241]*/
+
+/*[clinic input]
+ns.open_unix_connection
+    path: Path
+    *
+    limit: Py_ssize_t = -1
+    chunk_size: Py_ssize_t = -1
+    ssl: object(subclass_of="_CTX_getmodule(module)->SSLContextType") = NULL
+    server_hostname: object = NULL
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_open_unix_connection_impl(PyObject *module, PyObject *path,
+                             Py_ssize_t limit, Py_ssize_t chunk_size,
+                             PyObject *ssl, PyObject *server_hostname)
+/*[clinic end generated code: output=638816ef396382f2 input=42cbe92235bbe38a]*/
+{
+    _CTX_setmodule(module);
+    char *hostname = NULL;
+    if (server_hostname) {
+        if (!PyArg_Parse(server_hostname, "es", "ascii", &hostname))
+            return NULL;
+    }
+    Promise *ret = Stream_OpenUnixConnection(_ctx, PyBytes_AS_STRING(path), limit, chunk_size, ssl, hostname);
+    if (hostname)
+        Py_Free(hostname);
+    return (PyObject *) ret;
+}
+
+/*[clinic input]
+ns.PipeStream.getpeername
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_PipeStream_getpeername_impl(Stream *self)
+/*[clinic end generated code: output=48dd39e769f4f297 input=9155813a1ca58fb7]*/
+{
+    return PipeStream_GetPeerName(self);
+}
+
+/*[clinic input]
+ns.PipeStream.getsockname
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_PipeStream_getsockname_impl(Stream *self)
+/*[clinic end generated code: output=652709e6e439d166 input=75b6ff408b4f3466]*/
+{
+    return PipeStream_GetSockName(self);
+}
+
+/*[clinic input]
+ns.PipeStream.write
+    data: object
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_PipeStream_write_impl(Stream *self, PyObject *data)
+/*[clinic end generated code: output=30f61bfcc9b41fd5 input=aabcf4e53d4cdc38]*/
+{
+    return (PyObject *) Stream_Write(self, data);
+}
+
+/*[clinic input]
+ns.PipeStream.read
+    n: ssize_t = -1
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_PipeStream_read_impl(Stream *self, Py_ssize_t n)
+/*[clinic end generated code: output=c65c6945dab2d8ae input=8ad9596803e43cb3]*/
+{
+    return (PyObject *) Stream_Read(self, n);
+}
+
+/*[clinic input]
+ns.PipeStream.readexactly
+    n: ssize_t
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_PipeStream_readexactly_impl(Stream *self, Py_ssize_t n)
+/*[clinic end generated code: output=31eca4488c27269a input=fb7a7013386637bd]*/
+{
+    return (PyObject *) Stream_ReadExactly(self, n);
+}
+
+/*[clinic input]
+ns.PipeStream.readuntil
+    c: char
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_PipeStream_readuntil_impl(Stream *self, char c)
+/*[clinic end generated code: output=190a548932ab703b input=316eaec2c6f26831]*/
+{
+    return (PyObject *) Stream_ReadUntil(self, c);
+}
+
+/*[clinic input]
+ns.PipeStream.shutdown
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_PipeStream_shutdown_impl(Stream *self)
+/*[clinic end generated code: output=374baa799c2fb0f6 input=71dd6434d63f8d49]*/
+{
+    return (PyObject *) Stream_Shutdown(self);
+}
+
+/*[clinic input]
+ns.PipeStream.close
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+ns_PipeStream_close_impl(Stream *self)
+/*[clinic end generated code: output=3d06443c42081672 input=421e5e764a12b92f]*/
+{
+    return (PyObject *) Stream_Close(self);
+}
+
+static PyMethodDef pipestream_methods[] = {
+    NS_PIPESTREAM_GETSOCKNAME_METHODDEF
+    NS_PIPESTREAM_GETPEERNAME_METHODDEF
+    NS_PIPESTREAM_WRITE_METHODDEF
+    NS_PIPESTREAM_READ_METHODDEF
+    NS_PIPESTREAM_READEXACTLY_METHODDEF
+    NS_PIPESTREAM_READUNTIL_METHODDEF
+    NS_PIPESTREAM_SHUTDOWN_METHODDEF
+    NS_PIPESTREAM_CLOSE_METHODDEF
+    { NULL }
+};
+
+static PyType_Slot pipestream_slots[] = {
+    {Py_tp_methods, pipestream_methods},
+    {Py_tp_repr, stream_repr},
+    {Py_tp_dealloc, stream_dealloc},
+    {0, 0},
+};
+
+static PyType_Spec pipestream_spec = {
+    "promisedio.ns.PipeStream",
+    sizeof(Stream),
+    0,
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE,
+    pipestream_slots
 };
 
 static int
@@ -1888,6 +2152,15 @@ nsmodule_init_types(PyObject *module)
     S(TcpStream) = (PyTypeObject *) PyType_FromModuleAndSpec(module, &tcpstream_spec, NULL);
     if (S(TcpStream) == NULL)
         return -1;
+    S(PipeStream) = (PyTypeObject *) PyType_FromModuleAndSpec(module, &pipestream_spec, NULL);
+    if (S(PipeStream) == NULL)
+        return -1;
+//    S(TcpServer) = (PyTypeObject *) PyType_FromModuleAndSpec(module, &tcpserver_spec, NULL);
+//    if (S(TcpServer) == NULL)
+//        return -1;
+//    S(PipeServer) = (PyTypeObject *) PyType_FromModuleAndSpec(module, &pipeserver_spec, NULL);
+//    if (S(PipeServer) == NULL)
+//        return -1;
     S(read_buffer_size) = PyLong_FromSsize_t(READ_BUFFER_SIZE);
     if (S(read_buffer_size) == NULL)
         return -1;
@@ -1899,6 +2172,8 @@ nsmodule_init_types(PyObject *module)
     if (PyDict_SetItemString(d, "IncompleteReadError", S(IncompleteReadError)) < 0)
         return -1;
     if (PyDict_SetItemString(d, "TcpStream", (PyObject *) S(TcpStream)) < 0)
+        return -1;
+    if (PyDict_SetItemString(d, "PipeStream", (PyObject *) S(PipeStream)) < 0)
         return -1;
     Freelist_MEM_INIT(ReadBuffer, 8);
     // SSL
@@ -1945,6 +2220,9 @@ nsmodule_traverse(PyObject *module, visitproc visit, void *arg)
     Py_VISIT(S(LimitOverrunError));
     Py_VISIT(S(IncompleteReadError));
     Py_VISIT(S(TcpStream));
+    Py_VISIT(S(PipeStream));
+//    Py_VISIT(S(TcpServer));
+//    Py_VISIT(S(PipeServer));
     Py_VISIT(S(read_buffer_size));
     // SSL
     Py_VISIT(S(MemoryBIO));
@@ -1962,6 +2240,9 @@ nsmodule_clear(PyObject *module)
     Py_CLEAR(S(LimitOverrunError));
     Py_CLEAR(S(IncompleteReadError));
     Py_CLEAR(S(TcpStream));
+    Py_CLEAR(S(PipeStream));
+//    Py_CLEAR(S(TcpServer));
+//    Py_CLEAR(S(PipeServer));
     Py_CLEAR(S(read_buffer_size));
     // SSL
     Py_CLEAR(S(MemoryBIO));
@@ -1985,6 +2266,8 @@ nsmodule_free(void *module)
 static PyMethodDef nsmodule_methods[] = {
     NS_GETADDRINFO_METHODDEF
     NS_GETNAMEINFO_METHODDEF
+    NS_OPEN_CONNECTION_METHODDEF
+    NS_OPEN_UNIX_CONNECTION_METHODDEF
     {NULL},
 };
 

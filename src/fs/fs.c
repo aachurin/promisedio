@@ -881,19 +881,6 @@ fs_close_impl(PyObject *module, int fd)
     return (PyObject *) Fs_Close(_ctx, fd);
 }
 
-/*[clinic input]
-fs.closefd
-    fd: fd
-[clinic start generated code]*/
-
-Py_LOCAL_INLINE(PyObject *)
-fs_closefd_impl(PyObject *module, int fd)
-/*[clinic end generated code: output=81be509bfc174198 input=01ac8c57f98cfd13]*/
-{
-    _CTX_setmodule(module);
-    return (PyObject *) Fs_Close(_ctx, fd);
-}
-
 CAPSULE_API(FS_API, Promise *)
 Fs_Unlink(_ctx_var, const char *path)
 {
@@ -1953,7 +1940,6 @@ static PyMethodDef fsmodule_methods[] = {
     FS_FSTAT_METHODDEF
     FS_SEEK_METHODDEF
     FS_CLOSE_METHODDEF
-    FS_CLOSEFD_METHODDEF
     FS_OPENFD_METHODDEF
     FS_OPEN_METHODDEF
     FS_READ_METHODDEF

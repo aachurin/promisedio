@@ -3,8 +3,7 @@ from promisedio import loop, ns, promise, timer
 
 
 async def example1():
-    stream = ns.TcpStream()
-    await stream.connect(("87.250.250.242", 443), ssl.SSLContext())
+    stream = await ns.open_connection(("87.250.250.242", 443), ssl=ssl.SSLContext())
     print(stream.getsockname())
     print(stream.getpeername())
     await stream.write(b"GET / HTTP 1.1\n\n")

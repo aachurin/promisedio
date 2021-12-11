@@ -6,7 +6,7 @@ PyDoc_STRVAR(loop_run_until_complete__doc__,
 "run_until_complete($module, /)\n"
 "--\n"
 "\n"
-"");
+"Run loop.");
 
 #define LOOP_RUN_UNTIL_COMPLETE_METHODDEF    \
     {"run_until_complete", (PyCFunction)loop_run_until_complete, METH_NOARGS, loop_run_until_complete__doc__},
@@ -59,4 +59,4 @@ loop_hrtime(PyObject *module, PyObject *Py_UNUSED(ignored))
 {
     return loop_hrtime_impl(module);
 }
-/*[clinic end generated code: output=38e90123cd47295c input=a9049054013a1b77]*/
+/*[clinic end generated code: output=f3b6561a8d12cbae input=a9049054013a1b77]*/

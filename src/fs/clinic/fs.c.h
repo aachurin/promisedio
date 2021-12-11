@@ -398,40 +398,6 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(fs_closefd__doc__,
-"closefd($module, /, fd)\n"
-"--\n"
-"\n"
-"");
-
-#define FS_CLOSEFD_METHODDEF    \
-    {"closefd", (PyCFunction)(void(*)(void))fs_closefd, METH_FASTCALL|METH_KEYWORDS, fs_closefd__doc__},
-
-Py_LOCAL_INLINE(PyObject *)
-fs_closefd_impl(PyObject *module, int fd);
-
-static PyObject *
-fs_closefd(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
-{
-    PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"fd", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "closefd", 0};
-    PyObject *argsbuf[1];
-    int fd;
-
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
-    if (!args) {
-        goto exit;
-    }
-    if (!fd_converter(args[0], &fd)) {
-        goto exit;
-    }
-    return_value = fs_closefd_impl(module, fd);
-
-exit:
-    return return_value;
-}
-
 PyDoc_STRVAR(fs_unlink__doc__,
 "unlink($module, /, path)\n"
 "--\n"
@@ -1383,7 +1349,9 @@ PyDoc_STRVAR(fs_chown__doc__,
 "chown($module, /, path, uid, gid, *, follow_symlinks=True)\n"
 "--\n"
 "\n"
-"");
+"Change the owner and group id of path to the numeric uid and gid.\n"
+"\n"
+"Equivalent to [chown(2)](https://man7.org/linux/man-pages/man2/chown.2.html)");
 
 #define FS_CHOWN_METHODDEF    \
     {"chown", (PyCFunction)(void(*)(void))fs_chown, METH_FASTCALL|METH_KEYWORDS, fs_chown__doc__},
@@ -1439,7 +1407,9 @@ PyDoc_STRVAR(fs_fchown__doc__,
 "fchown($module, /, fd, uid, gid)\n"
 "--\n"
 "\n"
-"");
+"Change the owner and group id of fd to the numeric uid and gid.\n"
+"\n"
+"Equivalent to [fchown(2)](https://man7.org/linux/man-pages/man2/fchown.2.html)");
 
 #define FS_FCHOWN_METHODDEF    \
     {"fchown", (PyCFunction)(void(*)(void))fs_fchown, METH_FASTCALL|METH_KEYWORDS, fs_fchown__doc__},
@@ -1662,4 +1632,4 @@ skip_optional_pos:
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=b091c40a7a9bfb23 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=96e1a6c15757e032 input=a9049054013a1b77]*/
