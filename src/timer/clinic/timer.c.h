@@ -44,7 +44,7 @@ exit:
 }
 
 PyDoc_STRVAR(timer_set_timeout__doc__,
-"set_timeout($module, /, func, timeout, *, unref=False)\n"
+"set_timeout($module, /, func, timeout)\n"
 "--\n"
 "\n"
 "Set timer which executes a function once the timer expires.\n"
@@ -55,20 +55,17 @@ PyDoc_STRVAR(timer_set_timeout__doc__,
     {"set_timeout", (PyCFunction)(void(*)(void))timer_set_timeout, METH_FASTCALL|METH_KEYWORDS, timer_set_timeout__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-timer_set_timeout_impl(PyObject *module, PyObject *func, double timeout,
-                       int unref);
+timer_set_timeout_impl(PyObject *module, PyObject *func, double timeout);
 
 static PyObject *
 timer_set_timeout(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"func", "timeout", "unref", NULL};
+    static const char * const _keywords[] = {"func", "timeout", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "set_timeout", 0};
-    PyObject *argsbuf[3];
-    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
+    PyObject *argsbuf[2];
     PyObject *func;
     double timeout;
-    int unref = 0;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
     if (!args) {
@@ -85,22 +82,14 @@ timer_set_timeout(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
             goto exit;
         }
     }
-    if (!noptargs) {
-        goto skip_optional_kwonly;
-    }
-    unref = PyObject_IsTrue(args[2]);
-    if (unref < 0) {
-        goto exit;
-    }
-skip_optional_kwonly:
-    return_value = timer_set_timeout_impl(module, func, timeout, unref);
+    return_value = timer_set_timeout_impl(module, func, timeout);
 
 exit:
     return return_value;
 }
 
 PyDoc_STRVAR(timer_set_interval__doc__,
-"set_interval($module, /, func, interval, *, unref=False)\n"
+"set_interval($module, /, func, interval)\n"
 "--\n"
 "\n"
 "Set timer which executes repeatedly a function, with a fixed time delay between each call.\n"
@@ -111,20 +100,17 @@ PyDoc_STRVAR(timer_set_interval__doc__,
     {"set_interval", (PyCFunction)(void(*)(void))timer_set_interval, METH_FASTCALL|METH_KEYWORDS, timer_set_interval__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-timer_set_interval_impl(PyObject *module, PyObject *func, double interval,
-                        int unref);
+timer_set_interval_impl(PyObject *module, PyObject *func, double interval);
 
 static PyObject *
 timer_set_interval(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"func", "interval", "unref", NULL};
+    static const char * const _keywords[] = {"func", "interval", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "set_interval", 0};
-    PyObject *argsbuf[3];
-    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
+    PyObject *argsbuf[2];
     PyObject *func;
     double interval;
-    int unref = 0;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
     if (!args) {
@@ -141,15 +127,7 @@ timer_set_interval(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
             goto exit;
         }
     }
-    if (!noptargs) {
-        goto skip_optional_kwonly;
-    }
-    unref = PyObject_IsTrue(args[2]);
-    if (unref < 0) {
-        goto exit;
-    }
-skip_optional_kwonly:
-    return_value = timer_set_interval_impl(module, func, interval, unref);
+    return_value = timer_set_interval_impl(module, func, interval);
 
 exit:
     return return_value;
@@ -218,4 +196,4 @@ timer_clear_interval(PyObject *module, PyObject *const *args, Py_ssize_t nargs, 
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=e3e3ca37a001bb77 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=087ec47d59f1cc2f input=a9049054013a1b77]*/

@@ -31,7 +31,7 @@ timeout_callback(uv_timer_t *handle)
 {
     ACQUIRE_GIL
         TimeoutHandle *h = Handle_Get(handle, TimeoutHandle);
-        _CTX_setstored(h);
+        _CTX_set(h);
         Promise_Resolve(h->promise, Py_None);
         Py_CLEAR(h->promise);
         Handle_Close(h);
@@ -72,7 +72,7 @@ Py_LOCAL_INLINE(PyObject *)
 timer_sleep_impl(PyObject *module, double seconds)
 /*[clinic end generated code: output=0e7d97eb1efd2983 input=97a9461096618dc6]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     if (seconds < 0) {
         PyErr_SetString(PyExc_ValueError, "sleep length must be non-negative");
         return NULL;
@@ -123,7 +123,9 @@ timer_callback(uv_timer_t *handle)
         TimerHandle *h = Handle_Get(handle, TimerHandle);
         PyObject *tmp = PyObject_CallNoArgs(h->func);
         if (tmp == NULL) {
-            Py_PrintLastException();
+            if (!PyErr_ExceptionMatches(PyExc_KeyboardInterrupt) && !PyErr_ExceptionMatches(PyExc_SystemExit)) {
+                PyErr_WriteUnraisable(h->func);
+            }
         } else {
             Py_DECREF(tmp);
         }
@@ -135,9 +137,12 @@ static void
 interval_callback(uv_timer_t *handle)
 {
     ACQUIRE_GIL
-        PyObject *tmp = PyObject_CallNoArgs(Handle_Get(handle, TimerHandle)->func);
+        TimerHandle *h = Handle_Get(handle, TimerHandle);
+        PyObject *tmp = PyObject_CallNoArgs(h->func);
         if (tmp == NULL) {
-            Py_PrintLastException();
+            if (!PyErr_ExceptionMatches(PyExc_KeyboardInterrupt) && !PyErr_ExceptionMatches(PyExc_SystemExit)) {
+                PyErr_WriteUnraisable(h->func);
+            }
         } else {
             Py_DECREF(tmp);
         }
@@ -154,7 +159,7 @@ timer_finalizer(TimerHandle *handle)
 }
 
 CAPSULE_API(TIMER_API, PyObject *)
-Timer_Start(_ctx_var, PyObject *func, uint64_t timeout, uint64_t repeat, int unref)
+Timer_Start(_ctx_var, PyObject *func, uint64_t timeout, uint64_t repeat)
 {
     Loop_SETUP(loop)
     Timer *timer = (Timer *) Py_New(S(TimerType));
@@ -171,9 +176,6 @@ Timer_Start(_ctx_var, PyObject *func, uint64_t timeout, uint64_t repeat, int unr
     handle->timer = timer;
     timer->handle = handle;
     uv_timer_init(loop, &handle->base);
-    if (unref) {
-        uv_unref((uv_handle_t *) &handle->base);
-    }
     if (repeat) {
         uv_timer_start(&handle->base, (uv_timer_cb) interval_callback, timeout, repeat);
     } else {
@@ -201,14 +203,11 @@ Timer_Stop(_ctx_var, PyObject *ob)
 timer.set_timeout
     func: object
     timeout: double
-    *
-    unref: bool = False
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-timer_set_timeout_impl(PyObject *module, PyObject *func, double timeout,
-                       int unref)
-/*[clinic end generated code: output=06f3f5dce283a4fd input=126f6c0f54664938]*/
+timer_set_timeout_impl(PyObject *module, PyObject *func, double timeout)
+/*[clinic end generated code: output=50946b1d85b2f6a4 input=d741422e983c75c8]*/
 {
     if (!PyCallable_Check(func)) {
         PyErr_SetString(PyExc_TypeError, "func must be a callable");
@@ -218,22 +217,19 @@ timer_set_timeout_impl(PyObject *module, PyObject *func, double timeout,
         PyErr_SetString(PyExc_ValueError, "timeout must be non-negative");
         return NULL;
     }
-    _CTX_setmodule(module);
-    return Timer_Start(_ctx, func, (uint64_t) (timeout * 1000), 0, unref);
+    _CTX_set_module(module);
+    return Timer_Start(_ctx, func, (uint64_t) (timeout * 1000), 0);
 }
 
 /*[clinic input]
 timer.set_interval
     func: object
     interval: double
-    *
-    unref: bool = False
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-timer_set_interval_impl(PyObject *module, PyObject *func, double interval,
-                        int unref)
-/*[clinic end generated code: output=0bc0855f9b4d57fc input=015df1d0c61b653b]*/
+timer_set_interval_impl(PyObject *module, PyObject *func, double interval)
+/*[clinic end generated code: output=8fcf5927a08082b3 input=e147981db1e0c318]*/
 {
     if (!PyCallable_Check(func)) {
         PyErr_SetString(PyExc_TypeError, "func must be a callable");
@@ -243,9 +239,9 @@ timer_set_interval_impl(PyObject *module, PyObject *func, double interval,
         PyErr_SetString(PyExc_ValueError, "interval must be non-negative");
         return NULL;
     }
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     uint64_t timeout = (uint64_t) (interval * 1000);
-    return Timer_Start(_ctx, func, timeout, timeout, unref);
+    return Timer_Start(_ctx, func, timeout, timeout);
 }
 
 /*[clinic input]
@@ -257,7 +253,7 @@ Py_LOCAL_INLINE(PyObject *)
 timer_clear_timeout_impl(PyObject *module, PyObject *timer)
 /*[clinic end generated code: output=a1989760e1d3b1a8 input=b2cafa306c01792e]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     if (Timer_Stop(_ctx, timer)) {
         return NULL;
     }
@@ -273,7 +269,7 @@ Py_LOCAL_INLINE(PyObject *)
 timer_clear_interval_impl(PyObject *module, PyObject *timer)
 /*[clinic end generated code: output=44cfa146bc5fed17 input=79bd857166af6be9]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     if (Timer_Stop(_ctx, timer)) {
         return NULL;
     }
@@ -283,7 +279,7 @@ timer_clear_interval_impl(PyObject *module, PyObject *timer)
 static int
 timermodule_init(PyObject *module)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     LOG("(%p)", module);
     Capsule_LOAD("promisedio.promise", PROMISE_API);
     Capsule_LOAD("promisedio.loop", LOOP_API);
@@ -306,7 +302,7 @@ timermodule_create_api(PyObject *module)
 static int
 timermodule_traverse(PyObject *module, visitproc visit, void *arg)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     Capsule_VISIT(LOOP_API);
     Capsule_VISIT(PROMISE_API);
     Py_VISIT(S(TimerType));
@@ -316,7 +312,7 @@ timermodule_traverse(PyObject *module, visitproc visit, void *arg)
 static int
 timermodule_clear(PyObject *module)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     Py_CLEAR(S(TimerType));
     return 0;
 }
@@ -324,7 +320,7 @@ timermodule_clear(PyObject *module)
 static void
 timermodule_free(void *module)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     LOG("(%p)", module);
     Capsule_CLEAR(LOOP_API);
     Capsule_CLEAR(PROMISE_API);

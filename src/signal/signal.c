@@ -75,7 +75,7 @@ Py_LOCAL_INLINE(PyObject *)
 signal_signal_impl(PyObject *module, PyObject *signalnum, PyObject *handler)
 /*[clinic end generated code: output=d6215a4c80f4273b input=3009c20a709e2f7e]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     if (S(is_main_interp)) {
         PyObject *ret = PyObject_CallFunctionObjArgs(S(signal_func), signalnum, handler);
         if (!ret)
@@ -98,7 +98,7 @@ signal_signal_impl(PyObject *module, PyObject *signalnum, PyObject *handler)
 static int
 signalmodule_exec(PyObject *module)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     LOG("(%p)", module);
     S(is_main_interp) = Py_IsMainInterp();
     if (S(is_main_interp)) {
@@ -150,7 +150,7 @@ signalmodule_create_api(PyObject *module)
 static int
 signalmodule_traverse(PyObject *module, visitproc visit, void *arg)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     Py_VISIT(S(signal_func));
     return 0;
 }
@@ -158,7 +158,7 @@ signalmodule_traverse(PyObject *module, visitproc visit, void *arg)
 static int
 signalmodule_clear(PyObject *module)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     Py_CLEAR(S(signal_func));
     return 0;
 }

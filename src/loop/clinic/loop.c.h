@@ -2,22 +2,22 @@
 preserve
 [clinic start generated code]*/
 
-PyDoc_STRVAR(loop_run_until_complete__doc__,
-"run_until_complete($module, /)\n"
+PyDoc_STRVAR(loop_run_forever__doc__,
+"run_forever($module, /)\n"
 "--\n"
 "\n"
-"Run loop.");
+"");
 
-#define LOOP_RUN_UNTIL_COMPLETE_METHODDEF    \
-    {"run_until_complete", (PyCFunction)loop_run_until_complete, METH_NOARGS, loop_run_until_complete__doc__},
+#define LOOP_RUN_FOREVER_METHODDEF    \
+    {"run_forever", (PyCFunction)loop_run_forever, METH_NOARGS, loop_run_forever__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-loop_run_until_complete_impl(PyObject *module);
+loop_run_forever_impl(PyObject *module);
 
 static PyObject *
-loop_run_until_complete(PyObject *module, PyObject *Py_UNUSED(ignored))
+loop_run_forever(PyObject *module, PyObject *Py_UNUSED(ignored))
 {
-    return loop_run_until_complete_impl(module);
+    return loop_run_forever_impl(module);
 }
 
 PyDoc_STRVAR(loop_time__doc__,
@@ -59,4 +59,4 @@ loop_hrtime(PyObject *module, PyObject *Py_UNUSED(ignored))
 {
     return loop_hrtime_impl(module);
 }
-/*[clinic end generated code: output=f3b6561a8d12cbae input=a9049054013a1b77]*/
+/*[clinic end generated code: output=294e3cacc1ccd11c input=a9049054013a1b77]*/

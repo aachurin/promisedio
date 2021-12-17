@@ -6,4 +6,4 @@ async def seek_example():
 
 
 promise.exec_async(seek_example())
-loop.run_until_complete()
+loop.run_forever()

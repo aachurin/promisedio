@@ -15,4 +15,4 @@ async def example2():
 
 promise.exec_async(example1())
 promise.exec_async(example2())
-loop.run_until_complete()
+loop.run_forever()

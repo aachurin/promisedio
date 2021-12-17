@@ -54,6 +54,7 @@ typedef struct {
     PyObject_HEAD
     uv_file fd;
     int closefd;
+    _ctx_var;
 } FileIO;
 
 typedef struct {
@@ -69,7 +70,7 @@ static void
 int_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
             Promise_RejectFsExc(p, (int) req->result);
@@ -90,7 +91,7 @@ static void
 none_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
             Promise_RejectFsExc(p, (int) req->result);
@@ -105,7 +106,7 @@ static void
 bool_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
             Promise_Resolve(p, Py_False);
@@ -120,7 +121,7 @@ static void
 path_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
             Promise_RejectFsExc(p, (int) req->result);
@@ -141,7 +142,7 @@ static void
 ptr_path_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
             Promise_RejectFsExc(p, (int) req->result);
@@ -162,7 +163,7 @@ static void
 stat_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
             Promise_RejectFsExc(p, (int) req->result);
@@ -208,7 +209,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_stat_impl(PyObject *module, PyObject *path, int follow_symlinks)
 /*[clinic end generated code: output=3ca9a0ff706b0282 input=86f245764cee8a69]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     if (follow_symlinks) {
         return (PyObject *) Fs_Stat(_ctx, PyBytes_AS_STRING(path));
     } else {
@@ -233,7 +234,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_fstat_impl(PyObject *module, int fd)
 /*[clinic end generated code: output=6009b13fb6a840ae input=5d9d8127d47ae9f2]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Fstat(_ctx, fd);
 }
 
@@ -294,7 +295,7 @@ static void
 seek_callback(SeekReq *req, int status)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE((uv_req_t *) req);
         if (status == UV_ECANCELED) {
             Promise_RejectFsExc(p, status);
@@ -336,7 +337,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_seek_impl(PyObject *module, int fd, Py_off_t pos, int how)
 /*[clinic end generated code: output=ef51eb2dceb31d78 input=3c990ca37e7bc185]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Seek(_ctx, fd, pos, how);
 }
 
@@ -359,7 +360,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_openfd_impl(PyObject *module, PyObject *path, int flags, int mode)
 /*[clinic end generated code: output=ea8de6fdaaadaf08 input=b662728d8f4b901e]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Open(_ctx, PyBytes_AS_STRING(path), flags, mode);
 }
 
@@ -372,6 +373,7 @@ fileio_new(_ctx_var, int fd, int closefd)
     PyTrack_MarkAllocated(self);
     self->fd = fd;
     self->closefd = closefd;
+    _CTX_save(self);
     return (PyObject *) self;
 }
 
@@ -379,7 +381,7 @@ static void
 open_stat_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
             Promise_RejectFsExc(p, (int) req->result);
@@ -408,7 +410,7 @@ static void
 open_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
             Promise_RejectFsExc(p, (int) req->result);
@@ -449,7 +451,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_open_impl(PyObject *module, PyObject *path, const char *mode, int closefd)
 /*[clinic end generated code: output=d0e1b7085b442b73 input=d1f22ba3363fc2df]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     int flags = 0, writable = 0, readable = 0;
 
     for (unsigned long i = 0; i < strlen(mode); i++) {
@@ -559,7 +561,7 @@ static void
 read_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         PyObject *buffer = Promise_SetCtx(p, NULL);
         if (req->result < 0) {
@@ -632,7 +634,7 @@ static void
 readall_read_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         readallstate *readstate = Promise_DATA(p, readallstate);
         if (req->result < 0) {
@@ -688,7 +690,7 @@ static void
 readall_stat_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         readallstate *readstate = Promise_DATA(p, readallstate);
         Py_off_t pos = readstate->pos;
@@ -737,7 +739,7 @@ static void
 readall_seek_callback(SeekReq *req, int status)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE((uv_req_t *) req);
         if (status == UV_ECANCELED) {
             Promise_RejectFsExc(p, status);
@@ -787,7 +789,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_read_impl(PyObject *module, int fd, Py_ssize_t size, Py_off_t offset)
 /*[clinic end generated code: output=04e8e196783beea5 input=a4e8469faca2f474]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     if (size < 0) {
         if (offset >= 0) {
             PyErr_SetString(PyExc_ValueError,
@@ -813,7 +815,7 @@ static void
 write_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
             Promise_RejectFsExc(p, (int) req->result);
@@ -851,7 +853,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_write_impl(PyObject *module, int fd, PyObject *data, Py_off_t offset)
 /*[clinic end generated code: output=1a454c115dbc90ed input=534300ee283e827f]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     if (!PyBytes_Check(data)) {
         PyErr_SetString(PyExc_TypeError,
                         "bytes expected");
@@ -877,7 +879,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_close_impl(PyObject *module, int fd)
 /*[clinic end generated code: output=f901b196ba9112b2 input=9924e6ef7e6d1220]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Close(_ctx, fd);
 }
 
@@ -898,7 +900,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_unlink_impl(PyObject *module, PyObject *path)
 /*[clinic end generated code: output=7ad634ae2068c296 input=cb4c0bd1f0318581]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Unlink(_ctx, PyBytes_AS_STRING(path));
 }
 
@@ -920,7 +922,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_mkdir_impl(PyObject *module, PyObject *path, int mode)
 /*[clinic end generated code: output=cc6ca10eed6b5de4 input=98d19f5dc82fe45e]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Mkdir(_ctx, PyBytes_AS_STRING(path), mode);
 }
 
@@ -941,7 +943,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_rmdir_impl(PyObject *module, PyObject *path)
 /*[clinic end generated code: output=8a899641fa9fc5cb input=ea608c81e46fdc83]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Rmdir(_ctx, PyBytes_AS_STRING(path));
 }
 
@@ -962,7 +964,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_mkdtemp_impl(PyObject *module, PyObject *tpl)
 /*[clinic end generated code: output=4845725af98ca58c input=0cb22bb81ab08559]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Mkdtemp(_ctx, PyBytes_AS_STRING(tpl));
 }
 
@@ -970,7 +972,7 @@ static void
 mkstemp_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
             Promise_RejectFsExc(p, (int) req->result);
@@ -1004,7 +1006,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_mkstemp_impl(PyObject *module, PyObject *tpl)
 /*[clinic end generated code: output=eb08f9d67d79bb6f input=78c43098a049ed25]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Mkstemp(_ctx, PyBytes_AS_STRING(tpl));
 }
 
@@ -1012,7 +1014,7 @@ static void
 scandir_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_setreq(req)
+        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
             Promise_RejectFsExc(p, (int) req->result);
@@ -1089,7 +1091,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_scandir_impl(PyObject *module, PyObject *path)
 /*[clinic end generated code: output=4a789c9f969b08a3 input=cada47c048b838f2]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Scandir(_ctx, PyBytes_AS_STRING(path));
 }
 
@@ -1111,7 +1113,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_rename_impl(PyObject *module, PyObject *path, PyObject *new_path)
 /*[clinic end generated code: output=1eb79ef01e1cc6eb input=d10ca1dea1c36ca9]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Rename(_ctx, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path));
 }
 
@@ -1132,7 +1134,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_fsync_impl(PyObject *module, int fd)
 /*[clinic end generated code: output=77234dc5eba48e15 input=1dd4da63ef5f4b34]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Fsync(_ctx, fd);
 }
 
@@ -1154,7 +1156,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_ftruncate_impl(PyObject *module, int fd, Py_ssize_t length)
 /*[clinic end generated code: output=4c3adf479c59bac5 input=3037b1c14c63fd76]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Ftruncate(_ctx, fd, length);
 }
 
@@ -1175,7 +1177,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_fdatasync_impl(PyObject *module, int fd)
 /*[clinic end generated code: output=1172614bb569d996 input=12f7058927d6d90c]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Fdatasync(_ctx, fd);
 }
 
@@ -1199,7 +1201,7 @@ fs_copyfile_impl(PyObject *module, PyObject *path, PyObject *new_path,
                  int flags)
 /*[clinic end generated code: output=f26db733a792e8d0 input=18e6000f66ed993e]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Copyfile(_ctx, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path), flags);
 }
 
@@ -1224,7 +1226,7 @@ fs_sendfile_impl(PyObject *module, int out_fd, int in_fd, Py_off_t offset,
                  Py_ssize_t count)
 /*[clinic end generated code: output=ac27efde8b1056f5 input=7147bf805abbfeab]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Sendfile(_ctx, out_fd, in_fd, offset, count);
 }
 
@@ -1246,7 +1248,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_access_impl(PyObject *module, PyObject *path, int mode)
 /*[clinic end generated code: output=66baaaf393f5d323 input=bceb734cd1fe2473]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Access(_ctx, PyBytes_AS_STRING(path), mode);
 }
 
@@ -1268,7 +1270,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_chmod_impl(PyObject *module, PyObject *path, int mode)
 /*[clinic end generated code: output=c96185fc378f4240 input=5ad22c77ad1094ae]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Chmod(_ctx, PyBytes_AS_STRING(path), mode);
 }
 
@@ -1290,7 +1292,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_fchmod_impl(PyObject *module, int fd, int mode)
 /*[clinic end generated code: output=34682ca7db418d11 input=57ef52ad97618eb2]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Fchmod(_ctx, fd, mode);
 }
 
@@ -1324,7 +1326,7 @@ fs_utime_impl(PyObject *module, PyObject *path, double atime, double mtime,
               int follow_symlinks)
 /*[clinic end generated code: output=935a5e77f4392a74 input=d2d2ada07f37e8ac]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     if (follow_symlinks) {
         return (PyObject *) Fs_Utime(_ctx, PyBytes_AS_STRING(path), atime, mtime);
     } else {
@@ -1351,7 +1353,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_futime_impl(PyObject *module, int fd, double atime, double mtime)
 /*[clinic end generated code: output=f4620d30861b1bf1 input=005fcf64445c1b4b]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Futime(_ctx, fd, atime, mtime);
 }
 
@@ -1373,7 +1375,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_link_impl(PyObject *module, PyObject *path, PyObject *new_path)
 /*[clinic end generated code: output=2a0f7745bbf5e142 input=a1c3d02af0f400c2]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Link(_ctx, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path));
 }
 
@@ -1398,7 +1400,7 @@ fs_symlink_impl(PyObject *module, PyObject *path, PyObject *new_path,
                 int flags)
 /*[clinic end generated code: output=7dda80446611250f input=3b2df6695e025ce0]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Symlink(_ctx, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path), flags);
 }
 
@@ -1419,7 +1421,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_readlink_impl(PyObject *module, PyObject *path)
 /*[clinic end generated code: output=1a033f553e3cc0df input=2e4577d2fc1fce38]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Readlink(_ctx, PyBytes_AS_STRING(path));
 }
 
@@ -1463,7 +1465,7 @@ fs_chown_impl(PyObject *module, PyObject *path, uid_t uid, gid_t gid,
               int follow_symlinks)
 /*[clinic end generated code: output=b4f92ec2c249651f input=1c9528d26ba50b43]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     if (follow_symlinks) {
         return (PyObject *) Fs_Chown(_ctx, PyBytes_AS_STRING(path), uid, gid);
     } else {
@@ -1495,7 +1497,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_fchown_impl(PyObject *module, int fd, uid_t uid, gid_t gid)
 /*[clinic end generated code: output=08465d9f9297e283 input=be2d9ec2487e007f]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     return (PyObject *) Fs_Fchown(_ctx, fd, uid, gid);
 }
 
@@ -1656,7 +1658,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_FileIO_close_impl(FileIO *self)
 /*[clinic end generated code: output=b65a5e38c4695b3a input=f92aa7dd8d5bd472]*/
 {
-    _CTX_set((PyObject *) self);
+    _CTX_set(self);
     if (self->fd < 0) {
         return (PyObject *) Promise_NewResolved(Py_None);
     } else if (!self->closefd) {
@@ -1703,7 +1705,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_FileIO_read_impl(FileIO *self, Py_ssize_t size, Py_off_t offset)
 /*[clinic end generated code: output=f5520bf613a7bcd6 input=1e3d51dfb810aac3]*/
 {
-    _CTX_set((PyObject *) self);
+    _CTX_set(self);
     if (self->fd < 0)
         return fileio_err_closed();
     if (size < 0) {
@@ -1732,7 +1734,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_FileIO_write_impl(FileIO *self, PyObject *data, Py_off_t offset)
 /*[clinic end generated code: output=5101a0529fb1e4b7 input=af78dece81ce7e29]*/
 {
-    _CTX_set((PyObject *) self);
+    _CTX_set(self);
     if (self->fd < 0)
         return fileio_err_closed();
     if (!PyBytes_Check(data)) {
@@ -1755,7 +1757,7 @@ Py_LOCAL_INLINE(PyObject *)
 fs_FileIO_seek_impl(FileIO *self, Py_off_t offset, int whence)
 /*[clinic end generated code: output=d4fdae935ebc13c7 input=34a065c6cb86e967]*/
 {
-    _CTX_set((PyObject *) self);
+    _CTX_set(self);
     if (self->fd < 0)
         return fileio_err_closed();
     return (PyObject *) Fs_Seek(_ctx, self->fd, offset, whence);
@@ -1764,7 +1766,7 @@ fs_FileIO_seek_impl(FileIO *self, Py_off_t offset, int whence)
 static void
 fileio_dealloc(FileIO *self)
 {
-    _CTX_set((PyObject *) self);
+    _CTX_set(self);
     int fd = self->fd;
     PyTrack_MarkDeleted(self);
     Py_Delete(self);
@@ -1823,7 +1825,7 @@ static PyType_Spec fileio_spec = {
 static int
 fsmodule_init(PyObject *module)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     LOG("(%p)", module);
     Capsule_LOAD("promisedio.promise", PROMISE_API);
     Capsule_LOAD("promisedio.loop", LOOP_API);
@@ -1833,7 +1835,7 @@ fsmodule_init(PyObject *module)
 static int
 fsmodule_init_types_and_constants(PyObject *module)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
 #define ADDINT(n, v)                           \
     if (PyModule_AddIntConstant(module, n, v)) \
     return -1
@@ -1906,7 +1908,7 @@ fsmodule_create_api(PyObject *module)
 static int
 fsmodule_traverse(PyObject *module, visitproc visit, void *arg)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     Capsule_VISIT(LOOP_API);
     Capsule_VISIT(PROMISE_API);
     Py_VISIT(S(FSError));
@@ -1918,7 +1920,7 @@ fsmodule_traverse(PyObject *module, visitproc visit, void *arg)
 static int
 fsmodule_clear(PyObject *module)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     Py_CLEAR(S(FSError));
     Py_CLEAR(S(StatType));
     Py_CLEAR(S(FileIOType));
@@ -1928,7 +1930,7 @@ fsmodule_clear(PyObject *module)
 static void
 fsmodule_free(void *module)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     LOG("(%p)", module);
     Capsule_CLEAR(LOOP_API);
     Capsule_CLEAR(PROMISE_API);

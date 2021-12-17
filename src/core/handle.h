@@ -26,7 +26,7 @@ Request_New(void *_ctx, PyObject *promise, size_t size)
         return NULL;
     }
     LOG("(%p, %zu) -> %p", promise, size, &ptr->base);
-    ptr->_ctx = _ctx;
+    _CTX_save(ptr);
     uv_req_t *req = (uv_req_t *) &ptr->base;
     PyTrack_XINCREF(promise);
     req->data = promise;
@@ -36,7 +36,7 @@ Request_New(void *_ctx, PyObject *promise, size_t size)
 #define Request_New(type, promise) ((type *) Request_New(_ctx, (PyObject *) (promise), sizeof(type)))
 #define Request_OBJ(req) ((PyObject *)((req)->data))
 #define Request_PROMISE(req) ((Promise *)((req)->data))
-#define _CTX_setreq(req) _CTX_setstored((Request *) container_of(req, Request));
+#define _CTX_set_req(req) _CTX_set((Request *) container_of(req, Request));
 
 Py_LOCAL_INLINE(void)
 Request_Close(uv_req_t *req)
@@ -70,7 +70,7 @@ Handle_New(void *_ctx, size_t size, size_t base_offset, finalizer cb)
     LOG("(%zu) -> %p", size, ptr);
     HandleBase *base = (HandleBase *) ((char *) ptr + base_offset);
     base->_finalizer = cb;
-    base->_ctx = _ctx;
+    _CTX_save(base);
     base->base.data = ptr;
     return ptr;
 }

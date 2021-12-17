@@ -23,20 +23,13 @@ _CTX__gettype(PyTypeObject *obj)
     return _CTX__getmodule(((PyHeapTypeObject *) obj)->ht_module);
 }
 
-Py_LOCAL_INLINE(void *)
-_CTX__get(PyObject *obj)
-{
-    return _CTX__gettype(Py_TYPE(obj));
-}
-
-#define _CTX_getmodule(module) ((_modulestate *) _CTX__getmodule(module))
-#define _CTX_gettype(type) ((_modulestate *) _CTX__gettype(type))
-#define _CTX_get(obj) ((_modulestate *) _CTX__get(obj))
-#define _CTX_getstored(ptr) ((_modulestate *)((ptr)->_ctx))
-#define _CTX_setstored(ptr) _ctx_var = _CTX_getstored(ptr)
-#define _CTX_setmodule(module) _ctx_var = _CTX_getmodule(module)
-#define _CTX_settype(type) _ctx_var = _CTX_gettype(type)
-#define _CTX_set(obj) _ctx_var = _CTX_get(obj)
+#define _CTX_get_module(module) ((_modulestate *) _CTX__getmodule(module))
+#define _CTX_set_module(module) _ctx_var = _CTX_get_module(module)
+#define _CTX_get_type(type) ((_modulestate *) _CTX__gettype(type))
+#define _CTX_set_type(type) _ctx_var = _CTX_get_type(type)
+#define _CTX_get(ptr) ((_modulestate *)((ptr)->_ctx))
+#define _CTX_set(ptr) _ctx_var = _CTX_get(ptr)
+#define _CTX_save(ptr) (ptr)->_ctx = _ctx;
 #define S(some) _ctx->some
 
 #endif //PROMISEDIO_CORE_MODULE_H

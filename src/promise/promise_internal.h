@@ -8,6 +8,7 @@
 #include "core/chain.h"
 
 typedef PyObject *(*promisecb)(PyObject *value, PyObject *promise);
+typedef void (*unlockloop)(void* ctx);
 
 enum {
     PROMISE_INITIAL = 0x0000,
@@ -61,28 +62,6 @@ Py_FetchError()
     }
     Py_DECREF(exc);
     return val;
-}
-
-Py_LOCAL_INLINE(void)
-Py_PrintLastException()
-{
-    PyObject *exc, *val, *tb;
-    PyErr_Fetch(&exc, &val, &tb);
-    if (exc == NULL) {
-        PySys_WriteStderr("lost exception value\n");
-        return;
-    }
-    PyErr_NormalizeException(&exc, &val, &tb);
-    if (tb == NULL) {
-        tb = Py_NewRef(Py_None);
-    }
-    PyException_SetTraceback(val, tb);
-    PyErr_Display(exc, val, tb);
-    PyException_SetTraceback(val, Py_None);
-    Py_DECREF(exc);
-    Py_DECREF(val);
-    Py_DECREF(tb);
-    PySys_WriteStderr("\n");
 }
 
 #endif

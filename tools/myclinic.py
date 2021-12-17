@@ -145,5 +145,5 @@ class gid_t_converter(CConverter):
 
 
 if __name__ == "__main__":
-    capsule_main(sys.argv[1:])
+    capsule_main([sys.argv[1]])
     clinic_main(["--make", "--srcdir"] + sys.argv[1:])

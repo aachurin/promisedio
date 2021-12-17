@@ -165,6 +165,24 @@ promise_process_promise_chain(PyObject *module, PyObject *Py_UNUSED(ignored))
     return promise_process_promise_chain_impl(module);
 }
 
+PyDoc_STRVAR(promise_run_forever__doc__,
+"run_forever($module, /)\n"
+"--\n"
+"\n"
+"");
+
+#define PROMISE_RUN_FOREVER_METHODDEF    \
+    {"run_forever", (PyCFunction)promise_run_forever, METH_NOARGS, promise_run_forever__doc__},
+
+Py_LOCAL_INLINE(PyObject *)
+promise_run_forever_impl(PyObject *module);
+
+static PyObject *
+promise_run_forever(PyObject *module, PyObject *Py_UNUSED(ignored))
+{
+    return promise_run_forever_impl(module);
+}
+
 PyDoc_STRVAR(promise_Promise_then__doc__,
 "then($self, /, fulfilled=None, rejected=None)\n"
 "--\n"
@@ -345,4 +363,62 @@ promise_Deferred_promise(Deferred *self, PyObject *Py_UNUSED(ignored))
 {
     return promise_Deferred_promise_impl(self);
 }
-/*[clinic end generated code: output=1635b6610aec164c input=a9049054013a1b77]*/
+
+Py_LOCAL_INLINE(PyObject *)
+promise_Lock_impl(PyTypeObject *type);
+
+static PyObject *
+promise_Lock(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+    PyObject *return_value = NULL;
+
+    if ((type == _CTX_get_type(type)->LockType) &&
+        !_PyArg_NoPositional("Lock", args)) {
+        goto exit;
+    }
+    if ((type == _CTX_get_type(type)->LockType) &&
+        !_PyArg_NoKeywords("Lock", kwargs)) {
+        goto exit;
+    }
+    return_value = promise_Lock_impl(type);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(promise_Lock_acquire__doc__,
+"acquire($self, /)\n"
+"--\n"
+"\n"
+"");
+
+#define PROMISE_LOCK_ACQUIRE_METHODDEF    \
+    {"acquire", (PyCFunction)promise_Lock_acquire, METH_NOARGS, promise_Lock_acquire__doc__},
+
+Py_LOCAL_INLINE(PyObject *)
+promise_Lock_acquire_impl(Lock *self);
+
+static PyObject *
+promise_Lock_acquire(Lock *self, PyObject *Py_UNUSED(ignored))
+{
+    return promise_Lock_acquire_impl(self);
+}
+
+PyDoc_STRVAR(promise_Lock_release__doc__,
+"release($self, /)\n"
+"--\n"
+"\n"
+"");
+
+#define PROMISE_LOCK_RELEASE_METHODDEF    \
+    {"release", (PyCFunction)promise_Lock_release, METH_NOARGS, promise_Lock_release__doc__},
+
+Py_LOCAL_INLINE(PyObject *)
+promise_Lock_release_impl(Lock *self);
+
+static PyObject *
+promise_Lock_release(Lock *self, PyObject *Py_UNUSED(ignored))
+{
+    return promise_Lock_release_impl(self);
+}
+/*[clinic end generated code: output=843365560f504dcd input=a9049054013a1b77]*/

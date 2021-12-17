@@ -19,6 +19,17 @@ typedef struct {
     PyTypeObject *PromiseType;
     PyTypeObject *DeferredType;
     PyTypeObject *PromiseiterType;
+    PyTypeObject *LockType;
+    PyTypeObject *QueueType;
+    PyObject *EventType;
+    PyObject *print_stack;
+    /* Callback */
+    int chain_busy;
+    unlockloop unlockloop_func;
+    void *unlockloop_ctx;
+    /* State */
+    PyObject *await_event;
+    Py_ssize_t promise_count;
     /* Freelists */
     Freelist_GC_HEAD(PromiseType)
     Freelist_GC_HEAD(DeferredType)
@@ -31,18 +42,29 @@ struct promise_s {
     PyObject *rejected;
     PyObject *coro;
     PyObject *value;
+    _ctx_var;
     Chain_ROOT(Promise)
 };
 
 typedef struct {
     PyObject_HEAD
     Promise *promise;
+    _ctx_var;
 } Deferred;
 
 typedef struct {
     PyObject_HEAD
     Promise *promise;
+    _ctx_var;
 } Promiseiter;
+
+typedef struct {
+    PyObject_HEAD
+    PyObject *ctx;
+    int locked;
+    _ctx_var;
+    Chain_ROOT(Promise)
+} Lock;
 
 #include "clinic/promise.c.h"
 
@@ -61,7 +83,7 @@ Py_LOCAL_INLINE(PyObject *)
 promise_clearfreelists_impl(PyObject *module)
 /*[clinic end generated code: output=3376cbbe518b4304 input=1a20bd413c302cc1]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     Freelist_GC_Clear(PromiseType);
     Freelist_GC_Clear(PromiseiterType);
     Freelist_GC_Clear(DeferredType);
@@ -83,7 +105,7 @@ promise_setfreelistlimits_impl(PyObject *module, Py_ssize_t promise_limit,
                                Py_ssize_t deferred_limit)
 /*[clinic end generated code: output=98c0cac2cb949496 input=0575b1475d7fec22]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     if (promise_limit >= 0) {
         Freelist_GC_Limit(PromiseType, promise_limit);
     }
@@ -117,6 +139,34 @@ print_unhandled_exception_from_dealloc(PyObject *value)
     }
 }
 
+/* Start loop and set scheduler hook and ctx*/
+CAPSULE_API(PROMISE_API, int)
+Promise_StartLoop(_ctx_var, unlockloop unlock_func, void *ctx)
+{
+    if (S(unlockloop_func)) {
+        PyErr_SetString(PyExc_RuntimeError, "The loop is already running.");
+        return -1;
+    }
+    S(unlockloop_func) = unlock_func;
+    S(unlockloop_ctx) = ctx;
+    return 0;
+}
+
+/* Set scheduler loop release hook */
+CAPSULE_API(PROMISE_API, int)
+Promise_StopLoop(_ctx_var, unlockloop unlock_func, void *ctx)
+{
+    if (S(unlockloop_func) || S(unlockloop_ctx)) {
+        if (unlock_func != S(unlockloop_func) || ctx != S(unlockloop_ctx))
+            return -1;
+        S(unlockloop_func) = NULL;
+        S(unlockloop_ctx) = NULL;
+        return 0;
+    }
+    return -1;
+}
+
+/* Create new Promise object */
 CAPSULE_API(PROMISE_API, Promise *)
 Promise_New(_ctx_var)
 {
@@ -131,11 +181,14 @@ Promise_New(_ctx_var)
     self->fulfilled = NULL;
     self->rejected = NULL;
     self->ctx = NULL;
+    _CTX_save(self);
     PyTrack_MarkAllocated(self);
     PyObject_GC_Track(self);
+    S(promise_count)++;
     return self;
 }
 
+/* Internal method for future use. */
 CAPSULE_API(PROMISE_API, void)
 Promise_Callback(Promise *self, promisecb fulfilled, promisecb rejected)
 {
@@ -145,47 +198,48 @@ Promise_Callback(Promise *self, promisecb fulfilled, promisecb rejected)
     self->rejected = (PyObject *) rejected;
 }
 
+#define schedule_promise(self, val, flag, invoke_callback)              \
+do {                                                                    \
+    PyTrack_INCREF(val);                                                \
+    (self)->value = val;                                                \
+    (self)->flags |= flag;                                              \
+    Py_INCREF(self);                                                    \
+    Chain_APPEND(&S(promisechain), self);                               \
+    if (invoke_callback && (!(S(chain_busy))) && S(unlockloop_func)) {  \
+        S(unlockloop_func)(S(unlockloop_ctx));                          \
+    }                                                                   \
+    S(promise_count)--;                                                 \
+} while (0)
+
+/* Create a new promise derived from the given. */
 CAPSULE_API(PROMISE_API, Promise *)
 Promise_Then(Promise *self)
 {
-    _CTX_set((PyObject *) self);
+    _CTX_set(self);
     Promise *promise = Promise_New(_ctx);
     if (!promise)
         return NULL;
     self->flags |= PROMISE_VALUABLE;
     if (self->flags & PROMISE_RESOLVED) {
-        PyTrack_INCREF(self->value);
-        promise->value = self->value;
-        promise->flags |= self->flags & PROMISE_SCHEDULED;
-        Chain_APPEND(&S(promisechain), promise);
+        schedule_promise(promise, self->value, (self->flags & PROMISE_SCHEDULED) | PROMISE_INTERIM, 0);
     } else {
+        Py_INCREF(promise);
+        promise->flags |= PROMISE_INTERIM;
         Chain_APPEND(self, promise);
     }
-    promise->flags |= PROMISE_INTERIM;
-    Py_INCREF(promise);
     return promise;
 }
 
-Py_LOCAL_INLINE(void)
-schedule_promise(Promise *self, PyObject *value, int flag)
-{
-    _CTX_set((PyObject *) self);
-    PyTrack_INCREF(value);
-    self->value = value;
-    self->flags |= flag;
-    Py_INCREF(self);
-    Chain_APPEND(&S(promisechain), self);
-}
-
+/* Create a new resolved promise. */
 CAPSULE_API(PROMISE_API, Promise *)
 Promise_NewResolved(_ctx_var, PyObject *value)
 {
     Promise *promise = Promise_New(_ctx);
     if (promise) {
         if (value == Py_None) {
-            schedule_promise(promise, Py_None, PROMISE_FULFILLED);
+            schedule_promise(promise, Py_None, PROMISE_FULFILLED, 0);
         } else {
-            schedule_promise(promise, value, PROMISE_FULFILLED);
+            schedule_promise(promise, value, PROMISE_FULFILLED, 0);
             Py_DECREF(value);
         }
         return promise;
@@ -193,46 +247,77 @@ Promise_NewResolved(_ctx_var, PyObject *value)
     return NULL;
 }
 
+/* Resolve promise. */
 CAPSULE_API(PROMISE_API, void)
-Promise_Resolve(Promise *self, PyObject *value)
-{
-    assert(!(self->flags & PROMISE_INTERIM));
-    if (!(self->flags & PROMISE_SCHEDULED))
-        schedule_promise(self, value, PROMISE_FULFILLED);
-}
-
-CAPSULE_API(PROMISE_API, void)
-Promise_Reject(Promise *self, PyObject *value)
+Promise_ResolveEx(Promise *self, PyObject *value, int invoke_callback)
 {
     assert(!(self->flags & PROMISE_INTERIM));
     if (!(self->flags & PROMISE_SCHEDULED)) {
+        _CTX_set(self);
+        schedule_promise(self, value, PROMISE_FULFILLED, invoke_callback);
+    }
+}
+
+/* Resolve promise (callback is suppressed, the best for calling from loop callbacks) */
+CAPSULE_API(PROMISE_API, void)
+Promise_Resolve(Promise *self, PyObject *value)
+{
+    return Promise_ResolveEx(self, value, 0);
+}
+
+/* Reject promise */
+CAPSULE_API(PROMISE_API, void)
+Promise_RejectEx(Promise *self, PyObject *value, int invoke_callback)
+{
+    assert(!(self->flags & PROMISE_INTERIM));
+    if (!(self->flags & PROMISE_SCHEDULED)) {
+        _CTX_set(self);
         if (!value) {
             value = Py_FetchError();
             assert(value != NULL);
-            schedule_promise(self, value, PROMISE_REJECTED);
+            schedule_promise(self, value, PROMISE_REJECTED, invoke_callback);
             Py_DECREF(value);
         } else {
-            schedule_promise(self, value, PROMISE_REJECTED);
+            schedule_promise(self, value, PROMISE_REJECTED, invoke_callback);
         }
     }
+}
+
+/* Reject promise (callback is suppressed, the best for calling from loop callbacks) */
+CAPSULE_API(PROMISE_API, void)
+Promise_Reject(Promise *self, PyObject *value)
+{
+    Promise_RejectEx(self, value, 0);
+}
+
+CAPSULE_API(PROMISE_API, void)
+Promise_RejectArgsEx(Promise *self, PyObject *exc, PyObject *args, int invoke_callback)
+{
+    assert(!(self->flags & PROMISE_INTERIM));
+    PyObject *value = PyObject_Call(exc, args, NULL);
+    Promise_RejectEx(self, value, invoke_callback);
+    Py_XDECREF(value);
 }
 
 CAPSULE_API(PROMISE_API, void)
 Promise_RejectArgs(Promise *self, PyObject *exc, PyObject *args)
 {
+    Promise_RejectArgsEx(self, exc, args, 0);
+}
+
+CAPSULE_API(PROMISE_API, void)
+Promise_RejectStringEx(Promise *self, PyObject *exc, const char *msg, int invoke_callback)
+{
     assert(!(self->flags & PROMISE_INTERIM));
-    PyObject *value = PyObject_Call(exc, args, NULL);
-    Promise_Reject(self, value);
+    PyObject *value = Py_NewError(exc, msg);
+    Promise_RejectEx(self, value, invoke_callback);
     Py_XDECREF(value);
 }
 
 CAPSULE_API(PROMISE_API, void)
 Promise_RejectString(Promise *self, PyObject *exc, const char *msg)
 {
-    assert(!(self->flags & PROMISE_INTERIM));
-    PyObject *value = Py_NewError(exc, msg);
-    Promise_Reject(self, value);
-    Py_XDECREF(value);
+    Promise_RejectStringEx(self, exc, msg, 0);
 }
 
 Py_LOCAL_INLINE(int)
@@ -241,7 +326,7 @@ promise_exec_async(_ctx_var, PyObject *coro)
     Promise *promise = Promise_New(_ctx);
     if (!promise)
         return -1;
-    schedule_promise(promise, Py_None, PROMISE_FULFILLED | PROMISE_VALUABLE);
+    schedule_promise(promise, Py_None, PROMISE_FULFILLED | PROMISE_VALUABLE, 1);
     PyTrack_INCREF(coro);
     promise->coro = coro;
     Py_DECREF(promise);
@@ -258,7 +343,7 @@ Py_LOCAL_INLINE(PyObject *)
 promise_execasync_impl(PyObject *module, PyObject *coro)
 /*[clinic end generated code: output=df1dbca0537541fc input=f373349fc2e8c9d9]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     promise_exec_async(_ctx, coro);
     Py_RETURN_NONE;
 }
@@ -289,7 +374,7 @@ resume_coroutine(_ctx_var, PyObject *coro, PyObject *value, int reject)
                 || PyErr_ExceptionMatches(PyExc_SystemExit)) {
                 return -1;
             }
-            Py_PrintLastException();
+            PyErr_WriteUnraisable(coro);
             return 0;
         }
         if (Py_TYPE(result) != S(PromiseType)) {
@@ -314,12 +399,13 @@ resume_coroutine(_ctx_var, PyObject *coro, PyObject *value, int reject)
 }
 
 Py_LOCAL_INLINE(int)
-handle_scheduled_promise(Promise *promise)
+handle_scheduled_promise(_ctx_var, Promise *promise)
 {
     // It's a heart of an engine
     assert(!(promise->flags & PROMISE_RESOLVED) && (promise->flags & PROMISE_SCHEDULED));
 
-    _CTX_set((PyObject *) promise);
+    LOG("(%p)", promise);
+
     int exec_status = promise->flags & PROMISE_SCHEDULED;
     promise->flags |= PROMISE_RESOLVING;
 
@@ -369,10 +455,12 @@ handle_scheduled_promise(Promise *promise)
                     if (promise->coro || Py_REFCNT(promise) > 1) {
                         // We must re-schedule promise
                         Py_INCREF(promise);
+                        // Must clear the promise value as it was already set
+                        PyTrack_CLEAR(promise->value);
                         Chain_APPEND(new_promise, promise);
                     } else {
-                        // We can replace current promise with the new one
-                        // without consequences
+                        LOG("(%p) move");
+                        // We can replace the current promise with a new one by moving the child promises only
                         Chain_MOVE(new_promise, promise);
                     }
                     Py_DECREF(new_promise);
@@ -393,12 +481,10 @@ handle_scheduled_promise(Promise *promise)
     if (Chain_HEAD(promise)) {
         Promise *it;
         PyObject *value = promise->value;
-        Chain_FOREACH(it, promise) {
-            PyTrack_INCREF(value);
-            it->value = value;
-            it->flags |= exec_status;
+        Chain_PULLALL(it, promise) {
+            schedule_promise(it, value, exec_status, 0);
+            Py_DECREF(it);
         }
-        Chain_MOVE(&S(promisechain), promise);
     }
 
     if (promise->coro) {
@@ -421,21 +507,23 @@ Promise_ClearChain(_ctx_var)
     }
 }
 
-CAPSULE_API(PROMISE_API, int)
+CAPSULE_API(PROMISE_API, Py_ssize_t)
 Promise_ProcessChain(_ctx_var)
 {
     if (Chain_HEAD(&S(promisechain))) {
         Promise *it;
+        S(chain_busy) = 1;
         Chain_PULLALL(it, &S(promisechain)) {
-            int err = handle_scheduled_promise(it);
+            int err = handle_scheduled_promise(_ctx, it);
             Py_DECREF(it);
             if (err) {
+                S(chain_busy) = 0;
                 return -1;
             }
         }
-        return 1;
+        S(chain_busy) = 0;
     }
-    return 0;
+    return S(promise_count);
 }
 
 /*[clinic input]
@@ -446,37 +534,83 @@ Py_LOCAL_INLINE(PyObject *)
 promise_process_promise_chain_impl(PyObject *module)
 /*[clinic end generated code: output=0587509f3b9441b4 input=1b727a6bcabff125]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     int ret = Promise_ProcessChain(_ctx);
     if (ret < 0) {
         return NULL;
     }
-    if (ret) {
-        Py_RETURN_TRUE;
+    return PyLong_FromSsize_t(S(promise_count));
+}
+
+static void
+promise_unlockloop(_ctx_var)
+{
+    _Py_IDENTIFIER(set);
+    PyObject *ret = _PyObject_CallMethodIdNoArgs(S(await_event), &PyId_set);
+    if (!ret) {
+        PyErr_WriteUnraisable(S(await_event));
     } else {
-        Py_RETURN_FALSE;
+        Py_DECREF(ret);
     }
+}
+
+/*[clinic input]
+promise.run_forever
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+promise_run_forever_impl(PyObject *module)
+/*[clinic end generated code: output=dbc5007e1e267e20 input=a4668cb0592ac027]*/
+{
+    _CTX_set_module(module);
+    PyObject *event = PyObject_CallNoArgs(S(EventType));
+    if (!event)
+        return NULL;
+    if (Promise_StartLoop(_ctx, (unlockloop) promise_unlockloop, _ctx)) {
+        Py_DECREF(event);
+        return NULL;
+    }
+    S(await_event) = event;
+    _Py_IDENTIFIER(wait);
+    _Py_IDENTIFIER(clear);
+    while (1) {
+        Py_ssize_t process_result = Promise_ProcessChain(_ctx);
+        if (process_result <= 0)
+            break;
+        PyObject *ret = _PyObject_CallMethodIdNoArgs(event, &PyId_wait);
+        if (!ret)
+            break;
+        Py_DECREF(ret);
+        ret = _PyObject_CallMethodIdNoArgs(event, &PyId_clear);
+        if (!ret)
+            break;
+        Py_DECREF(ret);
+    }
+    Py_CLEAR(S(await_event));
+    Promise_ClearChain(_ctx);   // TODO: maybe I should not clear the chain?
+    Promise_StopLoop(_ctx, (unlockloop) promise_unlockloop, _ctx);
+    if (PyErr_Occurred())
+        return NULL;
+
+    // In the case when promises remain in memory, they can be fulfilled later,
+    // which can lead to unsuspected consequences.
+
+    Py_RETURN_NONE;
 }
 
 PyDoc_STRVAR(promiseiter_doc, "Iterator for async magic");
 
 static PyObject *
-promiseiter_send(Promiseiter *self, PyObject *value);
-
-static PyMethodDef promiseiter_methods[] = {
-    {"send", (PyCFunction) promiseiter_send, METH_O, NULL},
-    {NULL, NULL},
-};
-
-static PyObject *
 promiseiter_new(Promise *promise)
 {
-    _CTX_set((PyObject *) promise);
+    _CTX_set(promise);
     Promiseiter *it = (Promiseiter *) Freelist_GC_New(PromiseiterType);
     if (!it)
         return NULL;
     PyTrack_MarkAllocated(it);
     PyObject_GC_Track(it);
+    _CTX_save(it);
     if (promise->coro || promise->flags & PROMISE_RESOLVED) {
         it->promise = Promise_Then(promise);
         if (it->promise == NULL) {
@@ -493,8 +627,8 @@ promiseiter_new(Promise *promise)
 static int
 promiseiter_traverse(Promiseiter *self, visitproc visit, void *arg)
 {
-    Py_VISIT(self->promise);
     Py_VISIT(Py_TYPE(self));
+    Py_VISIT(self->promise);
     return 0;
 }
 
@@ -508,7 +642,7 @@ promiseiter_clear(Promiseiter *self)
 static void
 promiseiter_dealloc(Promiseiter *self)
 {
-    _CTX_set((PyObject *) self);
+    _CTX_set(self);
     PyTrack_MarkDeleted(self);
     PyObject_GC_UnTrack(self);
     promiseiter_clear(self);
@@ -536,6 +670,12 @@ promiseiter_send(Promiseiter *self, PyObject *value)
     return NULL;
 }
 
+static PyMethodDef promiseiter_methods[] = {
+    {"send", (PyCFunction) promiseiter_send, METH_O, NULL},
+    {NULL, NULL},
+};
+
+
 static PyType_Slot promiseiter_slots[] = {
     {Py_tp_doc, (char *) promiseiter_doc},
     {Py_tp_methods, promiseiter_methods},
@@ -560,7 +700,9 @@ PyDoc_STRVAR(promise_doc, "The Promise object represents the eventual completion
                           "an asynchronous operation and its resulting value.\n");
 
 static PyMethodDef promise_methods[] = {
-    PROMISE_PROMISE_THEN_METHODDEF PROMISE_PROMISE_CATCH_METHODDEF {NULL} /* Sentinel */
+    PROMISE_PROMISE_THEN_METHODDEF
+    PROMISE_PROMISE_CATCH_METHODDEF
+    {NULL} /* Sentinel */
 };
 
 /*[clinic input]
@@ -625,6 +767,7 @@ promise_Promise_catch_impl(Promise *self, PyObject *rejected)
 static int
 promise_traverse(Promise *self, visitproc visit, void *arg)
 {
+    Py_VISIT(Py_TYPE(self));
     Py_VISIT(Chain_HEAD(self));
     Py_VISIT(Chain_NEXT(self));
     Py_VISIT(self->value);
@@ -635,7 +778,6 @@ promise_traverse(Promise *self, visitproc visit, void *arg)
         Py_VISIT(self->fulfilled);
         Py_VISIT(self->rejected);
     }
-    Py_VISIT(Py_TYPE(self));
     return 0;
 }
 
@@ -656,12 +798,44 @@ promise_clear(Promise *self)
 }
 
 static void
+promise_finalize(Promise *self)
+{
+    // We're only here for coroutine
+    PyObject *error_type, *error_value, *error_traceback;
+    PyErr_Fetch(&error_type, &error_value, &error_traceback);
+
+    _CTX_set(self);
+    PySys_FormatStderr("Exception ignored in: %S\n", self->coro);
+    PySys_WriteStderr("Traceback (most recent call last):\n");
+    PyObject *result = _PyObject_CallOneArg(S(print_stack), (PyObject *) ((PyCoroObject *) self->coro)->cr_frame);
+    if (!result) {
+        PyErr_WriteUnraisable(self->coro);
+    }
+    PySys_WriteStderr("RuntimeError: a coroutine expects a promise that will never be fulfilled\n");
+    Py_XDECREF(result);
+
+    PyErr_Restore(error_type, error_value, error_traceback);
+}
+
+static void
 promise_dealloc(Promise *self)
 {
-    _CTX_set((PyObject *) self);
+    _CTX_set(self);
     if ((self->flags & PROMISE_REJECTED) && (!(self->flags & PROMISE_VALUABLE))) {
         print_unhandled_exception_from_dealloc(self->value);
     }
+
+    if (self->coro) {
+        if (PyObject_CallFinalizerFromDealloc((PyObject *) self) < 0) {
+            // resurrected.
+            return;
+        }
+    }
+
+    if (!(self->flags & PROMISE_SCHEDULED)) {
+        S(promise_count)--;
+    }
+
     PyTrack_MarkDeleted(self);
     PyObject_GC_UnTrack(self);
     promise_clear(self);
@@ -704,6 +878,7 @@ static PyType_Slot promise_slots[] = {
     {Py_tp_doc, (char *) promise_doc},
     {Py_tp_methods, promise_methods},
     {Py_tp_dealloc, promise_dealloc},
+    {Py_tp_finalize, promise_finalize},
     {Py_tp_traverse, promise_traverse},
     {Py_tp_clear, promise_clear},
     {Py_tp_repr, promise_repr},
@@ -723,8 +898,10 @@ PyDoc_STRVAR(deferred_doc, "A Deferred object is used to provide a new promise "
                            "along with methods to change its state.\n");
 
 static PyMethodDef deferred_methods[] = {
-    PROMISE_DEFERRED_RESOLVE_METHODDEF PROMISE_DEFERRED_REJECT_METHODDEF
-    PROMISE_DEFERRED_PROMISE_METHODDEF {NULL} /* Sentinel */
+    PROMISE_DEFERRED_RESOLVE_METHODDEF
+    PROMISE_DEFERRED_REJECT_METHODDEF
+    PROMISE_DEFERRED_PROMISE_METHODDEF
+    {NULL} /* Sentinel */
 };
 
 /*[clinic input]
@@ -735,7 +912,7 @@ Py_LOCAL_INLINE(PyObject *)
 promise_deferred_impl(PyObject *module)
 /*[clinic end generated code: output=4760b84ba7d768a3 input=4303141f412f77d4]*/
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     Promise *promise = Promise_New(_ctx);
     if (!promise)
         return NULL;
@@ -744,6 +921,7 @@ promise_deferred_impl(PyObject *module)
         Py_DECREF(promise);
         return NULL;
     }
+    _CTX_save(self);
     self->promise = promise;
     PyTrack_MarkAllocated(self);
     PyObject_GC_Track(self);
@@ -764,7 +942,7 @@ Py_LOCAL_INLINE(PyObject *)
 promise_Deferred_resolve_impl(Deferred *self, PyObject *value)
 /*[clinic end generated code: output=f055b923264841e2 input=91fdbc261cc8f9a6]*/
 {
-    Promise_Resolve(self->promise, value);
+    Promise_ResolveEx(self->promise, value, 1);
     Py_RETURN_NONE;
 }
 
@@ -782,7 +960,7 @@ promise_Deferred_reject_impl(Deferred *self, PyObject *value)
                                          "instances of such a class");
         return NULL;
     }
-    Promise_Reject(self->promise, value);
+    Promise_RejectEx(self->promise, value, 1);
     Py_RETURN_NONE;
 }
 
@@ -801,8 +979,8 @@ promise_Deferred_promise_impl(Deferred *self)
 static int
 deferred_traverse(Deferred *self, visitproc visit, void *arg)
 {
-    Py_VISIT(self->promise);
     Py_VISIT(Py_TYPE(self));
+    Py_VISIT(self->promise);
     return 0;
 }
 
@@ -816,7 +994,7 @@ deferred_clear(Deferred *self)
 static void
 deferred_dealloc(Deferred *self)
 {
-    _CTX_set((PyObject *) self);
+    _CTX_set(self);
     PyTrack_MarkDeleted(self);
     PyObject_GC_UnTrack(self);
     deferred_clear(self);
@@ -847,12 +1025,133 @@ static PyType_Spec deferred_spec = {
     deferred_slots,
 };
 
+
+/*[clinic input]
+class promise.Lock "Lock *" "_CTX_get_type(type)->LockType"
+[clinic start generated code]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=dc5e70ca7a8c9155]*/
+
+CAPSULE_API(PROMISE_API, Lock *)
+Lock_New(_ctx_var)
+{
+    return (Lock *) promise_Lock_impl(S(LockType));
+}
+
+CAPSULE_API(PROMISE_API, Promise *)
+Lock_Acquire(Lock *self)
+{
+    _CTX_set(self);
+    Promise *promise = Promise_New(_ctx);
+    if (promise) {
+        if (self->locked) {
+            Py_INCREF(self);
+            Py_INCREF(promise);
+            Chain_APPEND(self, promise);
+        } else {
+            schedule_promise(promise, Py_None, PROMISE_FULFILLED, 1);
+        }
+        self->locked++;
+    }
+    return promise;
+}
+
+CAPSULE_API(PROMISE_API, void)
+Lock_Release(Lock *self)
+{
+    if (self->locked) {
+        _CTX_set(self);
+        Promise *it;
+        Chain_PULLALL(it, self) {
+            self->locked--;
+            schedule_promise(it, Py_None, PROMISE_FULFILLED, 1);
+            Py_DECREF(it);
+            Py_DECREF(self);
+            break;
+        }
+    }
+}
+
+/*[clinic input]
+@classmethod
+promise.Lock.__new__
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+promise_Lock_impl(PyTypeObject *type)
+/*[clinic end generated code: output=d9149ff17417bda6 input=6c9fb50af8d29a9f]*/
+{
+    Lock *self = (Lock *) Py_New(type);
+    if (!self)
+        return NULL;
+
+    _CTX_set_type(type);
+    self->locked = 0;
+    _CTX_save(self);
+    Chain_INIT(self);
+    PyTrack_MarkAllocated(self);
+    return (PyObject *) self;
+}
+
+/*[clinic input]
+promise.Lock.acquire
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+promise_Lock_acquire_impl(Lock *self)
+/*[clinic end generated code: output=20d044ffec9c1f84 input=1207c4f90d9bdb82]*/
+{
+    return (PyObject *) Lock_Acquire(self);
+}
+
+/*[clinic input]
+promise.Lock.release
+
+[clinic start generated code]*/
+
+Py_LOCAL_INLINE(PyObject *)
+promise_Lock_release_impl(Lock *self)
+/*[clinic end generated code: output=b1c748e07809746e input=6896117a2c29291e]*/
+{
+    Lock_Release(self);
+    Py_RETURN_NONE;
+}
+
+static void
+lock_dealloc(Lock *self)
+{
+    Py_Delete(self);
+}
+
+static PyMethodDef lock_methods[] = {
+    PROMISE_LOCK_ACQUIRE_METHODDEF
+    PROMISE_LOCK_RELEASE_METHODDEF
+    {NULL} /* Sentinel */
+};
+
+static PyType_Slot lock_slots[] = {
+    {Py_tp_new, promise_Lock},
+    {Py_tp_methods, lock_methods},
+    {Py_tp_dealloc, lock_dealloc},
+    {0, 0},
+};
+
+static PyType_Spec lock_spec = {
+    "promisedio.promise.Lock",
+    sizeof(Lock),
+    0,
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE,
+    lock_slots,
+};
+
 static PyMethodDef promisemodule_methods[] = {
     PROMISE_CLEARFREELISTS_METHODDEF
     PROMISE_SETFREELISTLIMITS_METHODDEF
     PROMISE_DEFERRED_METHODDEF
     PROMISE_EXECASYNC_METHODDEF
     PROMISE_PROCESS_PROMISE_CHAIN_METHODDEF
+    PROMISE_RUN_FOREVER_METHODDEF
     {NULL, NULL},
 };
 
@@ -860,8 +1159,16 @@ static int
 promisemodule_init(PyObject *module)
 {
     LOG("(%p)", module);
-
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
+    Freelist_GC_INIT(PromiseType, 1024);
+    Freelist_GC_INIT(DeferredType, 1024);
+    Freelist_GC_INIT(PromiseiterType, 1024);
+    Chain_INIT(&(S(promisechain)));
+    S(chain_busy) = 0;
+    S(unlockloop_func) = NULL;
+    S(unlockloop_ctx) = NULL;
+    S(await_event) = NULL;
+    S(promise_count) = 0;
     S(PromiseType) = (PyTypeObject *) PyType_FromModuleAndSpec(module, &promise_spec, NULL);
     if (S(PromiseType) == NULL)
         return -1;
@@ -871,11 +1178,31 @@ promisemodule_init(PyObject *module)
     S(PromiseiterType) = (PyTypeObject *) PyType_FromModuleAndSpec(module, &promiseiter_spec, NULL);
     if (S(PromiseiterType) == NULL)
         return -1;
-    Freelist_GC_INIT(PromiseType, 1024);
-    Freelist_GC_INIT(DeferredType, 1024);
-    Freelist_GC_INIT(PromiseiterType, 1024);
-    Chain_INIT(&(S(promisechain)));
-    return 0;
+    S(LockType) = (PyTypeObject *) PyType_FromModuleAndSpec(module, &lock_spec, NULL);
+    if (S(LockType) == NULL)
+        return -1;
+    int err = -1;
+    PyObject *threading = PyImport_ImportModule("threading");
+    if (!threading)
+        goto finally;
+    S(EventType) = PyObject_GetAttrString(threading, "Event");
+    if (S(EventType) == NULL)
+        goto finally;
+    PyObject *d = PyModule_GetDict(module);
+    if (PyDict_SetItemString(d, "Promise", (PyObject *) S(PromiseType)) < 0)
+        goto finally;
+    if (PyDict_SetItemString(d, "Lock", (PyObject *) S(LockType)) < 0)
+        goto finally;
+    PyObject *traceback = PyImport_ImportModule("traceback");
+    if (!traceback)
+        goto finally;
+    S(print_stack) = PyObject_GetAttrString(traceback, "print_stack");
+    if (S(print_stack) == NULL)
+        goto finally;
+    err = 0;
+finally:
+    Py_XDECREF(threading);
+    return err;
 }
 
 #include "capsule.h"
@@ -891,10 +1218,13 @@ promisemodule_create_api(PyObject *module)
 static int
 promisemodule_traverse(PyObject *module, visitproc visit, void *arg)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     Py_VISIT(S(PromiseType));
     Py_VISIT(S(DeferredType));
     Py_VISIT(S(PromiseiterType));
+    Py_VISIT(S(LockType));
+    Py_VISIT(S(EventType));
+    Py_VISIT(S(print_stack));
     Py_VISIT(Chain_HEAD(&S(promisechain)));
     return 0;
 }
@@ -902,10 +1232,13 @@ promisemodule_traverse(PyObject *module, visitproc visit, void *arg)
 static int
 promisemodule_clear(PyObject *module)
 {
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     Py_CLEAR(S(PromiseType));
     Py_CLEAR(S(DeferredType));
     Py_CLEAR(S(PromiseiterType));
+    Py_CLEAR(S(LockType));
+    Py_CLEAR(S(EventType));
+    Py_CLEAR(S(print_stack));
     Promise_ClearChain(_ctx);
     return 0;
 }
@@ -914,7 +1247,7 @@ static void
 promisemodule_free(void *module)
 {
     LOG("(%p)", module);
-    _CTX_setmodule(module);
+    _CTX_set_module(module);
     Freelist_GC_Clear(PromiseType);
     Freelist_GC_Clear(PromiseiterType);
     Freelist_GC_Clear(DeferredType);

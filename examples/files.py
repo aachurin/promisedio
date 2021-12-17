@@ -45,5 +45,4 @@ promise.exec_async(example1())
 promise.exec_async(example2())
 promise.exec_async(example3())
 
-loop.run_until_complete()
-print("@ALLOC_STATS")
+loop.run_forever()

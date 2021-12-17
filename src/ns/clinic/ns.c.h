@@ -238,8 +238,8 @@ ns_open_connection(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
         }
     }
     if (args[6]) {
-        if (!PyObject_TypeCheck(args[6], _CTX_getmodule(module)->SSLContextType)) {
-            _PyArg_BadArgument("open_connection", "argument 'ssl'", (_CTX_getmodule(module)->SSLContextType)->tp_name, args[6]);
+        if (!PyObject_TypeCheck(args[6], _CTX_get_module(module)->SSLContextType)) {
+            _PyArg_BadArgument("open_connection", "argument 'ssl'", (_CTX_get_module(module)->SSLContextType)->tp_name, args[6]);
             goto exit;
         }
         ssl = args[6];
@@ -632,8 +632,8 @@ ns_open_unix_connection(PyObject *module, PyObject *const *args, Py_ssize_t narg
         }
     }
     if (args[3]) {
-        if (!PyObject_TypeCheck(args[3], _CTX_getmodule(module)->SSLContextType)) {
-            _PyArg_BadArgument("open_unix_connection", "argument 'ssl'", (_CTX_getmodule(module)->SSLContextType)->tp_name, args[3]);
+        if (!PyObject_TypeCheck(args[3], _CTX_get_module(module)->SSLContextType)) {
+            _PyArg_BadArgument("open_unix_connection", "argument 'ssl'", (_CTX_get_module(module)->SSLContextType)->tp_name, args[3]);
             goto exit;
         }
         ssl = args[3];
@@ -869,4 +869,4 @@ ns_PipeStream_close(Stream *self, PyObject *Py_UNUSED(ignored))
 {
     return ns_PipeStream_close_impl(self);
 }
-/*[clinic end generated code: output=2c51bb9f8db643de input=a9049054013a1b77]*/
+/*[clinic end generated code: output=63cd415c35a9820c input=a9049054013a1b77]*/
