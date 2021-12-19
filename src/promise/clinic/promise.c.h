@@ -169,7 +169,7 @@ PyDoc_STRVAR(promise_run_forever__doc__,
 "run_forever($module, /)\n"
 "--\n"
 "\n"
-"");
+"Run loop.");
 
 #define PROMISE_RUN_FOREVER_METHODDEF    \
     {"run_forever", (PyCFunction)promise_run_forever, METH_NOARGS, promise_run_forever__doc__},
@@ -421,4 +421,4 @@ promise_Lock_release(Lock *self, PyObject *Py_UNUSED(ignored))
 {
     return promise_Lock_release_impl(self);
 }
-/*[clinic end generated code: output=843365560f504dcd input=a9049054013a1b77]*/
+/*[clinic end generated code: output=bdbb853088ca1433 input=a9049054013a1b77]*/

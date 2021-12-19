@@ -6,7 +6,7 @@ PyDoc_STRVAR(loop_run_forever__doc__,
 "run_forever($module, /)\n"
 "--\n"
 "\n"
-"");
+"Run loop.");
 
 #define LOOP_RUN_FOREVER_METHODDEF    \
     {"run_forever", (PyCFunction)loop_run_forever, METH_NOARGS, loop_run_forever__doc__},
@@ -59,4 +59,4 @@ loop_hrtime(PyObject *module, PyObject *Py_UNUSED(ignored))
 {
     return loop_hrtime_impl(module);
 }
-/*[clinic end generated code: output=294e3cacc1ccd11c input=a9049054013a1b77]*/
+/*[clinic end generated code: output=6c8463a85e8518fe input=a9049054013a1b77]*/
