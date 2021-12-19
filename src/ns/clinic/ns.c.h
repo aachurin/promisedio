@@ -8,10 +8,12 @@ PyDoc_STRVAR(ns_getaddrinfo__doc__,
 "--\n"
 "\n"
 "Translate the host/port argument into a sequence of 5-tuples that contain all the necessary arguments for \n"
-"creating a socket connected to that service. host is a domain name, a string representation of an IPv4/v6 address or None.\n"
-"port is a string service name such as \'http\', a numeric port number or None. \n"
+"creating a socket connected to that service. _host_ is a domain name, a string representation of an IPv4/v6 address or _None_.\n"
+"_port_ is a string service name such as \'http\', a numeric port number or _None_. \n"
 "\n"
-"For more information, see [getaddrinfo](https://docs.python.org/3/library/socket.html#socket.getaddrinfo)");
+"For more information, see [getaddrinfo](https://docs.python.org/3/library/socket.html#socket.getaddrinfo)\n"
+"\n"
+"");
 
 #define NS_GETADDRINFO_METHODDEF    \
     {"getaddrinfo", (PyCFunction)(void(*)(void))ns_getaddrinfo, METH_FASTCALL|METH_KEYWORDS, ns_getaddrinfo__doc__},
@@ -94,7 +96,9 @@ PyDoc_STRVAR(ns_getnameinfo__doc__,
 "numeric address representation in host.\n"
 "Similarly, port can contain a string port name or a numeric port number.\n"
 "\n"
-"For more information about flags you can consult [getnameinfo(3)](https://man7.org/linux/man-pages/man3/getnameinfo.3.html)");
+"For more information about flags you can consult [getnameinfo(3)](https://man7.org/linux/man-pages/man3/getnameinfo.3.html)\n"
+"\n"
+"");
 
 #define NS_GETNAMEINFO_METHODDEF    \
     {"getnameinfo", (PyCFunction)(void(*)(void))ns_getnameinfo, METH_FASTCALL|METH_KEYWORDS, ns_getnameinfo__doc__},
@@ -138,10 +142,12 @@ PyDoc_STRVAR(ns_open_connection__doc__,
 "\n"
 "Establish an IPv4 or IPv6 TCP connection.\n"
 "\n"
-"limit: The internal buffer size limit used by the Stream instance. By default, the limit is set to 64 KiB.\n"
-"chunk_size: The minimum size of one chunk of the internal buffer. By default, is set to 496 bytes (on x64).\n"
-"nodelay: Enable/disable TCP_NODELAY. Set 1 to disable Nagle\'s algorithm.\n"
-"keepalive: Enable/disable TCP keep-alive. The value is the initial delay in seconds. Set 0 to disable TCP keep-alive.");
+"_limit_: The internal buffer size limit used by the _Stream_ instance. By default, the limit is set to 64 KiB.\n"
+"_chunk_size_: The minimum size of one chunk of the internal buffer. By default, is set to 496 bytes (on x64).\n"
+"_nodelay_: Enable/disable TCP_NODELAY. Set 1 to disable Nagle\'s algorithm.\n"
+"_keepalive_: Enable/disable TCP keep-alive. The value is the initial delay in seconds. Set 0 to disable TCP keep-alive.\n"
+"\n"
+"");
 
 #define NS_OPEN_CONNECTION_METHODDEF    \
     {"open_connection", (PyCFunction)(void(*)(void))ns_open_connection, METH_FASTCALL|METH_KEYWORDS, ns_open_connection__doc__},
@@ -259,6 +265,8 @@ PyDoc_STRVAR(ns_TcpStream_set_tcp_nodelay__doc__,
 "set_tcp_nodelay($self, /, enabled)\n"
 "--\n"
 "\n"
+"Enable/disable TCP_NODELAY, which disables Nagle\'s algorithm.\n"
+"\n"
 "");
 
 #define NS_TCPSTREAM_SET_TCP_NODELAY_METHODDEF    \
@@ -293,6 +301,8 @@ exit:
 PyDoc_STRVAR(ns_TcpStream_set_tcp_keepalive__doc__,
 "set_tcp_keepalive($self, /, delay)\n"
 "--\n"
+"\n"
+"Enable/disable TCP keep-alive. Set zero to disable.\n"
 "\n"
 "");
 
@@ -329,7 +339,9 @@ PyDoc_STRVAR(ns_TcpStream_getpeername__doc__,
 "getpeername($self, /)\n"
 "--\n"
 "\n"
-"Get the current address to which the handle is bound (For TCP only)");
+"Get the current address to which the handle is bound (For TCP only)\n"
+"\n"
+"");
 
 #define NS_TCPSTREAM_GETPEERNAME_METHODDEF    \
     {"getpeername", (PyCFunction)ns_TcpStream_getpeername, METH_NOARGS, ns_TcpStream_getpeername__doc__},
@@ -347,7 +359,9 @@ PyDoc_STRVAR(ns_TcpStream_getsockname__doc__,
 "getsockname($self, /)\n"
 "--\n"
 "\n"
-"Return the socket\'s own address (For TCP only).");
+"Return the socket\'s own address (For TCP only).\n"
+"\n"
+"");
 
 #define NS_TCPSTREAM_GETSOCKNAME_METHODDEF    \
     {"getsockname", (PyCFunction)ns_TcpStream_getsockname, METH_NOARGS, ns_TcpStream_getsockname__doc__},
@@ -365,7 +379,9 @@ PyDoc_STRVAR(ns_TcpStream_write__doc__,
 "write($self, /, data)\n"
 "--\n"
 "\n"
-"Write data to the stream.");
+"Write data to the stream.\n"
+"\n"
+"");
 
 #define NS_TCPSTREAM_WRITE_METHODDEF    \
     {"write", (PyCFunction)(void(*)(void))ns_TcpStream_write, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_write__doc__},
@@ -400,7 +416,9 @@ PyDoc_STRVAR(ns_TcpStream_read__doc__,
 "Read up to n bytes. \n"
 "\n"
 "If n is not provided, or set to -1, reads as much bytes as possible.\n"
-"If EOF was received and the internal buffer is empty, return an empty bytes object.");
+"If EOF was received and the internal buffer is empty, return an empty bytes object.\n"
+"\n"
+"");
 
 #define NS_TCPSTREAM_READ_METHODDEF    \
     {"read", (PyCFunction)(void(*)(void))ns_TcpStream_read, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_read__doc__},
@@ -444,7 +462,9 @@ PyDoc_STRVAR(ns_TcpStream_readexactly__doc__,
 "Raise an IncompleteReadError if EOF is reached before n can be read. \n"
 "Use the IncompleteReadError.partial attribute to get the partially read data.\n"
 "\n"
-"Returned value is not limited by the configured stream limit.");
+"Returned value is not limited by the configured stream limit.\n"
+"\n"
+"");
 
 #define NS_TCPSTREAM_READEXACTLY_METHODDEF    \
     {"readexactly", (PyCFunction)(void(*)(void))ns_TcpStream_readexactly, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_readexactly__doc__},
@@ -484,7 +504,9 @@ PyDoc_STRVAR(ns_TcpStream_readuntil__doc__,
 "Use the IncompleteReadError.partial attribute to get the partially read data.\n"
 "\n"
 "If the amount of data read exceeds the configured stream limit, a LimitOverrunError exception is raised, \n"
-"and the data is left in the internal buffer and can be read again.");
+"and the data is left in the internal buffer and can be read again.\n"
+"\n"
+"");
 
 #define NS_TCPSTREAM_READUNTIL_METHODDEF    \
     {"readuntil", (PyCFunction)(void(*)(void))ns_TcpStream_readuntil, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_readuntil__doc__},
@@ -524,6 +546,8 @@ exit:
 PyDoc_STRVAR(ns_TcpStream_shutdown__doc__,
 "shutdown($self, /)\n"
 "--\n"
+"\n"
+"Shut down the stream. \n"
 "\n"
 "");
 
@@ -869,4 +893,4 @@ ns_PipeStream_close(Stream *self, PyObject *Py_UNUSED(ignored))
 {
     return ns_PipeStream_close_impl(self);
 }
-/*[clinic end generated code: output=63cd415c35a9820c input=a9049054013a1b77]*/
+/*[clinic end generated code: output=2d1b1e68b9ec19f3 input=a9049054013a1b77]*/

@@ -4,36 +4,55 @@ from clinic import main as clinic_main
 from capluse import main as capsule_main
 
 
-_readme_content = []
+_readme_content = {}
 
 
 def get_readme():
-    global _readme_content
-    if not _readme_content:
-        with open("README.md", "rt") as f:
-            _readme_content = f.read()
-    return _readme_content.splitlines()
+    if _readme_content:
+        return _readme_content
+    with open("README.md", "rt") as f:
+        data = f.read()
+    content = _readme_content
+    module = func = None
+    lines = data.splitlines()
+    n = 0
+    while lines:
+        line = lines.pop(0)
+        n += 1
+        if line.startswith("### "):
+            module = line.split()[1]
+            if module.startswith("promisedio."):
+                module = module[11:]
+            func = None
+            continue
+        if module:
+            if line.startswith("```python"):
+                line = lines.pop(0)
+                n += 1
+                func = line.split("(")[0].strip()
+                if func and re.match('^[a-zA-Z_]+(?:\.[a-zA-Z_]+)?$', func):
+                    content.setdefault(module, {})[func] = ""
+                else:
+                    func = None
+                while lines.pop(0).strip() != "```":
+                    n += 1
+                continue
+            if func:
+                content[module][func] += line + "\n"
+    print(content)
+    return content
 
 
 def get_readme_description(func):
-    readme = get_readme()
-    result = []
-    for num, text in enumerate(readme):
-        if text.startswith(func + "("):
-            start_found = False
-            for line in readme[num + 1:]:
-                if not start_found:
-                    if line.startswith("```"):
-                        start_found = True
-                    continue
-                if line.startswith("`") or line.startswith("#"):
-                    break
-                line = re.sub(r"_[^\s]+_", lambda x: x.group()[1:-1], line)
-                result.append(line)
-            break
-    if not result:
-        print("No docstring for %s" % func)
-    return "\n".join(result)
+    result = func.docstring.rstrip("\n") + "\n\n"
+    module = func.module.name
+    name = f"{func.cls.name}.{func.name}" if func.cls else func.name
+    lines = get_readme().get(module, {}).get(name)
+    if not lines:
+        print("No docstring for %s.%s" % (module, name))
+    else:
+        result += lines
+    return result
 
 
 docstring_for_c_string = CLanguage.docstring_for_c_string
@@ -45,12 +64,7 @@ class DocstringHolder:
 
 def docstring_for_c_string_from_readme(self, f):
     df = DocstringHolder()
-    match = re.search(r"@doc\[.*]", f.docstring)
-    if match:
-        df.docstring = f.docstring.replace(match.group(), "\n" + get_readme_description(match.group()[5:-1]).strip())
-    else:
-        name = f"{f.cls.name}.{f.name}" if f.cls else f.name
-        df.docstring = f.docstring.rstrip("\n") + "\n\n" + get_readme_description(name).strip()
+    df.docstring = get_readme_description(f)
     return docstring_for_c_string(self, df)
 
 

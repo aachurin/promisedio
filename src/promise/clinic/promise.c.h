@@ -115,6 +115,9 @@ PyDoc_STRVAR(promise_execasync__doc__,
 "exec_async($module, /, coro)\n"
 "--\n"
 "\n"
+"Start coroutine.\n"
+"\n"
+"##### Example:\n"
 "");
 
 #define PROMISE_EXECASYNC_METHODDEF    \
@@ -169,7 +172,7 @@ PyDoc_STRVAR(promise_run_forever__doc__,
 "run_forever($module, /)\n"
 "--\n"
 "\n"
-"Run loop.");
+"");
 
 #define PROMISE_RUN_FOREVER_METHODDEF    \
     {"run_forever", (PyCFunction)promise_run_forever, METH_NOARGS, promise_run_forever__doc__},
@@ -187,9 +190,11 @@ PyDoc_STRVAR(promise_Promise_then__doc__,
 "then($self, /, fulfilled=None, rejected=None)\n"
 "--\n"
 "\n"
-"Create new Promise.\n"
+"Create new _Promise_.\n"
 "\n"
-"It takes up to two arguments: callback functions for the success and failure cases of the Promise.");
+"It takes up to two arguments: callback functions for the success and failure cases of the _Promise_.\n"
+" \n"
+"");
 
 #define PROMISE_PROMISE_THEN_METHODDEF    \
     {"then", (PyCFunction)(void(*)(void))promise_Promise_then, METH_FASTCALL|METH_KEYWORDS, promise_Promise_then__doc__},
@@ -234,9 +239,12 @@ PyDoc_STRVAR(promise_Promise_catch__doc__,
 "catch($self, /, rejected)\n"
 "--\n"
 "\n"
-"Create new Promise.\n"
+"Create new _Promise_.\n"
 "\n"
-"It is the same as `.then(None, rejected)`");
+"It is the same as `.then(None, rejected)`\n"
+"\n"
+"\n"
+"");
 
 #define PROMISE_PROMISE_CATCH_METHODDEF    \
     {"catch", (PyCFunction)(void(*)(void))promise_Promise_catch, METH_FASTCALL|METH_KEYWORDS, promise_Promise_catch__doc__},
@@ -268,7 +276,9 @@ PyDoc_STRVAR(promise_deferred__doc__,
 "deferred($module, /)\n"
 "--\n"
 "\n"
-"Create new Deferred object.");
+"Create new _Deferred_ object.\n"
+"\n"
+"");
 
 #define PROMISE_DEFERRED_METHODDEF    \
     {"deferred", (PyCFunction)promise_deferred, METH_NOARGS, promise_deferred__doc__},
@@ -286,7 +296,9 @@ PyDoc_STRVAR(promise_Deferred_resolve__doc__,
 "resolve($self, /, value)\n"
 "--\n"
 "\n"
-"Resolve related Promise object with the given value.");
+"Resolve related _Promise_ object with the given _value_.\n"
+"\n"
+"");
 
 #define PROMISE_DEFERRED_RESOLVE_METHODDEF    \
     {"resolve", (PyCFunction)(void(*)(void))promise_Deferred_resolve, METH_FASTCALL|METH_KEYWORDS, promise_Deferred_resolve__doc__},
@@ -318,7 +330,9 @@ PyDoc_STRVAR(promise_Deferred_reject__doc__,
 "reject($self, /, value)\n"
 "--\n"
 "\n"
-"Reject related Promise object with the given exception exc.");
+"Reject related _Promise_ object with the given exception _exc_.\n"
+"\n"
+"");
 
 #define PROMISE_DEFERRED_REJECT_METHODDEF    \
     {"reject", (PyCFunction)(void(*)(void))promise_Deferred_reject, METH_FASTCALL|METH_KEYWORDS, promise_Deferred_reject__doc__},
@@ -350,7 +364,9 @@ PyDoc_STRVAR(promise_Deferred_promise__doc__,
 "promise($self, /)\n"
 "--\n"
 "\n"
-"Get related Promise object.");
+"Get related _Promise_ object.\n"
+"\n"
+"");
 
 #define PROMISE_DEFERRED_PROMISE_METHODDEF    \
     {"promise", (PyCFunction)promise_Deferred_promise, METH_NOARGS, promise_Deferred_promise__doc__},
@@ -421,4 +437,4 @@ promise_Lock_release(Lock *self, PyObject *Py_UNUSED(ignored))
 {
     return promise_Lock_release_impl(self);
 }
-/*[clinic end generated code: output=bdbb853088ca1433 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=bd635d031ca79b51 input=a9049054013a1b77]*/

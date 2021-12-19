@@ -6,12 +6,14 @@ PyDoc_STRVAR(fs_stat__doc__,
 "stat($module, /, path, *, follow_symlinks=True)\n"
 "--\n"
 "\n"
-"Get the status of a file. Return a StatObj object.\n"
+"Get the status of a file. Return a _StatObj_ object.\n"
 "\n"
-"This function normally follows symlinks; to stat a symlink add the argument follow_symlinks=False\n"
+"This function normally follows symlinks; to stat a symlink add the argument _follow_symlinks=False_\n"
 "\n"
 "Equivalent to [stat(2)](https://man7.org/linux/man-pages/man2/stat.2.html) \n"
-"              [lstat(2)](https://man7.org/linux/man-pages/man2/lstat.2.html).");
+"              [lstat(2)](https://man7.org/linux/man-pages/man2/lstat.2.html).\n"
+"\n"
+"");
 
 #define FS_STAT_METHODDEF    \
     {"stat", (PyCFunction)(void(*)(void))fs_stat, METH_FASTCALL|METH_KEYWORDS, fs_stat__doc__},
@@ -58,11 +60,13 @@ PyDoc_STRVAR(fs_fstat__doc__,
 "fstat($module, /, fd)\n"
 "--\n"
 "\n"
-"Get the status of the file descriptor fd. \n"
+"Get the status of the file descriptor _fd_. \n"
 "\n"
-"Return StatObj object.\n"
+"Return _StatObj_ object.\n"
 "\n"
-"Equivalent to [fstat(2)](https://man7.org/linux/man-pages/man2/fstat.2.html).");
+"Equivalent to [fstat(2)](https://man7.org/linux/man-pages/man2/fstat.2.html).\n"
+"\n"
+"");
 
 #define FS_FSTAT_METHODDEF    \
     {"fstat", (PyCFunction)(void(*)(void))fs_fstat, METH_FASTCALL|METH_KEYWORDS, fs_fstat__doc__},
@@ -96,14 +100,16 @@ PyDoc_STRVAR(fs_seek__doc__,
 "seek($module, /, fd, pos, how)\n"
 "--\n"
 "\n"
-"Set the current position of file descriptor fd to position pos, modified by how:\n"
-"- SEEK_SET or 0 to set the position relative to the beginning of the file;\n"
-"- SEEK_CUR or 1 to set it relative to the current position;\n"
-"- SEEK_END or 2 to set it relative to the end of the file.\n"
+"Set the current position of file descriptor _fd_ to position _pos_, modified by how:\n"
+"- _SEEK_SET_ or _0_ to set the position relative to the beginning of the file;\n"
+"- _SEEK_CUR_ or _1_ to set it relative to the current position;\n"
+"- _SEEK_END_ or _2_ to set it relative to the end of the file.\n"
 "\n"
 "Return the new cursor position in bytes, starting from the beginning.\n"
 "\n"
-"Equivalent to [lseek(2)](https://man7.org/linux/man-pages/man2/lseek.2.html).");
+"Equivalent to [lseek(2)](https://man7.org/linux/man-pages/man2/lseek.2.html).\n"
+"\n"
+"");
 
 #define FS_SEEK_METHODDEF    \
     {"seek", (PyCFunction)(void(*)(void))fs_seek, METH_FASTCALL|METH_KEYWORDS, fs_seek__doc__},
@@ -150,7 +156,9 @@ PyDoc_STRVAR(fs_openfd__doc__,
 "\n"
 "Return the file descriptor for the newly opened file. The new file descriptor is non-inheritable.\n"
 "\n"
-"Equivalent to [open(2)](https://man7.org/linux/man-pages/man2/open.2.html).");
+"Equivalent to [open(2)](https://man7.org/linux/man-pages/man2/open.2.html).\n"
+"\n"
+"");
 
 #define FS_OPENFD_METHODDEF    \
     {"openfd", (PyCFunction)(void(*)(void))fs_openfd, METH_FASTCALL|METH_KEYWORDS, fs_openfd__doc__},
@@ -202,9 +210,11 @@ PyDoc_STRVAR(fs_open__doc__,
 "open($module, /, path, mode=\'r\', closefd=True)\n"
 "--\n"
 "\n"
-"Open file and return a corresponding file object. If the file cannot be opened, an OSError is raised. \n"
+"Open file and return a corresponding file object. If the file cannot be opened, an _OSError_ is raised. \n"
 "\n"
-"Equivalent to python [open](https://docs.python.org/3/library/functions.html#open) (binary mode only).");
+"Equivalent to python [open](https://docs.python.org/3/library/functions.html#open) (binary mode only).\n"
+"\n"
+"");
 
 #define FS_OPEN_METHODDEF    \
     {"open", (PyCFunction)(void(*)(void))fs_open, METH_FASTCALL|METH_KEYWORDS, fs_open__doc__},
@@ -255,13 +265,15 @@ PyDoc_STRVAR(fs_read__doc__,
 "read($module, /, fd, size=-1, offset=-1)\n"
 "--\n"
 "\n"
-"Read from file descriptor fd until we have size characters or we hit EOF.\n"
+"Read from file descriptor _fd_ until we have _size_ characters or we hit EOF.\n"
 "\n"
-"If offset is present and is not negative, read at most size bytes from file descriptor fd at a position of offset,\n"
+"If _offset_ is present and is not negative, read at most _size_ bytes from file descriptor _fd_ at a position of _offset_,\n"
 "leaving the file offset unchanged.\n"
 "\n"
 "Equivalent to [read(2)](https://man7.org/linux/man-pages/man2/read.2.html)\n"
-"              [preadv(2)](https://man7.org/linux/man-pages/man2/preadv.2.html)");
+"              [preadv(2)](https://man7.org/linux/man-pages/man2/preadv.2.html)\n"
+"\n"
+"");
 
 #define FS_READ_METHODDEF    \
     {"read", (PyCFunction)(void(*)(void))fs_read, METH_FASTCALL|METH_KEYWORDS, fs_read__doc__},
@@ -313,15 +325,17 @@ PyDoc_STRVAR(fs_write__doc__,
 "write($module, /, fd, data, offset=-1)\n"
 "--\n"
 "\n"
-"Write the data to file descriptor fd.\n"
+"Write the _data_ to file descriptor _fd_.\n"
 "\n"
-"If offset is present and is not negative, write the data to file descriptor fd at position of offset, \n"
+"If _offset_ is present and is not negative, write the _data_ to file descriptor _fd_ at position of _offset_, \n"
 "leaving the file offset unchanged.\n"
 "\n"
 "Return the number of bytes actually written.\n"
 "\n"
 "Equivalent to [write(2)](https://man7.org/linux/man-pages/man2/write.2.html)\n"
-"              [pwritev(2)](https://man7.org/linux/man-pages/man2/pwritev.2.html)");
+"              [pwritev(2)](https://man7.org/linux/man-pages/man2/pwritev.2.html)\n"
+"\n"
+"");
 
 #define FS_WRITE_METHODDEF    \
     {"write", (PyCFunction)(void(*)(void))fs_write, METH_FASTCALL|METH_KEYWORDS, fs_write__doc__},
@@ -366,9 +380,11 @@ PyDoc_STRVAR(fs_close__doc__,
 "close($module, /, fd)\n"
 "--\n"
 "\n"
-"Close file descriptor fd.\n"
+"Close file descriptor _fd_.\n"
 "\n"
-"Equivalent to [close(2)](https://man7.org/linux/man-pages/man2/close.2.html).");
+"Equivalent to [close(2)](https://man7.org/linux/man-pages/man2/close.2.html).\n"
+"\n"
+"");
 
 #define FS_CLOSE_METHODDEF    \
     {"close", (PyCFunction)(void(*)(void))fs_close, METH_FASTCALL|METH_KEYWORDS, fs_close__doc__},
@@ -402,9 +418,11 @@ PyDoc_STRVAR(fs_unlink__doc__,
 "unlink($module, /, path)\n"
 "--\n"
 "\n"
-"Remove (delete) the file path.\n"
+"Remove (delete) the file _path_.\n"
 "\n"
-"Equivalent to [unlink(2)](https://man7.org/linux/man-pages/man2/unlink.2.html).");
+"Equivalent to [unlink(2)](https://man7.org/linux/man-pages/man2/unlink.2.html).\n"
+"\n"
+"");
 
 #define FS_UNLINK_METHODDEF    \
     {"unlink", (PyCFunction)(void(*)(void))fs_unlink, METH_FASTCALL|METH_KEYWORDS, fs_unlink__doc__},
@@ -441,13 +459,15 @@ PyDoc_STRVAR(fs_mkdir__doc__,
 "mkdir($module, /, path, mode=511)\n"
 "--\n"
 "\n"
-"Create a directory named path with numeric mode mode.\n"
+"Create a directory named _path_ with numeric _mode_ mode.\n"
 "\n"
-"If the directory already exists, FileExistsError is raised.\n"
+"If the directory already exists, _FileExistsError_ is raised.\n"
 "\n"
-"On some systems, mode is ignored.\n"
+"On some systems, _mode_ is ignored.\n"
 "\n"
-"Equivalent to [mkdir(2)](https://man7.org/linux/man-pages/man2/mkdir.2.html).");
+"Equivalent to [mkdir(2)](https://man7.org/linux/man-pages/man2/mkdir.2.html).\n"
+"\n"
+"");
 
 #define FS_MKDIR_METHODDEF    \
     {"mkdir", (PyCFunction)(void(*)(void))fs_mkdir, METH_FASTCALL|METH_KEYWORDS, fs_mkdir__doc__},
@@ -496,9 +516,11 @@ PyDoc_STRVAR(fs_rmdir__doc__,
 "\n"
 "Remove (delete) the directory path. \n"
 "\n"
-"If the directory does not exist or is not empty, an FileNotFoundError or an OSError is raised respectively.\n"
+"If the directory does not exist or is not empty, an _FileNotFoundError_ or an _OSError_ is raised respectively.\n"
 "\n"
-"Equivalent to [rmdir(2)](https://man7.org/linux/man-pages/man2/rmdir.2.html).");
+"Equivalent to [rmdir(2)](https://man7.org/linux/man-pages/man2/rmdir.2.html).\n"
+"\n"
+"");
 
 #define FS_RMDIR_METHODDEF    \
     {"rmdir", (PyCFunction)(void(*)(void))fs_rmdir, METH_FASTCALL|METH_KEYWORDS, fs_rmdir__doc__},
@@ -535,14 +557,16 @@ PyDoc_STRVAR(fs_mkdtemp__doc__,
 "mkdtemp($module, /, tpl)\n"
 "--\n"
 "\n"
-"Generate a uniquely named temporary directory from template tpl.\n"
+"Generate a uniquely named temporary directory from template _tpl_.\n"
 "\n"
 "The last six characters of template must be XXXXXX and these are replaced with a string that makes\n"
 "the directory name unique.\n"
 "\n"
 "Return the modified template string.\n"
 "\n"
-"Equivalent to [mkdtemp(3)](https://man7.org/linux/man-pages/man3/mkdtemp.3.html).");
+"Equivalent to [mkdtemp(3)](https://man7.org/linux/man-pages/man3/mkdtemp.3.html).\n"
+"\n"
+"");
 
 #define FS_MKDTEMP_METHODDEF    \
     {"mkdtemp", (PyCFunction)(void(*)(void))fs_mkdtemp, METH_FASTCALL|METH_KEYWORDS, fs_mkdtemp__doc__},
@@ -587,7 +611,9 @@ PyDoc_STRVAR(fs_mkstemp__doc__,
 "\n"
 "Return the file descriptor and modified template string.\n"
 "\n"
-"Equivalent to [mkstemp(3)](https://man7.org/linux/man-pages/man3/mkstemp.3.html).");
+"Equivalent to [mkstemp(3)](https://man7.org/linux/man-pages/man3/mkstemp.3.html). \n"
+"\n"
+"");
 
 #define FS_MKSTEMP_METHODDEF    \
     {"mkstemp", (PyCFunction)(void(*)(void))fs_mkstemp, METH_FASTCALL|METH_KEYWORDS, fs_mkstemp__doc__},
@@ -624,11 +650,13 @@ PyDoc_STRVAR(fs_scandir__doc__,
 "scandir($module, /, path)\n"
 "--\n"
 "\n"
-"Return a sequence of the entries in the directory given by path (entry_type, entry_name).  \n"
+"Return a sequence of the entries in the directory given by _path_ (entry_type, entry_name).  \n"
 "\n"
 "Special entries \'.\' and \'..\' are not included.\n"
 "\n"
-"Equivalent to [scandir(3)](https://man7.org/linux/man-pages/man3/scandir.3.html).");
+"Equivalent to [scandir(3)](https://man7.org/linux/man-pages/man3/scandir.3.html).\n"
+"\n"
+"");
 
 #define FS_SCANDIR_METHODDEF    \
     {"scandir", (PyCFunction)(void(*)(void))fs_scandir, METH_FASTCALL|METH_KEYWORDS, fs_scandir__doc__},
@@ -665,9 +693,11 @@ PyDoc_STRVAR(fs_rename__doc__,
 "rename($module, /, path, new_path)\n"
 "--\n"
 "\n"
-"Rename the file or directory path to new_path.\n"
+"Rename the file or directory _path_ to _new_path_.\n"
 "\n"
-"Equivalent to [rename(2)](https://man7.org/linux/man-pages/man2/rename.2.html).");
+"Equivalent to [rename(2)](https://man7.org/linux/man-pages/man2/rename.2.html).\n"
+"\n"
+"");
 
 #define FS_RENAME_METHODDEF    \
     {"rename", (PyCFunction)(void(*)(void))fs_rename, METH_FASTCALL|METH_KEYWORDS, fs_rename__doc__},
@@ -710,9 +740,11 @@ PyDoc_STRVAR(fs_fsync__doc__,
 "fsync($module, /, fd)\n"
 "--\n"
 "\n"
-"Force write of file with file descriptor fd to disk.\n"
+"Force write of file with file descriptor _fd_ to disk.\n"
 "\n"
-"Equivalent to [fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html).");
+"Equivalent to [fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html).\n"
+"\n"
+"");
 
 #define FS_FSYNC_METHODDEF    \
     {"fsync", (PyCFunction)(void(*)(void))fs_fsync, METH_FASTCALL|METH_KEYWORDS, fs_fsync__doc__},
@@ -746,9 +778,11 @@ PyDoc_STRVAR(fs_ftruncate__doc__,
 "ftruncate($module, /, fd, length)\n"
 "--\n"
 "\n"
-"Truncate the file corresponding to file descriptor fd, so that it is at most length bytes in size.\n"
+"Truncate the file corresponding to file descriptor fd, so that it is at most _length_ bytes in size.\n"
 "\n"
-"Equivalent to [ftruncate(2)](https://man7.org/linux/man-pages/man2/ftruncate.2.html).");
+"Equivalent to [ftruncate(2)](https://man7.org/linux/man-pages/man2/ftruncate.2.html).\n"
+"\n"
+"");
 
 #define FS_FTRUNCATE_METHODDEF    \
     {"ftruncate", (PyCFunction)(void(*)(void))fs_ftruncate, METH_FASTCALL|METH_KEYWORDS, fs_ftruncate__doc__},
@@ -786,9 +820,11 @@ PyDoc_STRVAR(fs_fdatasync__doc__,
 "fdatasync($module, /, fd)\n"
 "--\n"
 "\n"
-"Force write of file with file descriptor fd to disk. Does not force update of metadata.\n"
+"Force write of file with file descriptor _fd_ to disk. Does not force update of metadata.\n"
 "\n"
-"Equivalent to [fdatasync(2)](https://man7.org/linux/man-pages/man2/fdatasync.2.html).");
+"Equivalent to [fdatasync(2)](https://man7.org/linux/man-pages/man2/fdatasync.2.html).\n"
+"\n"
+"");
 
 #define FS_FDATASYNC_METHODDEF    \
     {"fdatasync", (PyCFunction)(void(*)(void))fs_fdatasync, METH_FASTCALL|METH_KEYWORDS, fs_fdatasync__doc__},
@@ -825,11 +861,13 @@ PyDoc_STRVAR(fs_copyfile__doc__,
 "Copy a file from path to new_path. \n"
 "\n"
 "Supported flags are: \n"
-"- COPYFILE_EXCL\n"
-"- COPYFILE_FICLONE\n"
-"- COPYFILE_FICLONE_FORCE\n"
+"- _COPYFILE_EXCL_\n"
+"- _COPYFILE_FICLONE_\n"
+"- _COPYFILE_FICLONE_FORCE_\n"
 "\n"
-"For more information, see [uvfs_copyfile](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fscopyfile).");
+"For more information, see [uv_fs_copyfile](http://docs.libuv.org/en/v1.x/fs.html#c.uv_fs_copyfile).\n"
+"\n"
+"");
 
 #define FS_COPYFILE_METHODDEF    \
     {"copyfile", (PyCFunction)(void(*)(void))fs_copyfile, METH_FASTCALL|METH_KEYWORDS, fs_copyfile__doc__},
@@ -883,11 +921,13 @@ PyDoc_STRVAR(fs_sendfile__doc__,
 "sendfile($module, /, out_fd, in_fd, offset, count)\n"
 "--\n"
 "\n"
-"Copy count bytes from file descriptor in_fd to file descriptor out_fd starting at offset.\n"
+"Copy _count_ bytes from file descriptor _in_fd_ to file descriptor _out_fd_ starting at _offset_.\n"
 "\n"
 "Return the number of bytes sent.\n"
 "\n"
-"Equivalent to [sendfile(2)](https://man7.org/linux/man-pages/man2/sendfile.2.html).");
+"Equivalent to [sendfile(2)](https://man7.org/linux/man-pages/man2/sendfile.2.html).\n"
+"\n"
+"");
 
 #define FS_SENDFILE_METHODDEF    \
     {"sendfile", (PyCFunction)(void(*)(void))fs_sendfile, METH_FASTCALL|METH_KEYWORDS, fs_sendfile__doc__},
@@ -936,12 +976,14 @@ PyDoc_STRVAR(fs_access__doc__,
 "\n"
 "Use the real uid/gid to test for access to path.\n"
 "\n"
-"Mode should be F_OK to test the existence of path, or it can be the inclusive OR of one or more of \n"
-"R_OK, W_OK, and X_OK to test permissions. \n"
+"Mode should be _F_OK_ to test the existence of path, or it can be the inclusive OR of one or more of \n"
+"_R_OK_, _W_OK_, and _X_OK_ to test permissions. \n"
 "\n"
-"Return True if access is allowed, False if not.\n"
+"Return _True_ if access is allowed, _False_ if not.\n"
 "\n"
-"Equivalent to [access(2)](https://man7.org/linux/man-pages/man2/access.2.html).");
+"Equivalent to [access(2)](https://man7.org/linux/man-pages/man2/access.2.html).\n"
+"\n"
+"");
 
 #define FS_ACCESS_METHODDEF    \
     {"access", (PyCFunction)(void(*)(void))fs_access, METH_FASTCALL|METH_KEYWORDS, fs_access__doc__},
@@ -983,11 +1025,13 @@ PyDoc_STRVAR(fs_chmod__doc__,
 "chmod($module, /, path, mode)\n"
 "--\n"
 "\n"
-"Change the mode of path to the numeric mode.\n"
+"Change the mode of _path_ to the numeric _mode_.\n"
 "\n"
-"See [stat module](https://docs.python.org/3/library/stat.html#stat.S_ISUID) for available mode.\n"
+"See [stat module](https://docs.python.org/3/library/stat.html#stat.S_ISUID) for available _mode_.\n"
 "\n"
-"Equivalent to [chmod(2)](https://man7.org/linux/man-pages/man2/chmod.2.html).");
+"Equivalent to [chmod(2)](https://man7.org/linux/man-pages/man2/chmod.2.html).\n"
+"\n"
+"");
 
 #define FS_CHMOD_METHODDEF    \
     {"chmod", (PyCFunction)(void(*)(void))fs_chmod, METH_FASTCALL|METH_KEYWORDS, fs_chmod__doc__},
@@ -1029,11 +1073,13 @@ PyDoc_STRVAR(fs_fchmod__doc__,
 "fchmod($module, /, fd, mode)\n"
 "--\n"
 "\n"
-"Change the mode of the file given by fd to the numeric mode.\n"
+"Change the mode of the file given by _fd_ to the numeric _mode_.\n"
 "\n"
-"See [stat module](https://docs.python.org/3/library/stat.html#stat.S_ISUID) for available mode.\n"
+"See [stat module](https://docs.python.org/3/library/stat.html#stat.S_ISUID) for available _mode_.\n"
 "\n"
-"Equivalent to [fchmod(2)](https://man7.org/linux/man-pages/man2/fchmod.2.html).");
+"Equivalent to [fchmod(2)](https://man7.org/linux/man-pages/man2/fchmod.2.html).\n"
+"\n"
+"");
 
 #define FS_FCHMOD_METHODDEF    \
     {"fchmod", (PyCFunction)(void(*)(void))fs_fchmod, METH_FASTCALL|METH_KEYWORDS, fs_fchmod__doc__},
@@ -1072,12 +1118,14 @@ PyDoc_STRVAR(fs_utime__doc__,
 "utime($module, /, path, atime, mtime, *, follow_symlinks=True)\n"
 "--\n"
 "\n"
-"Set the access and modified times of the file specified by path.\n"
+"Set the access and modified times of the file specified by _path_.\n"
 "\n"
 "This function normally follows symlinks.\n"
 "\n"
 "Equivalent to [utime(2)](https://man7.org/linux/man-pages/man2/utime.2.html)\n"
-"              [lutimes(2)](https://man7.org/linux/man-pages/man3/lutimes.3.html).");
+"              [lutimes(2)](https://man7.org/linux/man-pages/man3/lutimes.3.html).\n"
+"\n"
+"");
 
 #define FS_UTIME_METHODDEF    \
     {"utime", (PyCFunction)(void(*)(void))fs_utime, METH_FASTCALL|METH_KEYWORDS, fs_utime__doc__},
@@ -1147,9 +1195,11 @@ PyDoc_STRVAR(fs_futime__doc__,
 "futime($module, /, fd, atime, mtime)\n"
 "--\n"
 "\n"
-"Set the access and modified times of the file given by fd.\n"
+"Set the access and modified times of the file given by _fd_.\n"
 "\n"
-"Equivalent to [futimes(3)](https://man7.org/linux/man-pages/man3/futimes.3.html)");
+"Equivalent to [futimes(3)](https://man7.org/linux/man-pages/man3/futimes.3.html)\n"
+"\n"
+"");
 
 #define FS_FUTIME_METHODDEF    \
     {"futime", (PyCFunction)(void(*)(void))fs_futime, METH_FASTCALL|METH_KEYWORDS, fs_futime__doc__},
@@ -1205,9 +1255,11 @@ PyDoc_STRVAR(fs_link__doc__,
 "link($module, /, path, new_path)\n"
 "--\n"
 "\n"
-"Create a hard link pointing to path named new_path.\n"
+"Create a hard link pointing to _path_ named _new_path_.\n"
 "\n"
-"Equivalent to [link(2)](https://man7.org/linux/man-pages/man2/link.2.html)");
+"Equivalent to [link(2)](https://man7.org/linux/man-pages/man2/link.2.html)\n"
+"\n"
+"");
 
 #define FS_LINK_METHODDEF    \
     {"link", (PyCFunction)(void(*)(void))fs_link, METH_FASTCALL|METH_KEYWORDS, fs_link__doc__},
@@ -1250,13 +1302,15 @@ PyDoc_STRVAR(fs_symlink__doc__,
 "symlink($module, /, path, new_path, *, flags=0)\n"
 "--\n"
 "\n"
-"Create a symbolic link pointing to path named new_path.\n"
+"Create a symbolic link pointing to _path_ named _new_path_.\n"
 "\n"
-"On Windows the flags parameter can be specified to control how the symlink will be created:\n"
+"On Windows the _flags_ parameter can be specified to control how the symlink will be created:\n"
 " - SYMLINK_DIR: indicates that path points to a directory.\n"
 " - SYMLINK_JUNCTION: request that the symlink is created using junction points.\n"
 "\n"
-"Equivalent to [symlink(2)](https://man7.org/linux/man-pages/man2/symlink.2.html)");
+"Equivalent to [symlink(2)](https://man7.org/linux/man-pages/man2/symlink.2.html)\n"
+"\n"
+"");
 
 #define FS_SYMLINK_METHODDEF    \
     {"symlink", (PyCFunction)(void(*)(void))fs_symlink, METH_FASTCALL|METH_KEYWORDS, fs_symlink__doc__},
@@ -1312,7 +1366,9 @@ PyDoc_STRVAR(fs_readlink__doc__,
 "\n"
 "Return a string representing the path to which the symbolic link points.\n"
 "\n"
-"Equivalent to [readlink(2)](https://man7.org/linux/man-pages/man2/readlink.2.html)");
+"Equivalent to [readlink(2)](https://man7.org/linux/man-pages/man2/readlink.2.html)\n"
+"\n"
+"");
 
 #define FS_READLINK_METHODDEF    \
     {"readlink", (PyCFunction)(void(*)(void))fs_readlink, METH_FASTCALL|METH_KEYWORDS, fs_readlink__doc__},
@@ -1351,7 +1407,9 @@ PyDoc_STRVAR(fs_chown__doc__,
 "\n"
 "Change the owner and group id of path to the numeric uid and gid.\n"
 "\n"
-"Equivalent to [chown(2)](https://man7.org/linux/man-pages/man2/chown.2.html)");
+"Equivalent to [chown(2)](https://man7.org/linux/man-pages/man2/chown.2.html)\n"
+"\n"
+"");
 
 #define FS_CHOWN_METHODDEF    \
     {"chown", (PyCFunction)(void(*)(void))fs_chown, METH_FASTCALL|METH_KEYWORDS, fs_chown__doc__},
@@ -1407,9 +1465,11 @@ PyDoc_STRVAR(fs_fchown__doc__,
 "fchown($module, /, fd, uid, gid)\n"
 "--\n"
 "\n"
-"Change the owner and group id of fd to the numeric uid and gid.\n"
+"Change the owner and group id of _fd_ to the numeric uid and gid.\n"
 "\n"
-"Equivalent to [fchown(2)](https://man7.org/linux/man-pages/man2/fchown.2.html)");
+"Equivalent to [fchown(2)](https://man7.org/linux/man-pages/man2/fchown.2.html)\n"
+"\n"
+"");
 
 #define FS_FCHOWN_METHODDEF    \
     {"fchown", (PyCFunction)(void(*)(void))fs_fchown, METH_FASTCALL|METH_KEYWORDS, fs_fchown__doc__},
@@ -1632,4 +1692,4 @@ skip_optional_pos:
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=96e1a6c15757e032 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=dd591e11ae7ead8f input=a9049054013a1b77]*/

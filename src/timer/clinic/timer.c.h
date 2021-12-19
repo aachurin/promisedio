@@ -6,7 +6,9 @@ PyDoc_STRVAR(timer_sleep__doc__,
 "sleep($module, /, seconds)\n"
 "--\n"
 "\n"
-"Delay execution for a given number of seconds.");
+"Delay execution for a given number of seconds.\n"
+"\n"
+"");
 
 #define TIMER_SLEEP_METHODDEF    \
     {"sleep", (PyCFunction)(void(*)(void))timer_sleep, METH_FASTCALL|METH_KEYWORDS, timer_sleep__doc__},
@@ -49,7 +51,9 @@ PyDoc_STRVAR(timer_set_timeout__doc__,
 "\n"
 "Set timer which executes a function once the timer expires.\n"
 "\n"
-"Return Timer object. This value can be passed to clear_timeout() to cancel the timeout.");
+"Return _Timer_ object. This value can be passed to _clear_timeout()_ to cancel the timeout.\n"
+"\n"
+"");
 
 #define TIMER_SET_TIMEOUT_METHODDEF    \
     {"set_timeout", (PyCFunction)(void(*)(void))timer_set_timeout, METH_FASTCALL|METH_KEYWORDS, timer_set_timeout__doc__},
@@ -94,7 +98,9 @@ PyDoc_STRVAR(timer_set_interval__doc__,
 "\n"
 "Set timer which executes repeatedly a function, with a fixed time delay between each call.\n"
 "\n"
-"Return Timer object. This value can be passed to clear_interval() to cancel the interval.");
+"Return _Timer_ object. This value can be passed to _clear_interval()_ to cancel the interval.\n"
+"\n"
+"");
 
 #define TIMER_SET_INTERVAL_METHODDEF    \
     {"set_interval", (PyCFunction)(void(*)(void))timer_set_interval, METH_FASTCALL|METH_KEYWORDS, timer_set_interval__doc__},
@@ -137,7 +143,9 @@ PyDoc_STRVAR(timer_clear_timeout__doc__,
 "clear_timeout($module, /, timer)\n"
 "--\n"
 "\n"
-"Cancel timeout previously established by calling set_timeout().");
+"Cancel timeout previously established by calling _set_timeout()_.\n"
+"\n"
+"");
 
 #define TIMER_CLEAR_TIMEOUT_METHODDEF    \
     {"clear_timeout", (PyCFunction)(void(*)(void))timer_clear_timeout, METH_FASTCALL|METH_KEYWORDS, timer_clear_timeout__doc__},
@@ -169,7 +177,9 @@ PyDoc_STRVAR(timer_clear_interval__doc__,
 "clear_interval($module, /, timer)\n"
 "--\n"
 "\n"
-"Cancel interval previously established by calling set_interval().");
+"Cancel interval previously established by calling _set_interval()_.\n"
+"\n"
+"");
 
 #define TIMER_CLEAR_INTERVAL_METHODDEF    \
     {"clear_interval", (PyCFunction)(void(*)(void))timer_clear_interval, METH_FASTCALL|METH_KEYWORDS, timer_clear_interval__doc__},
@@ -196,4 +206,4 @@ timer_clear_interval(PyObject *module, PyObject *const *args, Py_ssize_t nargs, 
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=087ec47d59f1cc2f input=a9049054013a1b77]*/
+/*[clinic end generated code: output=6ba2bb2943f71e44 input=a9049054013a1b77]*/

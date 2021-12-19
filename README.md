@@ -12,7 +12,7 @@
 
 ###### PromisedIO is free and open source software released under the permissive MIT license.
 
-### Promises
+### promisedio.promise (Promises)
 You can read about promises [here](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise).
 
 ```python
@@ -49,8 +49,16 @@ Create new _Promise_.
 
 It is the same as `.then(None, rejected)`
 
+
+```python
+exec_async(coro: Coroutine) -> None
+```
+Start coroutine.
+
 ##### Example:
 ```python
+...
+
 def my_sleep(timeout):
     d = promise.deferred()
     timer.set_timeout(lambda: d.resolve("My rules"), timeout)
@@ -65,7 +73,7 @@ promise.exec_async(main())
 loop.run_forever()
 ```
 
-### promisedio.timers (Timers)
+### promisedio.timer (Timers)
 
 ```python
 sleep(seconds: float) -> Promise[None]
@@ -419,6 +427,16 @@ _nodelay_: Enable/disable TCP_NODELAY. Set 1 to disable Nagle's algorithm.
 _keepalive_: Enable/disable TCP keep-alive. The value is the initial delay in seconds. Set 0 to disable TCP keep-alive.
 
 ```python
+TcpStream.set_tcp_nodelay
+```
+Enable/disable TCP_NODELAY, which disables Nagle's algorithm.
+
+```python
+TcpStream.set_tcp_keepalive
+```
+Enable/disable TCP keep-alive. Set zero to disable.
+
+```python
 TcpStream.getsockname() -> Tuple
 ```
 Return the socket's own address (For TCP only).
@@ -462,7 +480,17 @@ Use the IncompleteReadError.partial attribute to get the partially read data.
 If the amount of data read exceeds the configured stream limit, a LimitOverrunError exception is raised, 
 and the data is left in the internal buffer and can be read again.
 
-### Loop
+```python
+TcpStream.shutdown() -> Promise[None]
+```
+Shut down the stream.
+
+```python
+TcpStream.close() -> Promise[None]
+```
+Close the stream handle.
+
+### promisedio.loop (Loop)
 
 ```python
 run_forever() -> None
