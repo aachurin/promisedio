@@ -529,7 +529,7 @@ fs_open_impl(PyObject *module, PyObject *path, const char *mode, int closefd)
         PyObject *fileobj = fileio_new(_ctx, fd, closefd);
         if (!fileobj)
             return NULL;
-        return (PyObject *) Promise_NewResolved(fileobj);
+        return (PyObject *) Promise_NewResolved(fileobj, NULL);
     }
 
     if (!closefd) {
@@ -1660,10 +1660,10 @@ fs_FileIO_close_impl(FileIO *self)
 {
     _CTX_set(self);
     if (self->fd < 0) {
-        return (PyObject *) Promise_NewResolved(Py_None);
+        return (PyObject *) Promise_NewResolved(Py_None, NULL);
     } else if (!self->closefd) {
         self->fd = -1;
-        return (PyObject *) Promise_NewResolved(Py_None);
+        return (PyObject *) Promise_NewResolved(Py_None, NULL);
     } else {
         int fd = self->fd;
         self->fd = -1;

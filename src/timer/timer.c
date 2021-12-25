@@ -121,14 +121,12 @@ timer_callback(uv_timer_t *handle)
 {
     ACQUIRE_GIL
         TimerHandle *h = Handle_Get(handle, TimerHandle);
-        PyObject *tmp = PyObject_CallNoArgs(h->func);
-        if (tmp == NULL) {
-            if (!PyErr_ExceptionMatches(PyExc_KeyboardInterrupt) && !PyErr_ExceptionMatches(PyExc_SystemExit)) {
-                PyErr_WriteUnraisable(h->func);
-            }
-        } else {
-            Py_DECREF(tmp);
+        _CTX_set(h);
+        Promise *promise = Promise_NewResolved(NULL, h->func);
+        if (!promise) {
+            PyErr_WriteUnraisable(h->func);
         }
+        Py_XDECREF(promise);
         Handle_Close(h);
     RELEASE_GIL
 }
@@ -138,14 +136,12 @@ interval_callback(uv_timer_t *handle)
 {
     ACQUIRE_GIL
         TimerHandle *h = Handle_Get(handle, TimerHandle);
-        PyObject *tmp = PyObject_CallNoArgs(h->func);
-        if (tmp == NULL) {
-            if (!PyErr_ExceptionMatches(PyExc_KeyboardInterrupt) && !PyErr_ExceptionMatches(PyExc_SystemExit)) {
-                PyErr_WriteUnraisable(h->func);
-            }
-        } else {
-            Py_DECREF(tmp);
+        _CTX_set(h);
+        Promise *promise = Promise_NewResolved(NULL, h->func);
+        if (!promise) {
+            PyErr_WriteUnraisable(h->func);
         }
+        Py_XDECREF(promise);
     RELEASE_GIL
 }
 

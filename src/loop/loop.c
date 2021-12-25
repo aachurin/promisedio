@@ -133,25 +133,29 @@ loop_run_forever_impl(PyObject *module)
 
     uv_loop_t *loop = Loop_Get(_ctx);
     uv_async_init(loop, &S(wakeup_event), NULL);
+    uv_unref((uv_handle_t *) &S(wakeup_event));
     S(wakeup_event_ptr) = &S(wakeup_event);
     S(signal_flag) = 0;
 
     LOG("(%p): start", loop);
 
+    int active = 1;
     Py_BEGIN_ALLOW_THREADS
         while (1) {
-            Py_ssize_t process_result;
+            int status;
             ACQUIRE_GIL
                 if (PyErr_Occurred()) {
-                    process_result = -1;
+                    status = -1;
                 } else {
-                    process_result = Promise_ProcessChain();
+                    status = Promise_ProcessChain();
                 }
             RELEASE_GIL
-            if (process_result <= 0)
+
+            if (status < 0 || (!active && status == 0)) {
                 break;
+            }
+
             if (S(signal_flag)) {
-                int err = 0;
                 S(signal_flag) = 0;
                 ACQUIRE_GIL
                     LOG("signal received");
@@ -160,19 +164,24 @@ loop_run_forever_impl(PyObject *module)
                     if (ret != NULL) {
                         Py_DECREF(ret);
                     } else {
-                        err = -1;
+                        status = -1;
                     }
                 RELEASE_GIL
-                if (err) {
+                if (status < 0) {
                     break;
                 }
             }
-            uv_run(loop, UV_RUN_ONCE);
+
+            if (status & 1) {
+                active = uv_run(loop, UV_RUN_NOWAIT);
+            } else {
+                active = uv_run(loop, UV_RUN_ONCE);
+            }
         }
     Py_END_ALLOW_THREADS
 
-    uv_close((uv_handle_t* ) &S(wakeup_event), NULL);
     S(wakeup_event_ptr) = NULL;
+    uv_close((uv_handle_t* ) &S(wakeup_event), NULL);
 
     LOG("(%p): stop", loop);
     loop_stop(_ctx);

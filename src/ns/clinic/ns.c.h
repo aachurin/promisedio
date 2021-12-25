@@ -547,7 +547,7 @@ PyDoc_STRVAR(ns_TcpStream_shutdown__doc__,
 "shutdown($self, /)\n"
 "--\n"
 "\n"
-"Shut down the stream. \n"
+"Shut down the stream.\n"
 "\n"
 "");
 
@@ -566,6 +566,8 @@ ns_TcpStream_shutdown(Stream *self, PyObject *Py_UNUSED(ignored))
 PyDoc_STRVAR(ns_TcpStream_close__doc__,
 "close($self, /)\n"
 "--\n"
+"\n"
+"Close the stream handle.\n"
 "\n"
 "");
 
@@ -676,56 +678,56 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(ns_PipeStream_getpeername__doc__,
+PyDoc_STRVAR(ns_UnixStream_getpeername__doc__,
 "getpeername($self, /)\n"
 "--\n"
 "\n"
 "");
 
-#define NS_PIPESTREAM_GETPEERNAME_METHODDEF    \
-    {"getpeername", (PyCFunction)ns_PipeStream_getpeername, METH_NOARGS, ns_PipeStream_getpeername__doc__},
+#define NS_UNIXSTREAM_GETPEERNAME_METHODDEF    \
+    {"getpeername", (PyCFunction)ns_UnixStream_getpeername, METH_NOARGS, ns_UnixStream_getpeername__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_PipeStream_getpeername_impl(Stream *self);
+ns_UnixStream_getpeername_impl(Stream *self);
 
 static PyObject *
-ns_PipeStream_getpeername(Stream *self, PyObject *Py_UNUSED(ignored))
+ns_UnixStream_getpeername(Stream *self, PyObject *Py_UNUSED(ignored))
 {
-    return ns_PipeStream_getpeername_impl(self);
+    return ns_UnixStream_getpeername_impl(self);
 }
 
-PyDoc_STRVAR(ns_PipeStream_getsockname__doc__,
+PyDoc_STRVAR(ns_UnixStream_getsockname__doc__,
 "getsockname($self, /)\n"
 "--\n"
 "\n"
 "");
 
-#define NS_PIPESTREAM_GETSOCKNAME_METHODDEF    \
-    {"getsockname", (PyCFunction)ns_PipeStream_getsockname, METH_NOARGS, ns_PipeStream_getsockname__doc__},
+#define NS_UNIXSTREAM_GETSOCKNAME_METHODDEF    \
+    {"getsockname", (PyCFunction)ns_UnixStream_getsockname, METH_NOARGS, ns_UnixStream_getsockname__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_PipeStream_getsockname_impl(Stream *self);
+ns_UnixStream_getsockname_impl(Stream *self);
 
 static PyObject *
-ns_PipeStream_getsockname(Stream *self, PyObject *Py_UNUSED(ignored))
+ns_UnixStream_getsockname(Stream *self, PyObject *Py_UNUSED(ignored))
 {
-    return ns_PipeStream_getsockname_impl(self);
+    return ns_UnixStream_getsockname_impl(self);
 }
 
-PyDoc_STRVAR(ns_PipeStream_write__doc__,
+PyDoc_STRVAR(ns_UnixStream_write__doc__,
 "write($self, /, data)\n"
 "--\n"
 "\n"
 "");
 
-#define NS_PIPESTREAM_WRITE_METHODDEF    \
-    {"write", (PyCFunction)(void(*)(void))ns_PipeStream_write, METH_FASTCALL|METH_KEYWORDS, ns_PipeStream_write__doc__},
+#define NS_UNIXSTREAM_WRITE_METHODDEF    \
+    {"write", (PyCFunction)(void(*)(void))ns_UnixStream_write, METH_FASTCALL|METH_KEYWORDS, ns_UnixStream_write__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_PipeStream_write_impl(Stream *self, PyObject *data);
+ns_UnixStream_write_impl(Stream *self, PyObject *data);
 
 static PyObject *
-ns_PipeStream_write(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+ns_UnixStream_write(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"data", NULL};
@@ -738,26 +740,26 @@ ns_PipeStream_write(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObj
         goto exit;
     }
     data = args[0];
-    return_value = ns_PipeStream_write_impl(self, data);
+    return_value = ns_UnixStream_write_impl(self, data);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(ns_PipeStream_read__doc__,
+PyDoc_STRVAR(ns_UnixStream_read__doc__,
 "read($self, /, n=-1)\n"
 "--\n"
 "\n"
 "");
 
-#define NS_PIPESTREAM_READ_METHODDEF    \
-    {"read", (PyCFunction)(void(*)(void))ns_PipeStream_read, METH_FASTCALL|METH_KEYWORDS, ns_PipeStream_read__doc__},
+#define NS_UNIXSTREAM_READ_METHODDEF    \
+    {"read", (PyCFunction)(void(*)(void))ns_UnixStream_read, METH_FASTCALL|METH_KEYWORDS, ns_UnixStream_read__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_PipeStream_read_impl(Stream *self, Py_ssize_t n);
+ns_UnixStream_read_impl(Stream *self, Py_ssize_t n);
 
 static PyObject *
-ns_PipeStream_read(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+ns_UnixStream_read(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"n", NULL};
@@ -777,26 +779,26 @@ ns_PipeStream_read(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObje
         goto exit;
     }
 skip_optional_pos:
-    return_value = ns_PipeStream_read_impl(self, n);
+    return_value = ns_UnixStream_read_impl(self, n);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(ns_PipeStream_readexactly__doc__,
+PyDoc_STRVAR(ns_UnixStream_readexactly__doc__,
 "readexactly($self, /, n)\n"
 "--\n"
 "\n"
 "");
 
-#define NS_PIPESTREAM_READEXACTLY_METHODDEF    \
-    {"readexactly", (PyCFunction)(void(*)(void))ns_PipeStream_readexactly, METH_FASTCALL|METH_KEYWORDS, ns_PipeStream_readexactly__doc__},
+#define NS_UNIXSTREAM_READEXACTLY_METHODDEF    \
+    {"readexactly", (PyCFunction)(void(*)(void))ns_UnixStream_readexactly, METH_FASTCALL|METH_KEYWORDS, ns_UnixStream_readexactly__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_PipeStream_readexactly_impl(Stream *self, Py_ssize_t n);
+ns_UnixStream_readexactly_impl(Stream *self, Py_ssize_t n);
 
 static PyObject *
-ns_PipeStream_readexactly(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+ns_UnixStream_readexactly(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"n", NULL};
@@ -811,26 +813,26 @@ ns_PipeStream_readexactly(Stream *self, PyObject *const *args, Py_ssize_t nargs,
     if (!ssize_t_converter(args[0], &n)) {
         goto exit;
     }
-    return_value = ns_PipeStream_readexactly_impl(self, n);
+    return_value = ns_UnixStream_readexactly_impl(self, n);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(ns_PipeStream_readuntil__doc__,
+PyDoc_STRVAR(ns_UnixStream_readuntil__doc__,
 "readuntil($self, /, c)\n"
 "--\n"
 "\n"
 "");
 
-#define NS_PIPESTREAM_READUNTIL_METHODDEF    \
-    {"readuntil", (PyCFunction)(void(*)(void))ns_PipeStream_readuntil, METH_FASTCALL|METH_KEYWORDS, ns_PipeStream_readuntil__doc__},
+#define NS_UNIXSTREAM_READUNTIL_METHODDEF    \
+    {"readuntil", (PyCFunction)(void(*)(void))ns_UnixStream_readuntil, METH_FASTCALL|METH_KEYWORDS, ns_UnixStream_readuntil__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_PipeStream_readuntil_impl(Stream *self, char c);
+ns_UnixStream_readuntil_impl(Stream *self, char c);
 
 static PyObject *
-ns_PipeStream_readuntil(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+ns_UnixStream_readuntil(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"c", NULL};
@@ -852,45 +854,308 @@ ns_PipeStream_readuntil(Stream *self, PyObject *const *args, Py_ssize_t nargs, P
         _PyArg_BadArgument("readuntil", "argument 'c'", "a byte string of length 1", args[0]);
         goto exit;
     }
-    return_value = ns_PipeStream_readuntil_impl(self, c);
+    return_value = ns_UnixStream_readuntil_impl(self, c);
 
 exit:
     return return_value;
 }
 
-PyDoc_STRVAR(ns_PipeStream_shutdown__doc__,
+PyDoc_STRVAR(ns_UnixStream_shutdown__doc__,
 "shutdown($self, /)\n"
 "--\n"
 "\n"
 "");
 
-#define NS_PIPESTREAM_SHUTDOWN_METHODDEF    \
-    {"shutdown", (PyCFunction)ns_PipeStream_shutdown, METH_NOARGS, ns_PipeStream_shutdown__doc__},
+#define NS_UNIXSTREAM_SHUTDOWN_METHODDEF    \
+    {"shutdown", (PyCFunction)ns_UnixStream_shutdown, METH_NOARGS, ns_UnixStream_shutdown__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_PipeStream_shutdown_impl(Stream *self);
+ns_UnixStream_shutdown_impl(Stream *self);
 
 static PyObject *
-ns_PipeStream_shutdown(Stream *self, PyObject *Py_UNUSED(ignored))
+ns_UnixStream_shutdown(Stream *self, PyObject *Py_UNUSED(ignored))
 {
-    return ns_PipeStream_shutdown_impl(self);
+    return ns_UnixStream_shutdown_impl(self);
 }
 
-PyDoc_STRVAR(ns_PipeStream_close__doc__,
+PyDoc_STRVAR(ns_UnixStream_close__doc__,
 "close($self, /)\n"
 "--\n"
 "\n"
 "");
 
-#define NS_PIPESTREAM_CLOSE_METHODDEF    \
-    {"close", (PyCFunction)ns_PipeStream_close, METH_NOARGS, ns_PipeStream_close__doc__},
+#define NS_UNIXSTREAM_CLOSE_METHODDEF    \
+    {"close", (PyCFunction)ns_UnixStream_close, METH_NOARGS, ns_UnixStream_close__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_PipeStream_close_impl(Stream *self);
+ns_UnixStream_close_impl(Stream *self);
 
 static PyObject *
-ns_PipeStream_close(Stream *self, PyObject *Py_UNUSED(ignored))
+ns_UnixStream_close(Stream *self, PyObject *Py_UNUSED(ignored))
 {
-    return ns_PipeStream_close_impl(self);
+    return ns_UnixStream_close_impl(self);
 }
-/*[clinic end generated code: output=2d1b1e68b9ec19f3 input=a9049054013a1b77]*/
+
+PyDoc_STRVAR(ns_start_server__doc__,
+"start_server($module, /, client_connected_cb, addr, *, limit=-1,\n"
+"             chunk_size=-1, backlog=100, nodelay=-1, keepalive=-1,\n"
+"             simultaneous_accepts=1, ssl=<unrepresentable>)\n"
+"--\n"
+"\n"
+"");
+
+#define NS_START_SERVER_METHODDEF    \
+    {"start_server", (PyCFunction)(void(*)(void))ns_start_server, METH_FASTCALL|METH_KEYWORDS, ns_start_server__doc__},
+
+Py_LOCAL_INLINE(PyObject *)
+ns_start_server_impl(PyObject *module, PyObject *client_connected_cb,
+                     sockaddr_any *addr, Py_ssize_t limit,
+                     Py_ssize_t chunk_size, int backlog, int nodelay,
+                     int keepalive, int simultaneous_accepts, PyObject *ssl);
+
+static PyObject *
+ns_start_server(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"client_connected_cb", "addr", "limit", "chunk_size", "backlog", "nodelay", "keepalive", "simultaneous_accepts", "ssl", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "start_server", 0};
+    PyObject *argsbuf[9];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
+    PyObject *client_connected_cb;
+    sockaddr_any addr;
+    Py_ssize_t limit = -1;
+    Py_ssize_t chunk_size = -1;
+    int backlog = 100;
+    int nodelay = -1;
+    int keepalive = -1;
+    int simultaneous_accepts = 1;
+    PyObject *ssl = NULL;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    client_connected_cb = args[0];
+    if (!inet_addr_converter(args[1], &addr)) {
+        goto exit;
+    }
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    if (args[2]) {
+        {
+            Py_ssize_t ival = -1;
+            PyObject *iobj = _PyNumber_Index(args[2]);
+            if (iobj != NULL) {
+                ival = PyLong_AsSsize_t(iobj);
+                Py_DECREF(iobj);
+            }
+            if (ival == -1 && PyErr_Occurred()) {
+                goto exit;
+            }
+            limit = ival;
+        }
+        if (!--noptargs) {
+            goto skip_optional_kwonly;
+        }
+    }
+    if (args[3]) {
+        {
+            Py_ssize_t ival = -1;
+            PyObject *iobj = _PyNumber_Index(args[3]);
+            if (iobj != NULL) {
+                ival = PyLong_AsSsize_t(iobj);
+                Py_DECREF(iobj);
+            }
+            if (ival == -1 && PyErr_Occurred()) {
+                goto exit;
+            }
+            chunk_size = ival;
+        }
+        if (!--noptargs) {
+            goto skip_optional_kwonly;
+        }
+    }
+    if (args[4]) {
+        backlog = _PyLong_AsInt(args[4]);
+        if (backlog == -1 && PyErr_Occurred()) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_kwonly;
+        }
+    }
+    if (args[5]) {
+        nodelay = _PyLong_AsInt(args[5]);
+        if (nodelay == -1 && PyErr_Occurred()) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_kwonly;
+        }
+    }
+    if (args[6]) {
+        keepalive = _PyLong_AsInt(args[6]);
+        if (keepalive == -1 && PyErr_Occurred()) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_kwonly;
+        }
+    }
+    if (args[7]) {
+        simultaneous_accepts = _PyLong_AsInt(args[7]);
+        if (simultaneous_accepts == -1 && PyErr_Occurred()) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_kwonly;
+        }
+    }
+    if (!PyObject_TypeCheck(args[8], _CTX_get_module(module)->SSLContextType)) {
+        _PyArg_BadArgument("start_server", "argument 'ssl'", (_CTX_get_module(module)->SSLContextType)->tp_name, args[8]);
+        goto exit;
+    }
+    ssl = args[8];
+skip_optional_kwonly:
+    return_value = ns_start_server_impl(module, client_connected_cb, &addr, limit, chunk_size, backlog, nodelay, keepalive, simultaneous_accepts, ssl);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(ns_TcpServer_close__doc__,
+"close($self, /)\n"
+"--\n"
+"\n"
+"");
+
+#define NS_TCPSERVER_CLOSE_METHODDEF    \
+    {"close", (PyCFunction)ns_TcpServer_close, METH_NOARGS, ns_TcpServer_close__doc__},
+
+Py_LOCAL_INLINE(PyObject *)
+ns_TcpServer_close_impl(Server *self);
+
+static PyObject *
+ns_TcpServer_close(Server *self, PyObject *Py_UNUSED(ignored))
+{
+    return ns_TcpServer_close_impl(self);
+}
+
+PyDoc_STRVAR(ns_start_unix_server__doc__,
+"start_unix_server($module, /, client_connected_cb, path, *, limit=-1,\n"
+"                  chunk_size=-1, backlog=100, ssl=<unrepresentable>)\n"
+"--\n"
+"\n"
+"");
+
+#define NS_START_UNIX_SERVER_METHODDEF    \
+    {"start_unix_server", (PyCFunction)(void(*)(void))ns_start_unix_server, METH_FASTCALL|METH_KEYWORDS, ns_start_unix_server__doc__},
+
+Py_LOCAL_INLINE(PyObject *)
+ns_start_unix_server_impl(PyObject *module, PyObject *client_connected_cb,
+                          PyObject *path, Py_ssize_t limit,
+                          Py_ssize_t chunk_size, int backlog, PyObject *ssl);
+
+static PyObject *
+ns_start_unix_server(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"client_connected_cb", "path", "limit", "chunk_size", "backlog", "ssl", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "start_unix_server", 0};
+    PyObject *argsbuf[6];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
+    PyObject *client_connected_cb;
+    PyObject *path = NULL;
+    Py_ssize_t limit = -1;
+    Py_ssize_t chunk_size = -1;
+    int backlog = 100;
+    PyObject *ssl = NULL;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    client_connected_cb = args[0];
+    if (!PyUnicode_FSConverter(args[1], &path)) {
+        goto exit;
+    }
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    if (args[2]) {
+        {
+            Py_ssize_t ival = -1;
+            PyObject *iobj = _PyNumber_Index(args[2]);
+            if (iobj != NULL) {
+                ival = PyLong_AsSsize_t(iobj);
+                Py_DECREF(iobj);
+            }
+            if (ival == -1 && PyErr_Occurred()) {
+                goto exit;
+            }
+            limit = ival;
+        }
+        if (!--noptargs) {
+            goto skip_optional_kwonly;
+        }
+    }
+    if (args[3]) {
+        {
+            Py_ssize_t ival = -1;
+            PyObject *iobj = _PyNumber_Index(args[3]);
+            if (iobj != NULL) {
+                ival = PyLong_AsSsize_t(iobj);
+                Py_DECREF(iobj);
+            }
+            if (ival == -1 && PyErr_Occurred()) {
+                goto exit;
+            }
+            chunk_size = ival;
+        }
+        if (!--noptargs) {
+            goto skip_optional_kwonly;
+        }
+    }
+    if (args[4]) {
+        backlog = _PyLong_AsInt(args[4]);
+        if (backlog == -1 && PyErr_Occurred()) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_kwonly;
+        }
+    }
+    if (!PyObject_TypeCheck(args[5], _CTX_get_module(module)->SSLContextType)) {
+        _PyArg_BadArgument("start_unix_server", "argument 'ssl'", (_CTX_get_module(module)->SSLContextType)->tp_name, args[5]);
+        goto exit;
+    }
+    ssl = args[5];
+skip_optional_kwonly:
+    return_value = ns_start_unix_server_impl(module, client_connected_cb, path, limit, chunk_size, backlog, ssl);
+
+exit:
+    /* Cleanup for path */
+    Py_XDECREF(path);
+
+    return return_value;
+}
+
+PyDoc_STRVAR(ns_UnixServer_close__doc__,
+"close($self, /)\n"
+"--\n"
+"\n"
+"");
+
+#define NS_UNIXSERVER_CLOSE_METHODDEF    \
+    {"close", (PyCFunction)ns_UnixServer_close, METH_NOARGS, ns_UnixServer_close__doc__},
+
+Py_LOCAL_INLINE(PyObject *)
+ns_UnixServer_close_impl(Server *self);
+
+static PyObject *
+ns_UnixServer_close(Server *self, PyObject *Py_UNUSED(ignored))
+{
+    return ns_UnixServer_close_impl(self);
+}
+/*[clinic end generated code: output=f2de3250ddb50f45 input=a9049054013a1b77]*/

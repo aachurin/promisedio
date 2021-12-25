@@ -39,7 +39,6 @@ def get_readme():
                 continue
             if func:
                 content[module][func] += line + "\n"
-    print(content)
     return content
 
 

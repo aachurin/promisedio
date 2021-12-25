@@ -2,7 +2,7 @@
 // Copyright (c) 2021 Andrey Churin (aachurin@gmail.com).
 // This file is part of promisedio
 
-#define NS_API ns_api_1990c80a448dedf3c944b7e65019b523
+#define NS_API ns_api_624b9c10cfcc03f67cca5a354d4f4885
 
 #define NS_API_CAPSULE {\
   [0] = Ns_GetAddrInfo,\
@@ -19,7 +19,10 @@
   [11] = Stream_ReadUntil,\
   [12] = Stream_OpenConnection,\
   [13] = Stream_OpenUnixConnection,\
-  [14] = PipeStream_GetPeerName,\
-  [15] = PipeStream_GetSockName,\
+  [14] = UnixStream_GetPeerName,\
+  [15] = UnixStream_GetSockName,\
+  [16] = Stream_ServerClose,\
+  [17] = Stream_StartServer,\
+  [18] = Stream_StartUnixServer,\
 }
 

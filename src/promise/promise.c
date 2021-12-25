@@ -22,6 +22,7 @@ typedef struct {
     PyTypeObject *LockType;
     PyTypeObject *QueueType;
     PyObject *EventType;
+    PyObject *NoArgs;
     PyObject *print_stack;
     /* Callback */
     int chain_busy;
@@ -65,6 +66,10 @@ typedef struct {
     _ctx_var;
     Chain_ROOT(Promise)
 } Lock;
+
+typedef struct {
+    PyObject_HEAD
+} NoArgs;
 
 #include "clinic/promise.c.h"
 
@@ -198,6 +203,17 @@ Promise_Callback(Promise *self, promisecb fulfilled, promisecb rejected)
     self->rejected = (PyObject *) rejected;
 }
 
+CAPSULE_API(PROMISE_API, void)
+Promise_PyCallback(Promise *self, PyObject *fulfilled, PyObject *rejected)
+{
+    assert(!(self->flags & (PROMISE_HAS_CALLBACK | PROMISE_FREEZED)));
+    self->flags |= PROMISE_PY_CALLBACK;
+    PyTrack_XINCREF(fulfilled);
+    PyTrack_XINCREF(rejected);
+    self->fulfilled = fulfilled;
+    self->rejected = rejected;
+}
+
 #define schedule_promise(self, val, flag, invoke_callback)              \
 do {                                                                    \
     PyTrack_INCREF(val);                                                \
@@ -210,6 +226,28 @@ do {                                                                    \
     }                                                                   \
     S(promise_count)--;                                                 \
 } while (0)
+
+/* Create a new resolved promise, steals value reference */
+CAPSULE_API(PROMISE_API, Promise *)
+Promise_NewResolved(_ctx_var, PyObject *value, PyObject *func)
+{
+    Promise *promise = Promise_New(_ctx);
+    if (promise) {
+        if (value == NULL) {
+            schedule_promise(promise, S(NoArgs), PROMISE_FULFILLED, 0);
+        } else if (value == Py_None) {
+            schedule_promise(promise, Py_None, PROMISE_FULFILLED, 0);
+        } else {
+            schedule_promise(promise, value, PROMISE_FULFILLED, 0);
+            Py_DECREF(value);
+        }
+        if (func) {
+            Promise_PyCallback(promise, func, NULL);
+        }
+        return promise;
+    }
+    return NULL;
+}
 
 /* Create a new promise derived from the given. */
 CAPSULE_API(PROMISE_API, Promise *)
@@ -228,23 +266,6 @@ Promise_Then(Promise *self)
         Chain_APPEND(self, promise);
     }
     return promise;
-}
-
-/* Create a new resolved promise. */
-CAPSULE_API(PROMISE_API, Promise *)
-Promise_NewResolved(_ctx_var, PyObject *value)
-{
-    Promise *promise = Promise_New(_ctx);
-    if (promise) {
-        if (value == Py_None) {
-            schedule_promise(promise, Py_None, PROMISE_FULFILLED, 0);
-        } else {
-            schedule_promise(promise, value, PROMISE_FULFILLED, 0);
-            Py_DECREF(value);
-        }
-        return promise;
-    }
-    return NULL;
 }
 
 /* Resolve promise. */
@@ -415,6 +436,8 @@ handle_scheduled_promise(_ctx_var, Promise *promise)
         if (handler) {
             if (promise->flags & PROMISE_C_CALLBACK) {
                 value = ((promisecb) handler)(promise->value, (PyObject *) promise);
+            } else if (promise->value == S(NoArgs)) {
+                value = PyObject_CallNoArgs(handler);
             } else {
                 value = PyObject_CallOneArg(handler, promise->value);
             }
@@ -507,9 +530,10 @@ Promise_ClearChain(_ctx_var)
     }
 }
 
-CAPSULE_API(PROMISE_API, Py_ssize_t)
+CAPSULE_API(PROMISE_API, int)
 Promise_ProcessChain(_ctx_var)
 {
+    int ret = 0;
     if (Chain_HEAD(&S(promisechain))) {
         Promise *it;
         S(chain_busy) = 1;
@@ -522,9 +546,21 @@ Promise_ProcessChain(_ctx_var)
             }
         }
         S(chain_busy) = 0;
+        ret = 1;
     }
-    return S(promise_count);
+    if (S(promise_count)) {
+        ret += 2;
+    }
+    return ret;
 }
+
+CAPSULE_API(PROMISE_API, int)
+Promise_GetStats(_ctx_var, Py_ssize_t *active_promises)
+{
+    *active_promises = S(promise_count);
+    return Chain_HEAD(&S(promisechain)) != NULL;
+}
+
 
 /*[clinic input]
 promise.process_promise_chain
@@ -1145,6 +1181,18 @@ static PyType_Spec lock_spec = {
     lock_slots,
 };
 
+static PyType_Slot nullvalue_slots[] = {
+    {0, 0},
+};
+
+static PyType_Spec nullvalue_spec = {
+    "promisedio.promise.NoArgs",
+    sizeof(NoArgs),
+    0,
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE,
+    nullvalue_slots
+};
+
 static PyMethodDef promisemodule_methods[] = {
     PROMISE_CLEARFREELISTS_METHODDEF
     PROMISE_SETFREELISTLIMITS_METHODDEF
@@ -1180,6 +1228,9 @@ promisemodule_init(PyObject *module)
         return -1;
     S(LockType) = (PyTypeObject *) PyType_FromModuleAndSpec(module, &lock_spec, NULL);
     if (S(LockType) == NULL)
+        return -1;
+    S(NoArgs) = PyType_FromModuleAndSpec(module, &nullvalue_spec, NULL);
+    if (S(NoArgs) == NULL)
         return -1;
     int err = -1;
     PyObject *threading = PyImport_ImportModule("threading");
@@ -1224,6 +1275,7 @@ promisemodule_traverse(PyObject *module, visitproc visit, void *arg)
     Py_VISIT(S(PromiseiterType));
     Py_VISIT(S(LockType));
     Py_VISIT(S(EventType));
+    Py_VISIT(S(NoArgs));
     Py_VISIT(S(print_stack));
     Py_VISIT(Chain_HEAD(&S(promisechain)));
     return 0;
@@ -1238,6 +1290,7 @@ promisemodule_clear(PyObject *module)
     Py_CLEAR(S(PromiseiterType));
     Py_CLEAR(S(LockType));
     Py_CLEAR(S(EventType));
+    Py_CLEAR(S(NoArgs));
     Py_CLEAR(S(print_stack));
     Promise_ClearChain(_ctx);
     return 0;
