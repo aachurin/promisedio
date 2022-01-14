@@ -606,10 +606,9 @@ stream_clear_sslwriting(StreamHandle *handle)
 }
 
 Py_LOCAL_INLINE(void)
-stream_set_sslreading(StreamHandle *handle, int sslonly)
+stream_clear_sslreading(StreamHandle *handle)
 {
-    handle->state.sslreading = sslonly;
-    stream_start_reading(handle);
+    handle->state.sslreading = 0;
 }
 
 Py_LOCAL_INLINE(int)
@@ -784,7 +783,8 @@ sslproto_check_error(StreamHandle *handle, int sslonly)
     _CTX_set(handle);
     if (PyErr_ExceptionMatches(S(SSLWantReadError))) {
         LOG("(%p): SSLWantReadError", handle);
-        stream_set_sslreading(handle, sslonly);
+        handle->state.sslreading = sslonly;
+        stream_start_reading(handle);
 //    } else if (PyErr_ExceptionMatches(S(SSLWantWriteError))) {
 //        // Should not happen with mem_bio?
 //        LOG("(%p): SSLWantWriteError ", handle);
@@ -968,7 +968,9 @@ stream_write_backlog(StreamHandle *handle)
     Promise *it;
     int err;
 
-    if (stream_is_write_locked(handle))
+    int lock = stream_is_write_locked(handle);
+    LOG("%d", lock);
+    if (lock)
         return;
 
     Chain_PULLALL(it, &handle->write_backlog) {
@@ -1044,7 +1046,7 @@ sslproto_feed(StreamHandle *handle, char *buffer, Py_ssize_t size)
     }
 
     if (handle->state.sslreading) {
-        handle->state.sslreading = 0;
+        stream_clear_sslreading(handle);
         return OK;
     }
 
@@ -1089,8 +1091,11 @@ finally:
 Py_LOCAL_INLINE(void)
 sslproto_set_eof(StreamHandle *handle)
 {
+    LOG("(%p)", handle);
     _Py_IDENTIFIER(write_eof);
     Py_XDECREF(_PyObject_CallMethodIdNoArgs(handle->inbio, &PyId_write_eof));
+    // force clear sslreading flag
+    stream_clear_sslreading(handle);
 }
 
 static void
@@ -1717,7 +1722,7 @@ ns_open_connection_impl(PyObject *module, sockaddr_any *remote_addr,
     Promise *ret = Stream_OpenConnection(_ctx, (struct sockaddr *) remote_addr, (struct sockaddr *) local_addr_ptr,
                                          limit, chunk_size, nodelay, keepalive, ssl, hostname);
     if (hostname)
-        Py_Free(hostname);
+        PyMem_Free(hostname);
     return (PyObject *) ret;
 }
 

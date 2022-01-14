@@ -73,7 +73,14 @@ for line in sys.stdin:
     if action == "MALLOC":
         allocs.append(args[0])
     elif action == "FREE":
-        allocs.remove(args[0])
+        if args[0] not in allocs:
+            print_header("Missing memory")
+            print(action)
+            print(args[0])
+            print(allocs)
+            print_header("")
+        else:
+            allocs.remove(args[0])
     elif action == "ALLOC":
         if args[0] in refs:
             print_header("Already allocated")
