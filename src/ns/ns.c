@@ -679,7 +679,6 @@ stream_write_callback(uv_write_t *req, int status)
 {
     ACQUIRE_GIL
         StreamHandle *handle = Handle_Get(req->handle, StreamHandle);
-        _CTX_set(handle);
         if (status < 0) {
             Promise_RejectUVError(Request_PROMISE(req), PyExc_OSError, status);
             stream_stop_reading(handle);
@@ -835,7 +834,6 @@ finally:
 Py_LOCAL_INLINE(int)
 stream_connected(StreamHandle *handle, Promise *promise)
 {
-    _CTX_set(handle);
     Promise_Resolve(promise, (PyObject *) handle->wrapper);
     stream_set_state(handle, STATE_READY);
     Py_DECREF(handle->wrapper);
@@ -882,7 +880,6 @@ stream_shutdown_callback(uv_shutdown_t *req, int status)
 {
     ACQUIRE_GIL
         StreamHandle *handle = Handle_Get(req->handle, StreamHandle);
-        _CTX_set(handle);
         if (status < 0) {
             Promise_RejectUVError(Request_PROMISE(req), PyExc_OSError, status);
             stream_stop_reading(handle);
@@ -949,7 +946,6 @@ sslproto_shutdown(StreamHandle *handle, Promise *promise)
 Py_LOCAL_INLINE(void)
 stream_reject_backlog_item(StreamHandle *handle, Promise *it)
 {
-    _CTX_set(handle);
     if (handle->error) {
         Promise_Reject(it, handle->error);
         Py_CLEAR(handle->error);
@@ -1138,7 +1134,6 @@ stream_read_callback(uv_stream_t *stream, Py_ssize_t nread, const uv_buf_t *buf)
 Py_LOCAL_INLINE(int)
 stream_read_n(StreamHandle *handle, Promise *promise, Py_ssize_t n)
 {
-    _CTX_set(handle);
     if (handle->incomingbuffer.nbytes > 0) {
         PyObject *data = streambuffer_pull(&handle->incomingbuffer, n);
         if (!data)
@@ -1161,7 +1156,6 @@ stream_read_n(StreamHandle *handle, Promise *promise, Py_ssize_t n)
 Py_LOCAL_INLINE(int)
 stream_read_exactly(StreamHandle *handle, Promise *promise, Py_ssize_t n)
 {
-    _CTX_set(handle);
     if (handle->incomingbuffer.nbytes >= n) {
         PyObject *data = streambuffer_pull(&handle->incomingbuffer, n);
         if (!data)
@@ -1366,7 +1360,6 @@ stream_handle_finalizer(StreamHandle *handle)
         PyTrack_CLEAR(handle->outbio);
     }
     if (handle->close_promise) {
-        _CTX_set(handle);
         Promise_Resolve(handle->close_promise, Py_None);
         Py_CLEAR(handle->close_promise);
     }
@@ -1385,7 +1378,6 @@ stream_connect_callback(uv_connect_t *req, int status)
 {
     ACQUIRE_GIL
         StreamHandle *handle = Handle_Get(req->handle, StreamHandle);
-        _CTX_set(handle);
         Promise *promise = Request_PROMISE(req);
         if (status < 0) {
             Py_CLEAR(handle->wrapper);
@@ -1639,7 +1631,7 @@ stream_create_new(_ctx_var, Py_ssize_t limit, Py_ssize_t chunk_size, PyObject *s
 CAPSULE_API(NS_API, Promise *)
 Stream_OpenConnection(_ctx_var, const struct sockaddr *remote_addr, const struct sockaddr *local_addr,
                       Py_ssize_t limit, Py_ssize_t chunk_size, int nodelay, int keepalive,
-                      PyObject *ssl, const char *server_hostname)
+                      PyObject *ssl, const char *server_hostname, double timeout)
 {
     Stream *self = stream_create_new(_ctx, limit, chunk_size, ssl, server_hostname, 0);
     if (!self)
@@ -1696,6 +1688,7 @@ ns.open_connection
     keepalive: int = -1
     ssl: object(subclass_of="_CTX_get_module(module)->SSLContextType") = NULL
     server_hostname: object = NULL
+    timeout: double = 0.
 
 [clinic start generated code]*/
 
@@ -1703,8 +1696,9 @@ Py_LOCAL_INLINE(PyObject *)
 ns_open_connection_impl(PyObject *module, sockaddr_any *remote_addr,
                         PyObject *local_addr, Py_ssize_t limit,
                         Py_ssize_t chunk_size, int nodelay, int keepalive,
-                        PyObject *ssl, PyObject *server_hostname)
-/*[clinic end generated code: output=f7062a6fee7a41d6 input=145a4efe27a91071]*/
+                        PyObject *ssl, PyObject *server_hostname,
+                        double timeout)
+/*[clinic end generated code: output=93e5d95342442646 input=92642dd8c193dcd6]*/
 {
     _CTX_set_module(module);
     sockaddr_any local_addr_s;
@@ -1720,7 +1714,7 @@ ns_open_connection_impl(PyObject *module, sockaddr_any *remote_addr,
             return NULL;
     }
     Promise *ret = Stream_OpenConnection(_ctx, (struct sockaddr *) remote_addr, (struct sockaddr *) local_addr_ptr,
-                                         limit, chunk_size, nodelay, keepalive, ssl, hostname);
+                                         limit, chunk_size, nodelay, keepalive, ssl, hostname, timeout);
     if (hostname)
         PyMem_Free(hostname);
     return (PyObject *) ret;
@@ -2223,7 +2217,6 @@ server_handle_finalizer(ServerHandle *handle)
     PyTrack_CLEAR(handle->sslctx);
     PyTrack_CLEAR(handle->callback);
     if (handle->close_promise) {
-        _CTX_set(handle);
         Promise_Resolve(handle->close_promise, Py_None);
         Py_CLEAR(handle->close_promise);
     }

@@ -4,11 +4,7 @@ import sys
 import hashlib
 import argparse
 
-code_copyright = """
-// Copyright (c) 2021 Andrey Churin (aachurin@gmail.com).
-// This file is part of promisedio
-
-"""
+code_header = "// Auto-generated\n\n"
 
 def main(params):
     parser = argparse.ArgumentParser()
@@ -77,14 +73,16 @@ def generate_auto_files(root, module, files):
 
     with open(os.path.join(root, "capsule", module + ".h"), "wt") as f1:
         with open(os.path.join(root, module, "capsule.h"), "wt") as f2:
-            f1.write(code_copyright)
+            f1.write(code_header)
             f1.write(f"#ifndef PROMISEDIO_{module.upper()}_API\n")
             f1.write(f"#define PROMISEDIO_{module.upper()}_API\n\n")
             if os.path.exists(os.path.join(root, module, f"{module}.h")):
                 f1.write(f'#include "{module}/{module}.h"\n\n')
-            f2.write(code_copyright)
+            f2.write(code_header)
             for api_key, funcs in functions.items():
                 hash_key = api_key + "_" + hash_keys[api_key]
+                f1.write(f"static int {hash_key}__api_loaded = 0;\n")
+                f1.write(f"static void *{hash_key}__api[{len(funcs)}];\n\n")
                 f1.write(f"#define {api_key.upper()} {hash_key}\n\n")
                 f2.write(f"#define {api_key.upper()} {hash_key}\n\n")
                 f2.write(f"#define {api_key.upper()}_CAPSULE {{\\\n")
@@ -112,7 +110,8 @@ def generate_auto_files(root, module, files):
                         varargs.append("__VA_ARGS__")
                     args = ", ".join(args)
                     varargs = ", ".join(varargs)
-                    f1.write(f"  (*({ret} (*) ({args}))(_ctx->{hash_key}__api[{func_id}]))( \\\n")
+                    # f1.write(f"  (*({ret} (*) ({args}))(_ctx->{hash_key}__api[{func_id}]))( \\\n")
+                    f1.write(f"  (({ret} (*) ({args}))({hash_key}__api[{func_id}]))( \\\n")
                     f1.write(f"    {varargs})\n\n")
                 f2.write("}\n\n")
             f1.write("#endif\n")

@@ -42,7 +42,6 @@ Capsule_Load(PyObject *module, const char *api_id)
 #define Capsule_MOUNT(api_id)                                                                                                              \
     PyObject *CAT(api_id,__module);                                                                                                        \
     void *CAT(api_id,__ctx);                                                                                                               \
-    void **CAT(api_id,__api);
 
 #define Capsule_VISIT(api_id) Py_VISIT(_ctx->CAT(api_id,__module))
 #define Capsule_CLEAR(api_id) Py_CLEAR(_ctx->CAT(api_id,__module))
@@ -56,7 +55,10 @@ Capsule_Load(PyObject *module, const char *api_id)
         }                                                                                                                                  \
         _ctx->CAT(api_id,__module) = _module;                                                                                              \
         _ctx->CAT(api_id,__ctx) = _CTX__getmodule(_module);                                                                                \
-        _ctx->CAT(api_id,__api) = _api;                                                                                                    \
+        if (!CAT(api_id,__api_loaded)) {                                                                                                   \
+            CAT(api_id,__api_loaded) = 1;                                                                                                  \
+            memcpy(CAT(api_id,__api), _api, sizeof(CAT(api_id, __api)));                                                                   \
+        }                                                                                                                                  \
     } while (0)
 
 Py_LOCAL_INLINE(void *)

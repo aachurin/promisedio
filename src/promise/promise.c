@@ -25,7 +25,7 @@ typedef struct {
     PyObject *NoArgs;
     PyObject *print_stack;
     /* Callback */
-    int chain_busy;
+    int in_chain_routine;
     unlockloop unlockloop_func;
     void *unlockloop_ctx;
     /* State */
@@ -190,6 +190,7 @@ Promise_New(_ctx_var)
     PyTrack_MarkAllocated(self);
     PyObject_GC_Track(self);
     S(promise_count)++;
+    LOG("promise_count=%zd", S(promise_count));
     return self;
 }
 
@@ -214,17 +215,19 @@ Promise_PyCallback(Promise *self, PyObject *fulfilled, PyObject *rejected)
     self->rejected = rejected;
 }
 
-#define schedule_promise(self, val, flag, invoke_callback)              \
-do {                                                                    \
-    PyTrack_INCREF(val);                                                \
-    (self)->value = val;                                                \
-    (self)->flags |= flag;                                              \
-    Py_INCREF(self);                                                    \
-    Chain_APPEND(&S(promisechain), self);                               \
-    if (invoke_callback && (!(S(chain_busy))) && S(unlockloop_func)) {  \
-        S(unlockloop_func)(S(unlockloop_ctx));                          \
-    }                                                                   \
-    S(promise_count)--;                                                 \
+#define schedule_promise(self, val, flag, invoke_callback)                      \
+do {                                                                            \
+    PyTrack_INCREF(val);                                                        \
+    (self)->value = val;                                                        \
+    (self)->flags |= flag;                                                      \
+    Py_INCREF(self);                                                            \
+    Chain_APPEND(&S(promisechain), self);                                       \
+    if (invoke_callback && (!(S(in_chain_routine))) && S(unlockloop_func)) {    \
+        S(unlockloop_func)(S(unlockloop_ctx));                                  \
+    }                                                                           \
+    S(promise_count)--;                                                         \
+    LOG("schedule_promise(%p, invoke_callback=%d): promise_count=%zd",          \
+        self, invoke_callback, S(promise_count));                               \
 } while (0)
 
 /* Create a new resolved promise, steals value reference */
@@ -473,16 +476,20 @@ handle_scheduled_promise(_ctx_var, Promise *promise)
                     Py_DECREF(new_promise);
                 } else {
                     if (new_promise->coro || Py_REFCNT(new_promise) > 2) {
+                        LOG("(%p) replace promise", new_promise);
                         Py_XSETREF(new_promise, Promise_Then(new_promise));
                     }
                     if (promise->coro || Py_REFCNT(promise) > 1) {
+                        LOG("(%p) re-schedule promise: %p", new_promise, promise);
                         // We must re-schedule promise
                         Py_INCREF(promise);
+                        S(promise_count)++;
+                        LOG("promise_count=%zd", S(promise_count));
                         // Must clear the promise value as it was already set
                         PyTrack_CLEAR(promise->value);
                         Chain_APPEND(new_promise, promise);
                     } else {
-                        LOG("(%p) move");
+                        LOG("(%p) move chain: %p", new_promise, promise);
                         // We can replace the current promise with a new one by moving the child promises only
                         Chain_MOVE(new_promise, promise);
                     }
@@ -536,16 +543,16 @@ Promise_ProcessChain(_ctx_var)
     int ret = 0;
     if (Chain_HEAD(&S(promisechain))) {
         Promise *it;
-        S(chain_busy) = 1;
+        S(in_chain_routine) = 1;
         Chain_PULLALL(it, &S(promisechain)) {
             int err = handle_scheduled_promise(_ctx, it);
             Py_DECREF(it);
             if (err) {
-                S(chain_busy) = 0;
+                S(in_chain_routine) = 0;
                 return -1;
             }
         }
-        S(chain_busy) = 0;
+        S(in_chain_routine) = 0;
         ret = 1;
     }
     if (S(promise_count)) {
@@ -836,6 +843,11 @@ promise_clear(Promise *self)
 static void
 promise_finalize(Promise *self)
 {
+    LOG("%p", self);
+    if (!self->coro) {
+        return;
+    }
+
     // We're only here for coroutine
     PyObject *error_type, *error_value, *error_traceback;
     PyErr_Fetch(&error_type, &error_value, &error_traceback);
@@ -847,7 +859,7 @@ promise_finalize(Promise *self)
     if (!result) {
         PyErr_WriteUnraisable(self->coro);
     }
-    PySys_WriteStderr("RuntimeError: a coroutine expects a promise that will never be fulfilled\n");
+    PySys_WriteStderr("RuntimeError: a coroutine awaits a promise that will never be fulfilled\n");
     Py_XDECREF(result);
 
     PyErr_Restore(error_type, error_value, error_traceback);
@@ -862,6 +874,7 @@ promise_dealloc(Promise *self)
     }
 
     if (self->coro) {
+        LOG("coro %p, me %p", self->coro, self);
         if (PyObject_CallFinalizerFromDealloc((PyObject *) self) < 0) {
             // resurrected.
             return;
@@ -870,6 +883,7 @@ promise_dealloc(Promise *self)
 
     if (!(self->flags & PROMISE_SCHEDULED)) {
         S(promise_count)--;
+        LOG("promise_count=%zd", S(promise_count));
     }
 
     PyTrack_MarkDeleted(self);
@@ -1212,7 +1226,7 @@ promisemodule_init(PyObject *module)
     Freelist_GC_INIT(DeferredType, 1024);
     Freelist_GC_INIT(PromiseiterType, 1024);
     Chain_INIT(&(S(promisechain)));
-    S(chain_busy) = 0;
+    S(in_chain_routine) = 0;
     S(unlockloop_func) = NULL;
     S(unlockloop_ctx) = NULL;
     S(await_event) = NULL;

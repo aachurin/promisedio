@@ -1,6 +1,4 @@
-
-// Copyright (c) 2021 Andrey Churin (aachurin@gmail.com).
-// This file is part of promisedio
+// Auto-generated
 
 #define SIGNAL_API signal_api_4e247f2dad1d0a8160b909b158b7b95e
 

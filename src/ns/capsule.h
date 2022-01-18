@@ -1,8 +1,6 @@
+// Auto-generated
 
-// Copyright (c) 2021 Andrey Churin (aachurin@gmail.com).
-// This file is part of promisedio
-
-#define NS_API ns_api_624b9c10cfcc03f67cca5a354d4f4885
+#define NS_API ns_api_b6c07979596905917a19db92fd539cce
 
 #define NS_API_CAPSULE {\
   [0] = Ns_GetAddrInfo,\

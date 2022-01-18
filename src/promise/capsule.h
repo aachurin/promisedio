@@ -1,6 +1,4 @@
-
-// Copyright (c) 2021 Andrey Churin (aachurin@gmail.com).
-// This file is part of promisedio
+// Auto-generated
 
 #define PROMISE_API promise_api_2afead2f9b2edc52f3cf55b2ae227e32
 

@@ -106,7 +106,6 @@ static void
 bool_callback(uv_fs_t *req)
 {
     ACQUIRE_GIL
-        _CTX_set_req(req)
         Promise *p = Request_PROMISE(req);
         if (req->result < 0) {
             Promise_Resolve(p, Py_False);

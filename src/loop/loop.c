@@ -133,13 +133,11 @@ loop_run_forever_impl(PyObject *module)
 
     uv_loop_t *loop = Loop_Get(_ctx);
     uv_async_init(loop, &S(wakeup_event), NULL);
-    uv_unref((uv_handle_t *) &S(wakeup_event));
     S(wakeup_event_ptr) = &S(wakeup_event);
     S(signal_flag) = 0;
 
     LOG("(%p): start", loop);
 
-    int active = 1;
     Py_BEGIN_ALLOW_THREADS
         while (1) {
             int status;
@@ -149,11 +147,8 @@ loop_run_forever_impl(PyObject *module)
                 } else {
                     status = Promise_ProcessChain();
                 }
+            LOG("status=%d active=%d", status, loop->active_handles);
             RELEASE_GIL
-
-            if (status < 0 || (!active && status == 0)) {
-                break;
-            }
 
             if (S(signal_flag)) {
                 S(signal_flag) = 0;
@@ -167,15 +162,16 @@ loop_run_forever_impl(PyObject *module)
                         status = -1;
                     }
                 RELEASE_GIL
-                if (status < 0) {
-                    break;
-                }
+            }
+
+            if (status < 0 || (loop->active_handles <= 1 && status == 0)) {
+                break;
             }
 
             if (status & 1) {
-                active = uv_run(loop, UV_RUN_NOWAIT);
+                uv_run(loop, UV_RUN_NOWAIT);
             } else {
-                active = uv_run(loop, UV_RUN_ONCE);
+                uv_run(loop, UV_RUN_ONCE);
             }
         }
     Py_END_ALLOW_THREADS
@@ -186,7 +182,7 @@ loop_run_forever_impl(PyObject *module)
     LOG("(%p): stop", loop);
     loop_stop(_ctx);
 
-#ifdef BUILD_LOG_DEBUG
+#ifdef BUILD_DEBUG_LOG
     uv_print_all_handles(loop, stderr);
 #endif
 

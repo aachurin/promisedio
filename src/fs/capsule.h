@@ -1,6 +1,4 @@
-
-// Copyright (c) 2021 Andrey Churin (aachurin@gmail.com).
-// This file is part of promisedio
+// Auto-generated
 
 #define FS_API fs_api_dfd38b909ba0ab654ffd1c14796c70c5
 

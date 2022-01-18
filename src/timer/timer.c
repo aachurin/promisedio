@@ -31,7 +31,6 @@ timeout_callback(uv_timer_t *handle)
 {
     ACQUIRE_GIL
         TimeoutHandle *h = Handle_Get(handle, TimeoutHandle);
-        _CTX_set(h);
         Promise_Resolve(h->promise, Py_None);
         Py_CLEAR(h->promise);
         Handle_Close(h);

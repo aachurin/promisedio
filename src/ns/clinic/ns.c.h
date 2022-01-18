@@ -137,7 +137,7 @@ PyDoc_STRVAR(ns_open_connection__doc__,
 "open_connection($module, /, remote_addr, *,\n"
 "                local_addr=<unrepresentable>, limit=-1, chunk_size=-1,\n"
 "                nodelay=-1, keepalive=-1, ssl=<unrepresentable>,\n"
-"                server_hostname=<unrepresentable>)\n"
+"                server_hostname=<unrepresentable>, timeout=0.0)\n"
 "--\n"
 "\n"
 "Establish an IPv4 or IPv6 TCP connection.\n"
@@ -156,15 +156,16 @@ Py_LOCAL_INLINE(PyObject *)
 ns_open_connection_impl(PyObject *module, sockaddr_any *remote_addr,
                         PyObject *local_addr, Py_ssize_t limit,
                         Py_ssize_t chunk_size, int nodelay, int keepalive,
-                        PyObject *ssl, PyObject *server_hostname);
+                        PyObject *ssl, PyObject *server_hostname,
+                        double timeout);
 
 static PyObject *
 ns_open_connection(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"remote_addr", "local_addr", "limit", "chunk_size", "nodelay", "keepalive", "ssl", "server_hostname", NULL};
+    static const char * const _keywords[] = {"remote_addr", "local_addr", "limit", "chunk_size", "nodelay", "keepalive", "ssl", "server_hostname", "timeout", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "open_connection", 0};
-    PyObject *argsbuf[8];
+    PyObject *argsbuf[9];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     sockaddr_any remote_addr;
     PyObject *local_addr = NULL;
@@ -174,6 +175,7 @@ ns_open_connection(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
     int keepalive = -1;
     PyObject *ssl = NULL;
     PyObject *server_hostname = NULL;
+    double timeout = 0.0;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
     if (!args) {
@@ -253,9 +255,24 @@ ns_open_connection(PyObject *module, PyObject *const *args, Py_ssize_t nargs, Py
             goto skip_optional_kwonly;
         }
     }
-    server_hostname = args[7];
+    if (args[7]) {
+        server_hostname = args[7];
+        if (!--noptargs) {
+            goto skip_optional_kwonly;
+        }
+    }
+    if (PyFloat_CheckExact(args[8])) {
+        timeout = PyFloat_AS_DOUBLE(args[8]);
+    }
+    else
+    {
+        timeout = PyFloat_AsDouble(args[8]);
+        if (timeout == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
 skip_optional_kwonly:
-    return_value = ns_open_connection_impl(module, &remote_addr, local_addr, limit, chunk_size, nodelay, keepalive, ssl, server_hostname);
+    return_value = ns_open_connection_impl(module, &remote_addr, local_addr, limit, chunk_size, nodelay, keepalive, ssl, server_hostname, timeout);
 
 exit:
     return return_value;
@@ -1158,4 +1175,4 @@ ns_UnixServer_close(Server *self, PyObject *Py_UNUSED(ignored))
 {
     return ns_UnixServer_close_impl(self);
 }
-/*[clinic end generated code: output=f2de3250ddb50f45 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=d633bd56a8aaa751 input=a9049054013a1b77]*/
